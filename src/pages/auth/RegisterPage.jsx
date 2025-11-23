@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import modernInterior from '../../assets/modern-interior1.webp';
+import modernInterior from '../../assets/interior1.jpg';
 import { 
   Eye, 
   EyeOff, 
