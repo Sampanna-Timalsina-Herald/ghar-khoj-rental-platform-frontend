@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from "react";
 import { Routes, Route } from 'react-router-dom'
 import { Search, Heart, MessageSquare, BarChart3 } from 'lucide-react'
 import Navbar from '../../components/Navbar'
