@@ -235,7 +235,7 @@ const LoginPage = () => {
     try {
       console.log("Login payload:", formData);
 
-      // STEP 1: Fetch role from backend
+      // STEP 1: Fetch role from backend based on email
       const roleResponse = await api.get("/auth/getUserRoleByEmail", {
         params: { email: formData.email },
       });
