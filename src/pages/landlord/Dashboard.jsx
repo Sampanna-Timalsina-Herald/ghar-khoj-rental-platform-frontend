@@ -1,3 +1,4 @@
+import React from 'react'
 import { useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { Home, Plus, MessageSquare, BarChart3 } from 'lucide-react'
