@@ -1,4 +1,4 @@
-//App.jsx 
+// App.jsx
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "./stores/authStore";
@@ -17,9 +17,10 @@ import TenantDashboard from "./pages/tenant/Dashboard";
 // Components
 import PublicRoute from "./components/PublicRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
+import RedirectWithSpinner from "./components/RedirectWithSpinner";
 
 function App() {
-  const { loadFromStorage, isAuthenticated, role } = useAuthStore();
+  const { loadFromStorage, isAuthenticated, role, authLoaded } = useAuthStore();
 
   useEffect(() => {
     loadFromStorage(); // Load token and role from localStorage
@@ -28,9 +29,16 @@ function App() {
   return (
     <Router>
       <Routes>
-
         {/* Public Routes */}
-        <Route element={<PublicRoute isAuthenticated={isAuthenticated} />}>
+        <Route
+          element={
+            <PublicRoute
+              isAuthenticated={isAuthenticated}
+              role={role}
+              authLoaded={authLoaded}
+            />
+          }
+        >
           <Route path="/home" element={<Home />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -38,28 +46,47 @@ function App() {
         </Route>
 
         {/* Protected Routes */}
-        <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
+        <Route
+          element={
+            <ProtectedRoute
+              isAuthenticated={isAuthenticated}
+              authLoaded={authLoaded}
+            />
+          }
+        >
           <Route
             path="/admin/*"
-            element={role === "admin" ? <AdminDashboard /> : <Navigate to="/" replace />}
+            element={
+              role === "admin" ? <AdminDashboard /> : <Navigate to="/" replace />
+            }
           />
           <Route
             path="/landlord/*"
-            element={role === "landlord" ? <LandlordDashboard /> : <Navigate to="/" replace />}
+            element={
+              role === "landlord" ? <LandlordDashboard /> : <Navigate to="/" replace />
+            }
           />
           <Route
             path="/tenant/*"
-            element={role === "tenant" ? <TenantDashboard /> : <Navigate to="/" replace />}
+            element={
+              role === "tenant" ? <TenantDashboard /> : <Navigate to="/" replace />
+            }
           />
         </Route>
 
         {/* Default redirect */}
         <Route
           path="/"
-          element={<Navigate to={isAuthenticated ? `/${role}` : "/login"} replace />}
+          element={
+            <RedirectWithSpinner
+              isAuthenticated={isAuthenticated}
+              role={role}
+              authLoaded={authLoaded}
+            />
+          }
         />
 
-        {/* Catch-all */}
+        {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
