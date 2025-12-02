@@ -200,6 +200,7 @@
 // };
 
 // export default LoginPage;
+
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, Loader2, Mail, KeyRound, ArrowRight } from "lucide-react";
@@ -290,9 +291,13 @@ const LoginPage = () => {
 
         <div className="relative z-10 flex flex-col justify-between p-16 w-full h-full text-white">
           <div>
-            <div className="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center mb-8 shadow-lg shadow-primary-600/30">
-              <span className="text-2xl font-bold text-white">GK</span>
-            </div>
+            {/* --- Desktop Logo (Linked to Home) --- */}
+            <Link to="/" className="inline-block">
+              <div className="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center mb-8 shadow-lg shadow-primary-600/30 hover:scale-105 transition-transform duration-200 cursor-pointer">
+                <span className="text-2xl font-bold text-white">GK</span>
+              </div>
+            </Link>
+            
             <h1 className="text-5xl font-display font-bold leading-tight mb-6">
               Welcome Back<br />
               <span className="text-primary-400">to Gharkhoj.</span>
@@ -316,10 +321,12 @@ const LoginPage = () => {
 
         <div className="w-full max-w-md z-10 animate-fade-in">
           <div className="mb-10">
-            {/* Mobile Logo */}
-            <div className="lg:hidden w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-primary-600/30">
-              <span className="text-2xl font-bold text-white">GK</span>
-            </div>
+            {/* --- Mobile Logo (Linked to Home) --- */}
+            <Link to="/" className="lg:hidden inline-block">
+              <div className="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-primary-600/30 hover:scale-105 transition-transform duration-200 cursor-pointer">
+                <span className="text-2xl font-bold text-white">GK</span>
+              </div>
+            </Link>
 
             <h2 className="text-3xl font-bold text-slate-900 mb-2">Welcome Back</h2>
             <p className="text-slate-500">Login to continue</p>
@@ -342,24 +349,36 @@ const LoginPage = () => {
               icon={<Mail size={18} />}
             />
 
-            <Input
-              label="Password"
-              name="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
-              value={formData.password}
-              onChange={handleChange}
-              icon={<KeyRound size={18} />}
-              rightElement={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="hover:text-slate-600 focus:outline-none"
+            <div className="space-y-2">
+              <Input
+                label="Password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+                icon={<KeyRound size={18} />}
+                rightElement={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="hover:text-slate-600 focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                }
+              />
+              
+              {/* --- Forgot Password Link --- */}
+              <div className="flex justify-end">
+                <Link 
+                  to="/forgot-password" 
+                  className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              }
-            />
+                  Forgot password?
+                </Link>
+              </div>
+            </div>
 
             <button
               type="submit"
@@ -395,4 +414,3 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
-

@@ -8,6 +8,8 @@ import Home from "./pages/Home";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import OTPVerificationPage from "./pages/auth/OTPVerificationPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 
 // Dashboards
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -43,6 +45,8 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-otp" element={<OTPVerificationPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />}/>
         </Route>
 
         {/* Protected Routes */}
