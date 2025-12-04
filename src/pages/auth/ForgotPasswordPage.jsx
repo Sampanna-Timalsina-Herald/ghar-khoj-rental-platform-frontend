@@ -126,7 +126,7 @@ const ForgotPasswordPage = () => {
               </form>
             </>
           ) : (
-            // --- VIEW 2: Success State ---
+            // Success State View
             <div className="text-center animate-fade-in">
               <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 size={32} />
