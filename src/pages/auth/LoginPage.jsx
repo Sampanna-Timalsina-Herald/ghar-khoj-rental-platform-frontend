@@ -247,8 +247,7 @@ const LoginPage = () => {
         return;
       }
 
-      const role = roleResponse.data.role;
-
+    const role = roleResponse.data.role;
       // STEP 2: Login
       const response = await api.post("/auth/login", {
         email: formData.email,
