@@ -1,15 +1,25 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Mail, ArrowRight, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Input from "./ui/Input";
 import api from "../../api/axios";
-import modernInterior from "../../assets/interior1.jpg"; // Reusing the same image for consistency
+import modernInterior from "../../assets/interior1.jpg";
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false); // To toggle success view
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState("");
+
+  const emailInputRef = useRef(null);
+
+  // Clear form and focus input on page load
+  useEffect(() => {
+    setEmail("");
+    setError("");
+    setIsSubmitted(false);
+    emailInputRef.current?.focus();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,10 +27,7 @@ const ForgotPasswordPage = () => {
     setLoading(true);
 
     try {
-      // API Call to trigger password reset email
-      // Adjust the endpoint if your backend path is different
-      await api.post("/auth/forgot-password", { email });
-      
+      const response = await api.post("/auth/forgot-password", { email });
       setIsSubmitted(true);
     } catch (err) {
       console.error("Forgot password error:", err);
@@ -30,6 +37,13 @@ const ForgotPasswordPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    setIsSubmitted(false);
+    setEmail("");
+    setError("");
+    emailInputRef.current?.focus();
   };
 
   return (
@@ -68,7 +82,6 @@ const ForgotPasswordPage = () => {
         <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-primary-100 rounded-full blur-3xl opacity-50 pointer-events-none mix-blend-multiply lg:hidden"></div>
 
         <div className="w-full max-w-md z-10 animate-fade-in">
-          
           {/* Mobile Logo */}
           <Link to="/" className="lg:hidden inline-block">
             <div className="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-primary-600/30">
@@ -80,8 +93,8 @@ const ForgotPasswordPage = () => {
             // --- VIEW 1: Input Form ---
             <>
               <div className="mb-8">
-                <Link 
-                  to="/login" 
+                <Link
+                  to="/login"
                   className="inline-flex items-center text-sm text-slate-500 hover:text-primary-600 mb-6 transition-colors"
                 >
                   <ArrowLeft size={16} className="mr-2" /> Back to Login
@@ -100,6 +113,7 @@ const ForgotPasswordPage = () => {
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <Input
+                  ref={emailInputRef}
                   label="Email Address"
                   name="email"
                   type="email"
@@ -107,6 +121,7 @@ const ForgotPasswordPage = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   icon={<Mail size={18} />}
+                  required
                 />
 
                 <button
@@ -126,32 +141,38 @@ const ForgotPasswordPage = () => {
               </form>
             </>
           ) : (
-            // Success State View
+            // --- VIEW 2: Success State ---
             <div className="text-center animate-fade-in">
               <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 size={32} />
               </div>
               <h2 className="text-3xl font-bold text-slate-900 mb-2">Check your mail</h2>
               <p className="text-slate-500 mb-8">
-                We have sent a password recover instructions to your email.
+                We have sent password recovery instructions to your email.
               </p>
-              
+
               <div className="space-y-4">
                 <button
-                   onClick={() => window.open('https://gmail.com', '_blank')}
-                   className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-primary-600/20 transition-all duration-200"
+                  onClick={() => window.open("https://gmail.com", "_blank")}
+                  className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-primary-600/20 transition-all duration-200"
                 >
                   Open Email App
                 </button>
-                
+
                 <p className="text-sm text-slate-500">
-                  Did not receive the email? Check your spam filter, or <button onClick={() => setIsSubmitted(false)} className="text-primary-600 font-semibold hover:underline">try another email address</button>.
+                  Did not receive the email? Check your spam filter, or{" "}
+                  <button onClick={handleRetry} className="text-primary-600 font-semibold hover:underline">
+                    try another email address
+                  </button>.
                 </p>
 
                 <div className="pt-4">
-                    <Link to="/login" className="text-slate-600 hover:text-slate-900 font-medium flex items-center justify-center gap-2">
-                        <ArrowLeft size={16} /> Back to Login
-                    </Link>
+                  <Link
+                    to="/login"
+                    className="text-slate-600 hover:text-slate-900 font-medium flex items-center justify-center gap-2"
+                  >
+                    <ArrowLeft size={16} /> Back to Login
+                  </Link>
                 </div>
               </div>
             </div>

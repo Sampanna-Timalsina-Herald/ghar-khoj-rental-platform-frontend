@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
+import { HiEye, HiEyeOff } from "react-icons/hi"; // Tailwind compatible icons
 
 const ResetPasswordPage = () => {
   const location = useLocation();
@@ -10,155 +11,124 @@ const ResetPasswordPage = () => {
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [message, setMessage] = useState("");
-  const [isError, setIsError] = useState(false);
+  const [type, setType] = useState(""); // "error" | "success"
   const [loading, setLoading] = useState(false);
 
-  // ---------------- HANDLE SUBMIT ----------------
+  // Clear form & messages on page load
+  useEffect(() => {
+    setPassword("");
+    setConfirmPassword("");
+    setMessage("");
+    setType("");
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!token) {
-      setMessage("Invalid or missing reset token.");
-      setIsError(true);
-      return;
-    }
-
-    if (password.length < 8) {
-      setMessage("Password must be at least 8 characters long.");
-      setIsError(true);
-      return;
-    }
-
     if (password !== confirmPassword) {
-      setMessage("Passwords do not match.");
-      setIsError(true);
+      setType("error");
+      setMessage("Passwords do not match");
       return;
     }
 
     try {
       setLoading(true);
-      const response = await api.post("/auth/reset-password", {
+      await api.post("/auth/reset-password", {
         token,
         newPassword: password,
       });
 
-      setIsError(false);
+      setType("success");
       setMessage("Password reset successful! Redirecting...");
+      setPassword("");
+      setConfirmPassword("");
 
-      setTimeout(() => navigate("/login"), 2000);
+      setTimeout(() => navigate("/login"), 1500);
     } catch (error) {
-      setIsError(true);
-      setMessage(
-        error.response?.data?.error ||
-          "Failed to reset password. Please try again."
-      );
+      setType("error");
+      setMessage(error.response?.data?.message || "Failed to reset password");
     } finally {
       setLoading(false);
     }
   };
 
-  // ---------------- COMPONENT UI ----------------
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h2 style={styles.heading}>Reset Your Password</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+      <div className="bg-white shadow-xl rounded-lg p-8 w-full max-w-md">
+        <h2 className="text-2xl font-semibold text-center mb-6">
+          Reset Password
+        </h2>
 
         {message && (
-          <p style={{ ...styles.message, color: isError ? "red" : "green" }}>
+          <div
+            className={`p-3 mb-4 rounded text-sm ${
+              type === "error"
+                ? "bg-red-100 text-red-700"
+                : "bg-green-100 text-green-700"
+            }`}
+          >
             {message}
-          </p>
+          </div>
         )}
 
-        {!isError && (
-          <form onSubmit={handleSubmit} style={styles.form}>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* New Password */}
+          <div className="relative">
+            <label className="block text-sm font-medium mb-1">New Password</label>
             <input
-              type="password"
-              placeholder="New Password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter new password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              style={styles.input}
+              className="w-full border rounded-lg px-3 py-2 pr-10 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-2 top-9 text-gray-500 hover:text-gray-700"
+            >
+              {showPassword ? <HiEyeOff size={20} /> : <HiEye size={20} />}
+            </button>
+          </div>
 
+          {/* Confirm Password */}
+          <div className="relative">
+            <label className="block text-sm font-medium mb-1">Confirm Password</label>
             <input
-              type="password"
-              placeholder="Confirm Password"
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="Confirm new password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              style={styles.input}
+              className="w-full border rounded-lg px-3 py-2 pr-10 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
-
             <button
-              type="submit"
-              style={{
-                ...styles.button,
-                opacity: loading ? 0.6 : 1,
-                cursor: loading ? "not-allowed" : "pointer",
-              }}
-              disabled={loading}
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-2 top-9 text-gray-500 hover:text-gray-700"
             >
-              {loading ? "Resetting..." : "Reset Password"}
+              {showConfirmPassword ? <HiEyeOff size={20} /> : <HiEye size={20} />}
             </button>
-          </form>
-        )}
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full py-2 rounded-lg text-white font-medium transition ${
+              loading ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+            }`}
+          >
+            {loading ? "Resetting..." : "Reset Password"}
+          </button>
+        </form>
       </div>
     </div>
   );
-};
-
-// ---------------- CSS STYLES ----------------
-const styles = {
-  container: {
-    display: "flex",
-    justifyContent: "center",
-    paddingTop: "80px",
-    paddingBottom: "40px",
-    backgroundColor: "#f7f7f7",
-    minHeight: "100vh",
-  },
-  card: {
-    width: "100%",
-    maxWidth: "420px",
-    background: "white",
-    padding: "30px",
-    borderRadius: "12px",
-    boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
-  },
-  heading: {
-    textAlign: "center",
-    marginBottom: "20px",
-    fontSize: "24px",
-    color: "#333",
-  },
-  message: {
-    textAlign: "center",
-    marginBottom: "15px",
-    fontWeight: "500",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "15px",
-  },
-  input: {
-    padding: "12px",
-    fontSize: "15px",
-    borderRadius: "8px",
-    border: "1px solid #ccc",
-    outline: "none",
-  },
-  button: {
-    padding: "12px",
-    backgroundColor: "#4A90E2",
-    color: "white",
-    fontSize: "16px",
-    fontWeight: "600",
-    border: "none",
-    borderRadius: "8px",
-    transition: "0.2s ease",
-  },
 };
 
 export default ResetPasswordPage;
