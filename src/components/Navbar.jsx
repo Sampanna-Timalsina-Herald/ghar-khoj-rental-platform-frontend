@@ -8,10 +8,15 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   const [profileOpen, setProfileOpen] = useState(false)
   const navigate = useNavigate()
 
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
-  }
+ const handleLogout = () => {
+  logout() // this should clear tokens from state and localStorage
+  setProfileOpen(false) // close the profile dropdown
+  localStorage.removeItem('accessToken') // extra safety
+  localStorage.removeItem('refreshToken') // if you use refresh tokens
+  localStorage.removeItem('user') // remove stored user info
+  navigate('/login') // redirect to login
+}
+
 
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50">
