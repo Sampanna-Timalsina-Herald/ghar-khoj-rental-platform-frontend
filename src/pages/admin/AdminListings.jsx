@@ -14,7 +14,7 @@ const AdminListings = () => {
 
   const fetchListings = async () => {
     try {
-      const response = await api.get('/api/listings')
+      const response = await api.get('api/admin/listings')
       setListings(response.data.data)
     } catch (error) {
       console.error('Failed to fetch listings:', error)
@@ -26,7 +26,7 @@ const AdminListings = () => {
   const handleApprove = async (id) => {
     setActionLoading((prev) => ({ ...prev, [id]: true }))
     try {
-      await api.put(`/api/admin/listings/${id}/approve`, {
+      await api.put(`api/admin/listings/${id}/approve`, {
         status: 'approved',
       })
       setListings((prev) =>

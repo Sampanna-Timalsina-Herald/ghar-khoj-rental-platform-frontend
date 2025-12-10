@@ -12,7 +12,7 @@ const AdminUsers = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await api.get('/admin/users')
+      const response = await api.get('admin/users')
       setUsers(response.data.data)
     } catch (error) {
       console.error('Failed to fetch users:', error)
