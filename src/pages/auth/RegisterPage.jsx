@@ -389,7 +389,7 @@ const RegisterPage = () => {
         label="Phone Number"
         name="phone"
         type="tel"
-        placeholder="+92 300 1234567"
+        placeholder="+977 9999999999"
         value={formData.phone}
         onChange={handleChange}
         error={errors.phone}
