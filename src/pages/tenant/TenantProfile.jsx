@@ -4,6 +4,7 @@ import api from '../../api/axios'
 import { useAuthStore } from '../../stores/authStore'
 import { User, Mail, Phone, MapPin, GraduationCap, Camera, Save, Loader2, CheckCircle2, XCircle } from 'lucide-react'
 
+//Tenant Profile Page Component
 const TenantProfile = () => {
   const { user } = useAuthStore()
   const [loading, setLoading] = useState(false)
