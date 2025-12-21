@@ -55,22 +55,37 @@ import { create } from 'zustand';
 
 export const useAuthStore = create((set, get) => ({
   user: null,
-  token: localStorage.getItem('token'),
-  role: localStorage.getItem('role'),
-  isAuthenticated: !!localStorage.getItem('token'),
-  authLoaded: false, // ✅ add this flag
+  token: null,
+  accessToken: null,
+  role: null,
+  isAuthenticated: false,
+  authLoaded: false,
 
   login: (userData, token, role) => {
+    console.log('[AuthStore] Login: Saving token and user data');
+    
+    // Save to localStorage first
     localStorage.setItem('token', token);
     localStorage.setItem('role', role);
     localStorage.setItem('user', JSON.stringify(userData));
 
+    // Then update state
     set({
       user: userData,
       token,
+      accessToken: token,
       role,
       isAuthenticated: true,
     });
+    
+    // Verify persistence
+    const savedToken = localStorage.getItem('token');
+    console.log('[AuthStore] Token persisted:', savedToken ? 'YES' : 'NO');
+  },
+
+  setAccessToken: (token) => {
+    localStorage.setItem('token', token);
+    set({ accessToken: token, token });
   },
 
   logout: () => {
@@ -81,6 +96,7 @@ export const useAuthStore = create((set, get) => ({
     set({
       user: null,
       token: null,
+      accessToken: null,
       role: null,
       isAuthenticated: false,
     });
@@ -96,16 +112,23 @@ export const useAuthStore = create((set, get) => ({
     const role = localStorage.getItem('role');
     const user = localStorage.getItem('user');
 
+    console.log('[AuthStore] LoadFromStorage:', {
+      hasToken: !!token,
+      tokenPreview: token ? token.substring(0, 30) + '...' : 'NONE',
+      hasRole: !!role,
+      hasUser: !!user,
+    });
+
     if (token && role && user) {
       set({
         user: JSON.parse(user),
         token,
+        accessToken: token,
         role,
         isAuthenticated: true,
-        authLoaded: true, // ✅ mark as loaded
+        authLoaded: true,
       });
     } else {
-      // No user/token → still mark authLoaded true
       set({
         authLoaded: true,
       });

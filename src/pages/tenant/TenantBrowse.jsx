@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
-import { Heart, MapPin, Bed, Bath, Ruler, Filter } from 'lucide-react'
+import { Heart, MapPin, Bed, Bath, Ruler, Filter, Loader2 } from 'lucide-react'
 
 const TenantBrowse = () => {
   const [searchParams] = useSearchParams()
@@ -31,8 +32,8 @@ const TenantBrowse = () => {
       if (filters.furnished !== 'all') queryParams.append('furnished', filters.furnished)
       if (filters.type !== 'all') queryParams.append('type', filters.type)
 
-      const response = await api.get(`/api/listings?${queryParams}`)
-      setListings(response.data.data)
+      const response = await api.get(`/listings?${queryParams}`)
+      setListings(response.data.data || [])
     } catch (error) {
       console.error('Failed to fetch listings:', error)
     } finally {
@@ -48,26 +49,49 @@ const TenantBrowse = () => {
   }
 
   if (loading) {
-    return <div className="text-center py-12">Loading listings...</div>
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 size={32} className="animate-spin text-primary-600" />
+      </div>
+    )
+  }
+
+  const handleFavoriteToggle = async (listingId, e) => {
+    e.stopPropagation()
+    // TODO: Implement favorite toggle
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-text">Browse Listings</h1>
-        <button
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex items-center justify-between"
+      >
+        <div>
+          <h1 className="text-3xl font-bold text-text">Browse Listings</h1>
+          <p className="text-gray-600 mt-1">Find your perfect rental property</p>
+        </div>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => setFiltersOpen(!filtersOpen)}
-          className="lg:hidden p-2 border-2 border-primary-600 text-primary-600 rounded-lg flex items-center gap-2"
+          className="lg:hidden p-3 border-2 border-primary-600 text-primary-600 rounded-lg flex items-center gap-2 font-semibold"
         >
           <Filter size={20} />
           Filters
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Filters */}
-        <div className={`${filtersOpen ? 'block' : 'hidden'} lg:block col-span-1`}>
-          <div className="card space-y-6">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className={`${filtersOpen ? 'block' : 'hidden'} lg:block col-span-1`}
+        >
+              <div className="bg-white rounded-xl shadow-lg p-6 space-y-6">
             <h3 className="font-bold text-text">Filters</h3>
 
             <div>
@@ -146,14 +170,22 @@ const TenantBrowse = () => {
                 <option value="furnished">Fully Furnished</option>
               </select>
             </div>
-          </div>
-        </div>
+              </div>
+            </motion.div>
 
         {/* Listings */}
         <div className="lg:col-span-3 space-y-4">
-          {listings.length > 0 ? (
-            listings.map((listing) => (
-              <div key={listing.id} className="card flex gap-4 hover:shadow-lg transition-shadow">
+          <AnimatePresence mode="wait">
+            {listings.length > 0 ? (
+              listings.map((listing, index) => (
+                <motion.div
+                  key={listing.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="bg-white rounded-xl shadow-md p-6 flex gap-4 hover:shadow-xl transition-all duration-300"
+                >
                 <img
                   src={listing.images?.[0] || '/placeholder.svg'}
                   alt={listing.title}
@@ -161,20 +193,25 @@ const TenantBrowse = () => {
                 />
                 <div className="flex-1">
                   <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h3 className="text-lg font-bold text-text">{listing.title}</h3>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-text line-clamp-1">{listing.title || listing.address || 'Property Listing'}</h3>
                       <p className="text-gray-600 text-sm flex items-center gap-1">
-                        <MapPin size={16} />
-                        {listing.location}
+                        <MapPin size={16} className="text-primary-600" />
+                        {listing.city || listing.address || listing.location || 'Location not specified'}
                       </p>
                     </div>
-                    <button className="p-2 hover:bg-gray-100 rounded-lg">
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={(e) => handleFavoriteToggle(listing.id, e)}
+                      className="p-2 hover:bg-gray-100 rounded-lg"
+                    >
                       <Heart size={20} className="text-red-500" />
-                    </button>
+                    </motion.button>
                   </div>
 
                   <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                    {listing.description}
+                    {listing.description || 'No description available'}
                   </p>
 
                   <div className="flex gap-4 mb-3 text-sm text-gray-600">
@@ -193,19 +230,34 @@ const TenantBrowse = () => {
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <p className="text-2xl font-bold text-primary-600">
-                      Rs. {listing.price.toLocaleString()}
-                    </p>
-                    <button className="btn-primary">Contact Owner</button>
+                    <div>
+                      <p className="text-2xl font-bold text-primary-600">
+                        Rs. {(listing.rent_amount || listing.price || 0).toLocaleString()}
+                      </p>
+                      <p className="text-xs text-gray-500">per month</p>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="px-6 py-2 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors"
+                    >
+                      Contact Owner
+                    </motion.button>
                   </div>
                 </div>
-              </div>
-            ))
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-600">No listings found</p>
-            </div>
-          )}
+                </motion.div>
+              ))
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-12"
+              >
+                <p className="text-gray-600 text-lg">No listings found</p>
+                <p className="text-gray-400 text-sm mt-2">Try adjusting your filters</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

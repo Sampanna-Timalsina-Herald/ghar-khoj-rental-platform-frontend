@@ -1,10 +1,14 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
+import { MessageSquare, Send, Loader2, User } from 'lucide-react'
 
 const LandlordConversations = () => {
   const [conversations, setConversations] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedConversation, setSelectedConversation] = useState(null)
+  const [messageText, setMessageText] = useState('')
+  const [sending, setSending] = useState(false)
 
   useEffect(() => {
     fetchConversations()
@@ -12,8 +16,11 @@ const LandlordConversations = () => {
 
   const fetchConversations = async () => {
     try {
-      const response = await api.get('/api/conversations')
-      setConversations(response.data.data)
+      const response = await api.get('/conversations')
+      setConversations(response.data.data || [])
+      if (response.data.data && response.data.data.length > 0) {
+        setSelectedConversation(response.data.data[0])
+      }
     } catch (error) {
       console.error('Failed to fetch conversations:', error)
     } finally {
@@ -21,73 +28,191 @@ const LandlordConversations = () => {
     }
   }
 
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || !selectedConversation) return
+
+    setSending(true)
+    try {
+      // TODO: Implement send message API
+      // await api.post(`/conversations/${selectedConversation.id}/messages`, {
+      //   message: messageText
+      // })
+      
+      setMessageText('')
+      // Refresh messages
+      fetchConversations()
+    } catch (error) {
+      console.error('Failed to send message:', error)
+    } finally {
+      setSending(false)
+    }
+  }
+
   if (loading) {
-    return <div className="text-center py-12">Loading messages...</div>
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 size={32} className="animate-spin text-primary-600" />
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-      <div>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
         <h1 className="text-3xl font-bold text-text">Messages</h1>
         <p className="text-gray-600 mt-2">Communicate with potential tenants</p>
-      </div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 bg-white rounded-lg shadow-md overflow-y-auto max-h-96">
-          {conversations.length > 0 ? (
-            conversations.map((conversation) => (
-              <button
-                key={conversation.id}
-                onClick={() => setSelectedConversation(conversation)}
-                className={`w-full p-4 border-b border-gray-200 hover:bg-gray-50 transition-colors text-left ${
-                  selectedConversation?.id === conversation.id ? 'bg-primary-50' : ''
-                }`}
-              >
-                <p className="font-semibold text-text">{conversation.participant?.name}</p>
-                <p className="text-sm text-gray-600">{conversation.listing?.title}</p>
-              </button>
-            ))
-          ) : (
-            <div className="p-4 text-center text-gray-600">No conversations yet</div>
-          )}
-        </div>
-
-        <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
-          {selectedConversation ? (
-            <div>
-              <h2 className="text-xl font-bold text-text mb-4">
-                Chat with {selectedConversation.participant?.name}
-              </h2>
-              <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
-                {selectedConversation.messages?.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.senderId === 'current-user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-xs px-4 py-2 rounded-lg ${
-                        message.senderId === 'current-user'
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-gray-100 text-text'
-                      }`}
-                    >
-                      <p>{message.content}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-300px)]">
+        {/* Conversations List */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col"
+        >
+          <div className="p-4 border-b border-gray-200 bg-primary-600 text-white">
+            <h2 className="font-semibold flex items-center gap-2">
+              <MessageSquare size={20} />
+              Conversations
+            </h2>
+          </div>
+          <div className="overflow-y-auto flex-1">
+            {conversations.length > 0 ? (
+              conversations.map((conversation, index) => (
+                <motion.button
+                  key={conversation.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 + index * 0.05 }}
+                  onClick={() => setSelectedConversation(conversation)}
+                  className={`w-full p-4 border-b border-gray-200 hover:bg-gray-50 transition-colors text-left ${
+                    selectedConversation?.id === conversation.id ? 'bg-primary-50 border-l-4 border-primary-600' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                      <User size={20} className="text-primary-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-text truncate">
+                        {conversation.participant?.name || 'Unknown User'}
+                      </p>
+                      <p className="text-sm text-gray-600 truncate">
+                        {conversation.listing?.title || conversation.last_message || 'No messages yet'}
+                      </p>
                     </div>
                   </div>
-                ))}
+                </motion.button>
+              ))
+            ) : (
+              <div className="p-8 text-center text-gray-500">
+                <MessageSquare size={48} className="mx-auto mb-4 opacity-50" />
+                <p>No conversations yet</p>
               </div>
-              <input
-                type="text"
-                placeholder="Type a message..."
-                className="input-field"
-              />
-            </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Chat Area */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+          className="lg:col-span-2 bg-white rounded-xl shadow-lg flex flex-col"
+        >
+          {selectedConversation ? (
+            <>
+              <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-primary-600 to-primary-700 text-white">
+                <h2 className="font-semibold">
+                  Chat with {selectedConversation.participant?.name || 'Tenant'}
+                </h2>
+                {selectedConversation.listing && (
+                  <p className="text-sm text-primary-100 mt-1">
+                    About: {selectedConversation.listing.title}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
+                <AnimatePresence>
+                  {selectedConversation.messages?.length > 0 ? (
+                    selectedConversation.messages.map((message, index) => (
+                      <motion.div
+                        key={message.id || index}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className={`flex ${message.sender_id === 'current' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
+                            message.sender_id === 'current'
+                              ? 'bg-primary-600 text-white'
+                              : 'bg-white text-text shadow-sm'
+                          }`}
+                        >
+                          <p className="text-sm">{message.content || message.message}</p>
+                          {message.created_at && (
+                            <p className={`text-xs mt-1 ${
+                              message.sender_id === 'current' ? 'text-primary-100' : 'text-gray-500'
+                            }`}>
+                              {new Date(message.created_at).toLocaleTimeString()}
+                            </p>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                      <div className="text-center">
+                        <MessageSquare size={48} className="mx-auto mb-4 opacity-50" />
+                        <p>No messages yet. Start the conversation!</p>
+                      </div>
+                    </div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <div className="p-4 border-t border-gray-200">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    placeholder="Type a message..."
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  />
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleSendMessage}
+                    disabled={!messageText.trim() || sending}
+                    className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {sending ? (
+                      <Loader2 size={20} className="animate-spin" />
+                    ) : (
+                      <Send size={20} />
+                    )}
+                  </motion.button>
+                </div>
+              </div>
+            </>
           ) : (
-            <div className="flex items-center justify-center h-96 text-gray-600">
-              Select a conversation to start messaging
+            <div className="flex items-center justify-center h-full text-gray-500">
+              <div className="text-center">
+                <MessageSquare size={64} className="mx-auto mb-4 opacity-50" />
+                <p className="text-lg">Select a conversation to start messaging</p>
+              </div>
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   )

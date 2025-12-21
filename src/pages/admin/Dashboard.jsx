@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import { Users, Home, AlertCircle, BarChart3 } from 'lucide-react'
+import { Users, Home, AlertCircle, BarChart3, User as UserIcon } from 'lucide-react'
 import Navbar from '../../components/Navbar'
 import Sidebar from '../../components/Sidebar'
 import AdminHome from './AdminHome'
 import AdminListings from './AdminListings'
 import AdminUsers from './AdminUsers'
+import AdminProfile from './AdminProfile'
 
 const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -31,6 +32,11 @@ const AdminDashboard = () => {
       path: '/reports',
       icon: <AlertCircle size={20} />,
     },
+    {
+      label: 'Profile',
+      path: '/profile',
+      icon: <UserIcon size={20} />,
+    },
   ]
 
   return (
@@ -48,6 +54,7 @@ const AdminDashboard = () => {
             <Route index element={<AdminHome />} />
             <Route path="listings" element={<AdminListings />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="profile" element={<AdminProfile />} />
           </Routes>
         </main>
       </div>

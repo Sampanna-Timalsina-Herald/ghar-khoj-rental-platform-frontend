@@ -47,14 +47,30 @@ const api = axios.create({
   withCredentials: true, // send cookies automatically
 });
 
-// Request interceptor: attach access token from memory
+// Request interceptor: attach access token from memory or localStorage
 api.interceptors.request.use(
   async (config) => {
-    const authStore = useAuthStore.getState();
-    const token = authStore.accessToken;
+    // Always try localStorage first as it's the source of truth
+    let token = localStorage.getItem('token');
+    
+    // If not in localStorage, try store
+    if (!token) {
+      const authStore = useAuthStore.getState();
+      token = authStore.accessToken || authStore.token;
+    }
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('[AXIOS] Request:', config.method.toUpperCase(), config.url);
+      console.log('[AXIOS] Token attached:', token.substring(0, 30) + '...');
+    } else {
+      console.warn('[AXIOS] NO TOKEN FOUND for', config.url);
+      console.warn('[AXIOS] LocalStorage token:', localStorage.getItem('token') ? 'EXISTS' : 'MISSING');
+      console.warn('[AXIOS] Store state:', {
+        accessToken: useAuthStore.getState().accessToken ? 'EXISTS' : 'MISSING',
+        token: useAuthStore.getState().token ? 'EXISTS' : 'MISSING',
+        isAuthenticated: useAuthStore.getState().isAuthenticated,
+      });
     }
 
     return config;
@@ -73,12 +89,24 @@ api.interceptors.response.use(
     // 1. Status is 401
     // 2. Not retried yet
     // 3. Not login or public endpoint
-    const isLoginOrPublic = originalRequest.url.includes("/auth/login") || originalRequest.url.includes("/auth/register");
+    const isLoginOrPublic = originalRequest.url.includes("/auth/login") || 
+                           originalRequest.url.includes("/auth/register") ||
+                           originalRequest.url.includes("/auth/forgot-password") ||
+                           originalRequest.url.includes("/auth/reset-password") ||
+                           originalRequest.url.includes("/auth/refresh-token");
 
-    if (error.response?.status === 401 && !originalRequest._retry && !isLoginOrPublic) {
+    // Skip refresh for /auth/me to prevent infinite loops
+    const isAuthMe = originalRequest.url.includes("/auth/me");
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isLoginOrPublic && !isAuthMe) {
       originalRequest._retry = true;
 
       try {
+        // Check if user is authenticated before trying to refresh
+        if (!authStore.isAuthenticated || !authStore.accessToken) {
+          return Promise.reject(error);
+        }
+
         // Call refresh token endpoint (cookie automatically sent)
         const res = await axios.post(
           `${API_URL}/auth/refresh-token`,
@@ -87,19 +115,29 @@ api.interceptors.response.use(
         );
 
         // Update access token in store (memory)
-        authStore.setAccessToken(res.data.accessToken);
+        if (res.data.accessToken) {
+          authStore.setAccessToken(res.data.accessToken);
+          // Also update localStorage token
+          localStorage.setItem('token', res.data.accessToken);
 
-        // Retry original request with new token
-        originalRequest.headers.Authorization = `Bearer ${res.data.accessToken}`;
-        return api(originalRequest);
+          // Retry original request with new token
+          originalRequest.headers.Authorization = `Bearer ${res.data.accessToken}`;
+          return api(originalRequest);
+        }
       } catch (refreshError) {
-        // Logout if refresh fails
-        authStore.logout();
-        window.location.href = "/login";
+        // Refresh failed - clear auth and redirect only if not on auth/me
+        if (!isAuthMe) {
+          authStore.logout();
+          // Only redirect if not already on login page
+          if (!window.location.pathname.includes('/login')) {
+            window.location.href = "/login";
+          }
+        }
         return Promise.reject(refreshError);
       }
     }
     
+    // For 401 errors, return the error (don't retry if already retried or if auth/me)
     return Promise.reject(error);
   }
 );

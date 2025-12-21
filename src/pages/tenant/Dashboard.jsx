@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { Routes, Route } from 'react-router-dom'
-import { Search, Heart, MessageSquare, BarChart3 } from 'lucide-react'
+import { Search, Heart, MessageSquare, BarChart3, User } from 'lucide-react'
 import Navbar from '../../components/Navbar'
 import Sidebar from '../../components/Sidebar'
 import TenantHome from './TenantHome'
 import TenantBrowse from './TenantBrowse'
 import TenantFavorites from './TenantFavorites'
 import TenantConversations from './TenantConversations'
+import TenantProfile from './TenantProfile'
 
 const TenantDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -32,6 +33,11 @@ const TenantDashboard = () => {
       path: '/messages',
       icon: <MessageSquare size={20} />,
     },
+    {
+      label: 'Profile',
+      path: '/profile',
+      icon: <User size={20} />,
+    },
   ]
 
   return (
@@ -50,6 +56,7 @@ const TenantDashboard = () => {
             <Route path="browse" element={<TenantBrowse />} />
             <Route path="favorites" element={<TenantFavorites />} />
             <Route path="messages" element={<TenantConversations />} />
+            <Route path="profile" element={<TenantProfile />} />
           </Routes>
         </main>
       </div>

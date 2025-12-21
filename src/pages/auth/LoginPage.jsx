@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, Loader2, Mail, KeyRound, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion"; 
@@ -48,6 +48,11 @@ const LoginPage = () => {
   });
 
   const [error, setError] = useState("");
+  const [showOTPVerification, setShowOTPVerification] = useState(false);
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otpResending, setOtpResending] = useState(false);
+  const [otpTimer, setOtpTimer] = useState(0);
+  const otpInputRefs = useRef([]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -85,20 +90,116 @@ const LoginPage = () => {
 
       console.log("USER FULL OBJECT:", user);
       console.log("USER ROLE:", user.role);
+      console.log("ACCESS TOKEN RECEIVED:", accessToken ? accessToken.substring(0, 30) + '...' : 'NO TOKEN');
 
       // Update auth store
       loginStore(user, accessToken, user.role);
+      
+      // Verify token was saved to localStorage
+      const savedToken = localStorage.getItem('token');
+      console.log("TOKEN SAVED TO LOCALSTORAGE:", savedToken ? savedToken.substring(0, 30) + '...' : 'FAILED TO SAVE');
 
       // Navigate to dashboard based on role
       navigate(`/${user.role}`, { replace: true });
 
     } catch (err) {
       console.error("Login error:", err.response?.data || err);
-      setError(err.response?.data?.error || "Login failed. Please try again.");
+      const errorData = err.response?.data || {};
+      
+      // If user exists but email is not verified, show OTP verification
+      if (errorData.requiresOTPVerification && errorData.email) {
+        setShowOTPVerification(true);
+        setOtpTimer(60);
+        setError("");
+        return;
+      }
+      
+      setError(errorData.error || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+
+  // OTP Verification handlers
+  const handleOtpChange = (index, value) => {
+    if (!/^\d*$/.test(value)) return;
+    const newOtp = [...otp];
+    newOtp[index] = value.slice(0, 1);
+    setOtp(newOtp);
+
+    if (value && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setOtpResending(true);
+    setError("");
+    try {
+      await api.post('/auth/resend-otp', { email: formData.email });
+      setOtpTimer(60);
+      setOtp(['', '', '', '', '', '']);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to resend OTP');
+    } finally {
+      setOtpResending(false);
+    }
+  };
+
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+    const otpString = otp.join('');
+    if (otpString.length !== 6) {
+      setError('Please enter all 6 digits of the OTP.');
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await api.post('/auth/verify-otp', { 
+        email: formData.email, 
+        otp: otpString 
+      });
+
+      const { user, accessToken, autoLogin } = response.data;
+
+      if (autoLogin && user) {
+        // Auto-login after verification
+        loginStore(user, accessToken, user.role);
+        navigate(`/${user.role}`, { replace: true });
+      } else {
+        // Manual login required
+        setError('');
+        setShowOTPVerification(false);
+        // Trigger login again
+        setTimeout(() => {
+          handleSubmit(e);
+        }, 100);
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Invalid OTP. Please try again.');
+      setOtp(['', '', '', '', '', '']);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // OTP Timer
+  useEffect(() => {
+    let interval;
+    if (otpTimer > 0) {
+      interval = setInterval(() => setOtpTimer((t) => t - 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [otpTimer]);
 
   return (
     <div className="min-h-screen w-full flex bg-gray-50 overflow-hidden">
@@ -201,7 +302,76 @@ const LoginPage = () => {
             </motion.div>
           )}
 
-          <motion.form variants={containerVariants} initial="hidden" animate="visible" onSubmit={handleSubmit} className="space-y-6">
+          {showOTPVerification ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">Verify Your Email</h3>
+                <p className="text-slate-600">Enter the 6-digit code sent to <strong>{formData.email}</strong></p>
+              </div>
+
+              <form onSubmit={handleVerifyOTP} className="space-y-6">
+                <div className="flex gap-3 justify-center">
+                  {otp.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={el => otpInputRefs.current[index] = el}
+                      type="text"
+                      className={`w-12 h-14 text-center text-2xl font-mono font-bold rounded-lg bg-gray-50 text-gray-900 border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all ${
+                        digit ? 'border-primary-500' : ''
+                      }`}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      maxLength="1"
+                      inputMode="numeric"
+                      disabled={loading}
+                    />
+                  ))}
+                </div>
+
+                <div className="text-center space-y-2">
+                  <p className="text-sm text-slate-500">
+                    Didn't receive the code?
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResendOTP}
+                    disabled={otpTimer > 0 || otpResending || loading}
+                    className="text-sm font-medium text-primary-600 hover:text-primary-700 disabled:text-gray-400 transition-colors disabled:cursor-not-allowed"
+                  >
+                    {otpResending ? 'Sending...' : otpTimer > 0 ? `Resend in ${otpTimer}s` : 'Resend Code'}
+                  </button>
+                </div>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-4 rounded-xl shadow-lg shadow-primary-600/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loading ? <Loader2 size={20} className="animate-spin" /> : 'Verify & Login'}
+                </motion.button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowOTPVerification(false);
+                    setOtp(['', '', '', '', '', '']);
+                    setError('');
+                  }}
+                  className="w-full text-sm text-slate-500 hover:text-slate-700"
+                >
+                  ← Back to Login
+                </button>
+              </form>
+            </motion.div>
+          ) : (
+            <motion.form variants={containerVariants} initial="hidden" animate="visible" onSubmit={handleSubmit} className="space-y-6">
             <motion.div variants={itemVariants}>
               <Input
                 label="Email Address"
@@ -263,7 +433,8 @@ const LoginPage = () => {
               )}
             </motion.button>
           </motion.form>
-
+          )}
+          {!showOTPVerification && (
           <motion.div variants={itemVariants} className="mt-8 text-center">
             <p className="text-slate-500 text-base">
               Don't have an account?{" "}
@@ -275,6 +446,7 @@ const LoginPage = () => {
               </Link>
             </p>
           </motion.div>
+          )}
         </motion.div>
       </div>
     </div>

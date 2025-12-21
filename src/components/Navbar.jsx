@@ -17,6 +17,19 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   navigate('/login') // redirect to login
 }
 
+ const getImageUrl = (profileImage) => {
+  if (!profileImage) return null
+  // Check if it's already a URL (starts with / or http)
+  if (profileImage.startsWith('/') || profileImage.startsWith('http')) {
+    return profileImage
+  }
+  // If it's still base64 data, return it as is
+  if (profileImage.startsWith('data:')) {
+    return profileImage
+  }
+  // Otherwise assume it's a path that needs /api prepended
+  return profileImage
+}
 
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50">
@@ -43,14 +56,37 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
           <div className="relative">
             <button
               onClick={() => setProfileOpen(!profileOpen)}
-              className="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700"
+              className="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 overflow-hidden border-2 border-white"
             >
-              <User size={20} />
+              {user?.profileImage ? (
+                <img
+                  src={getImageUrl(user.profileImage)}
+                  alt={user?.name || 'Profile'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.style.display = 'none'
+                  }}
+                />
+              ) : (
+                <User size={20} />
+              )}
             </button>
 
             {profileOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg overflow-hidden z-50">
                 <div className="px-4 py-3 border-b border-gray-200">
+                  {user?.profileImage && (
+                    <div className="mb-3">
+                      <img
+                        src={getImageUrl(user.profileImage)}
+                        alt={user?.name || 'Profile'}
+                        className="w-12 h-12 rounded-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none'
+                        }}
+                      />
+                    </div>
+                  )}
                   <p className="font-semibold text-text">{user?.name}</p>
                   <p className="text-sm text-gray-600 capitalize">{role}</p>
                 </div>

@@ -28,7 +28,7 @@ const AdminHome = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await api.get('admin/analytics')
+        const response = await api.get('/admin/analytics')
         setStats(response.data.data)
       } catch (error) {
         console.error('Failed to fetch statistics:', error)
