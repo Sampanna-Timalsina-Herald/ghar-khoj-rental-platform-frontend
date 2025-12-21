@@ -62,8 +62,6 @@ export const useAuthStore = create((set, get) => ({
   authLoaded: false,
 
   login: (userData, token, role) => {
-    console.log('[AuthStore] Login: Saving token and user data');
-    
     // Save to localStorage first
     localStorage.setItem('token', token);
     localStorage.setItem('role', role);
@@ -76,11 +74,8 @@ export const useAuthStore = create((set, get) => ({
       accessToken: token,
       role,
       isAuthenticated: true,
+      authLoaded: true,
     });
-    
-    // Verify persistence
-    const savedToken = localStorage.getItem('token');
-    console.log('[AuthStore] Token persisted:', savedToken ? 'YES' : 'NO');
   },
 
   setAccessToken: (token) => {
@@ -108,16 +103,14 @@ export const useAuthStore = create((set, get) => ({
   },
 
   loadFromStorage: () => {
+    // Guard: Only load once
+    if (get().authLoaded) {
+      return;
+    }
+
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role');
     const user = localStorage.getItem('user');
-
-    console.log('[AuthStore] LoadFromStorage:', {
-      hasToken: !!token,
-      tokenPreview: token ? token.substring(0, 30) + '...' : 'NONE',
-      hasRole: !!role,
-      hasUser: !!user,
-    });
 
     if (token && role && user) {
       set({

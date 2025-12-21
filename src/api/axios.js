@@ -44,7 +44,6 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true, // send cookies automatically
 });
 
 // Request interceptor: attach access token from memory or localStorage
@@ -61,16 +60,6 @@ api.interceptors.request.use(
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('[AXIOS] Request:', config.method.toUpperCase(), config.url);
-      console.log('[AXIOS] Token attached:', token.substring(0, 30) + '...');
-    } else {
-      console.warn('[AXIOS] NO TOKEN FOUND for', config.url);
-      console.warn('[AXIOS] LocalStorage token:', localStorage.getItem('token') ? 'EXISTS' : 'MISSING');
-      console.warn('[AXIOS] Store state:', {
-        accessToken: useAuthStore.getState().accessToken ? 'EXISTS' : 'MISSING',
-        token: useAuthStore.getState().token ? 'EXISTS' : 'MISSING',
-        isAuthenticated: useAuthStore.getState().isAuthenticated,
-      });
     }
 
     return config;
@@ -107,11 +96,10 @@ api.interceptors.response.use(
           return Promise.reject(error);
         }
 
-        // Call refresh token endpoint (cookie automatically sent)
+        // Call refresh token endpoint
         const res = await axios.post(
           `${API_URL}/auth/refresh-token`,
-          {}, // no body needed
-          { withCredentials: true }
+          {}
         );
 
         // Update access token in store (memory)
