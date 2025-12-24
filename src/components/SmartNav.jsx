@@ -7,34 +7,30 @@ const SmartNav = () => {
   const [isScrolled, setIsScrolled] = useState(false); // To change background
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  const controlNavbar = () => {
-    // Check if we are past the hero section (e.g., 80px)
-    if (window.scrollY > 80) {
-      setIsScrolled(true);
-
-      // Scroll down: hide the nav
-      if (window.scrollY > lastScrollY) { 
-        setShowNav(false);
-      } 
-      // Scroll up: show the nav
-      else { 
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY > 80) {
+        setIsScrolled(true);
+        if (currentScrollY > lastScrollY) {
+          setShowNav(false);
+        } else {
+          setShowNav(true);
+        }
+      } else {
+        setIsScrolled(false);
         setShowNav(true);
       }
-    } else {
-      // At the top: always show nav, use transparent background
-      setIsScrolled(false);
-      setShowNav(true);
-    }
-
-    setLastScrollY(window.scrollY);
-  };
-
-  useEffect(() => {
-    window.addEventListener('scroll', controlNavbar);
-    return () => {
-      window.removeEventListener('scroll', controlNavbar);
+      
+      setLastScrollY(currentScrollY);
     };
-  }, [lastScrollY]); // Re-run effect when lastScrollY changes
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [lastScrollY]);
 
   const navItemClass = (isTenant) => 
     `px-3 py-2 rounded-full font-medium transition ${

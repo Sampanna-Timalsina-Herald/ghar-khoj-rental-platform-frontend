@@ -29,40 +29,19 @@ const AdminProfile = () => {
   const [message, setMessage] = useState({ type: '', text: '' })
 
   useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        city: user.city || '',
-        profileImage: user.profileImage || '',
-      })
-    }
-    
     // Only fetch if user is authenticated
     const { isAuthenticated, accessToken, token } = useAuthStore.getState()
     const hasToken = accessToken || token
     
-    console.log('[AdminProfile] Auth State:', { 
-      isAuthenticated, 
-      hasAccessToken: !!accessToken, 
-      hasToken: !!token,
-      user: !!user
-    })
-    
     if (isAuthenticated && hasToken) {
-      // Small delay to ensure store is fully loaded
-      const timer = setTimeout(() => {
-        fetchProfile()
-      }, 100)
-      return () => clearTimeout(timer)
+      fetchProfile()
     } else {
       setLoading(false)
       if (!isAuthenticated) {
         setMessage({ type: 'error', text: 'Please log in to view your profile.' })
       }
     }
-  }, [user])
+  }, [])
 
   const fetchProfile = async () => {
     setLoading(true)

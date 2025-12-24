@@ -30,17 +30,6 @@ const TenantProfile = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        city: user.city || '',
-        college: user.college || '',
-        profileImage: user.profileImage || '',
-      })
-    }
-    
     // Only fetch if user is authenticated
     const { isAuthenticated } = useAuthStore.getState()
     if (isAuthenticated) {
@@ -49,7 +38,7 @@ const TenantProfile = () => {
       setLoading(false)
       setMessage({ type: 'error', text: 'Please log in to view your profile.' })
     }
-  }, [user])
+  }, [])
 
   const fetchProfile = async () => {
     setLoading(true)
