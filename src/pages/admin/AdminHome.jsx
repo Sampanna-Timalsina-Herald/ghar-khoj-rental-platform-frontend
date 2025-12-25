@@ -38,7 +38,7 @@ const AdminHome = () => {
     }
 
     fetchStats()
-  }, [])
+  }, []) // Empty dependency array ensures this runs only once
 
   return (
     <div className="space-y-8">
