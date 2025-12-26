@@ -1,70 +1,37 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   Search, MapPin, BedDouble, Bath, Maximize, 
   Key, User, UploadCloud, Users, 
-  ChevronRight, Heart, DollarSign
+  ChevronRight, Heart, DollarSign, Loader
 } from "lucide-react";
 import modernInterior from "../assets/interior1.jpg";
-// Assuming SmartNav is imported from the components directory
+import api from "../api/axios";
+import { useAuthStore } from "../stores/authStore";
 import SmartNav from "../components/SmartNav"; 
-
-
-// --- MOCK DATA (Using fixed, stable images) ---
-
-const MOCK_AREAS = [
-  { name: "Baneshwor", image: "https://images.unsplash.com/photo-1574362145887-1906a46327e5?q=80&w=600&h=400&auto=format&fit=crop" },
-  { name: "Lazimpat", image: "https://images.unsplash.com/photo-1549419137-b44c683b5478?q=80&w=600&h=400&auto=format&fit=crop" },
-  { name: "Kupondole", image: "https://images.unsplash.com/photo-1507721999472-8ed4421c4af2?q=80&w=600&h=400&auto=format&fit=crop" },
-  { name: "Thamel", image: "https://images.unsplash.com/photo-1627885449575-f55959952a22?q=80&w=600&h=400&auto=format&fit=crop" },
-];
-
-const FEATURED_LISTINGS = [
-  {
-    id: 1,
-    title: "Luxurious 3-Bedroom Flat",
-    city: "Kathmandu",
-    address: "Baneshwor, Kathmandu",
-    rent_amount: 35000,
-    bedrooms: 3,
-    bathrooms: 2,
-    square_feet: 1500,
-    image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=600&h=400&auto=format&fit=crop",
-    amenities: ["Wifi", "Parking", "Elevator"],
-  },
-  {
-    id: 2,
-    title: "Cozy Room in Shared House",
-    city: "Lalitpur",
-    address: "Jawalakhel, Lalitpur",
-    rent_amount: 10000,
-    bedrooms: 1,
-    bathrooms: 1,
-    square_feet: 400,
-    image: "https://images.unsplash.com/photo-1554995207-c18c694d6eac?q=80&w=600&h=400&auto=format&fit=crop",
-    amenities: ["Wifi", "Hot Water"],
-  },
-  {
-    id: 3,
-    title: "Family House with Garden",
-    city: "Bhaktapur",
-    address: "Suryabinayak, Bhaktapur",
-    rent_amount: 45000,
-    bedrooms: 4,
-    bathrooms: 3,
-    square_feet: 2800,
-    image: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=600&h=400&auto=format&fit=crop",
-    amenities: ["Parking", "Garden", "Backup Power"],
-  },
-];
 
 const AMENITY_OPTIONS = ["Wifi", "Parking", "Balcony", "Garden", "AC"];
 
 
 // --- COMPONENTS ---
 
-const ListingCard = ({ data }) => {
+const ListingCard = ({ data, onBookClick }) => {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
+  
+  const handleViewClick = () => {
+    navigate(`/listing/${data.id}`, { state: { listing: data } });
+  };
+
+  const handleBookClick = () => {
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: "home", listingId: data.id } });
+    } else {
+      onBookClick(data.id);
+    }
+  };
+
   return (
     <motion.div 
       whileHover={{ y: -5, boxShadow: "0 10px 15px rgba(0,0,0,0.1)" }}
@@ -72,13 +39,13 @@ const ListingCard = ({ data }) => {
     >
       <div className="relative overflow-hidden h-56">
         <img
-          src={data.image}
+          src={data.images?.[0]?.url || data.image || "https://images.unsplash.com/photo-1570129477488-c70a256a7356?q=80&w=600&h=400&auto=format&fit=crop"}
           alt={data.title}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-          onError={(e) => { e.target.onerror = null; e.target.src="https://images.unsplash.com/photo-1570129477488-c70a256a7356?q=80&w=600&h=400&auto=format&fit=crop" }} // Fallback image
+          onError={(e) => { e.target.onerror = null; e.target.src="https://images.unsplash.com/photo-1570129477488-c70a256a7356?q=80&w=600&h=400&auto=format&fit=crop" }}
         />
         <div className="absolute top-4 right-4 bg-yellow-400 text-gray-900 text-xs font-bold px-3 py-1 rounded-full uppercase">
-          New
+          Featured
         </div>
       </div>
 
@@ -86,22 +53,25 @@ const ListingCard = ({ data }) => {
         <h3 className="text-xl font-bold text-gray-900 line-clamp-1">{data.title}</h3>
         <div className="flex items-center text-gray-500 text-sm mt-1">
           <MapPin size={16} className="mr-1 text-blue-600" />
-          {data.address}
+          {data.address}, {data.city}
         </div>
 
-        <div className="flex items-center justify-between mt-4 py-3 border-t border-b border-gray-100 text-gray-600">
+        <div className="flex items-center justify-between mt-4 py-3 border-t border-b border-gray-100 text-gray-600 text-sm">
           <div className="flex items-center gap-1"><BedDouble size={18} /> <span>{data.bedrooms} Beds</span></div>
           <div className="flex items-center gap-1"><Bath size={18} /> <span>{data.bathrooms} Baths</span></div>
-          <div className="flex items-center gap-1"><Maximize size={18} /> <span>{data.square_feet} sqft</span></div>
+          <div className="flex items-center gap-1"><Maximize size={18} /> <span>{data.area || 'N/A'} sqft</span></div>
         </div>
 
         <div className="mt-4 flex justify-between items-center">
           <div>
-            <span className="text-2xl font-extrabold text-blue-600">Rs. {data.rent_amount.toLocaleString()}</span>
+            <span className="text-2xl font-extrabold text-blue-600">Rs. {data.rent_amount?.toLocaleString()}</span>
             <span className="text-gray-500 text-sm"> / mo</span>
           </div>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-            View Property
+          <button 
+            onClick={handleBookClick}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+          >
+            Contact
           </button>
         </div>
       </div>
@@ -110,8 +80,50 @@ const ListingCard = ({ data }) => {
 };
 
 
-const AdvancedSearch = () => {
+const AdvancedSearch = ({ onSearch, loading }) => {
+  const navigate = useNavigate();
   const [showFilters, setShowFilters] = useState(false);
+  const [searchParams, setSearchParams] = useState({
+    location: "",
+    propertyType: "",
+    minPrice: "",
+    maxPrice: "",
+    bedrooms: "",
+    bathrooms: "",
+    amenities: []
+  });
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setSearchParams(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleAmenityChange = (amenity) => {
+    setSearchParams(prev => ({
+      ...prev,
+      amenities: prev.amenities.includes(amenity)
+        ? prev.amenities.filter(a => a !== amenity)
+        : [...prev.amenities, amenity]
+    }));
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    
+    if (searchParams.location) params.append('location', searchParams.location);
+    if (searchParams.propertyType) params.append('type', searchParams.propertyType);
+    if (searchParams.minPrice) params.append('minPrice', searchParams.minPrice);
+    if (searchParams.maxPrice) params.append('maxPrice', searchParams.maxPrice);
+    if (searchParams.bedrooms) params.append('bedrooms', searchParams.bedrooms);
+    if (searchParams.bathrooms) params.append('bathrooms', searchParams.bathrooms);
+    if (searchParams.amenities.length > 0) params.append('amenities', searchParams.amenities.join(','));
+    
+    navigate(`/search?${params.toString()}`);
+  };
 
   return (
     <motion.div 
@@ -120,34 +132,48 @@ const AdvancedSearch = () => {
       transition={{ delay: 0.4, duration: 0.8 }}
       className="bg-white p-6 rounded-2xl shadow-2xl -mt-10 relative z-20 max-w-6xl mx-auto border border-gray-100"
     >
-      <div className="flex flex-col md:flex-row items-center gap-4">
+      <form onSubmit={handleSearch} className="flex flex-col md:flex-row items-center gap-4">
         <div className="flex-grow relative w-full md:w-auto">
           <MapPin className="absolute left-3 top-3.5 text-gray-400" size={20}/>
           <input
             type="text"
+            name="location"
+            value={searchParams.location}
+            onChange={handleInputChange}
             placeholder="Search Area (e.g., Baneshwor, Thamel...)"
             className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
           />
         </div>
         
-        <select className="w-full md:w-48 py-3 px-4 border border-gray-200 rounded-xl text-gray-600 outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+        <select 
+          name="propertyType"
+          value={searchParams.propertyType}
+          onChange={handleInputChange}
+          className="w-full md:w-48 py-3 px-4 border border-gray-200 rounded-xl text-gray-600 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        >
           <option value="">Property Type</option>
           <option value="flat">Flat / Apartment</option>
           <option value="house">Full House</option>
           <option value="room">Single Room</option>
         </select>
 
-         <button 
-           onClick={() => setShowFilters(!showFilters)}
-           className="flex items-center gap-2 py-3 px-4 border border-gray-200 rounded-xl text-gray-600 hover:bg-blue-50 transition"
-         >
-            <Search size={18}/> {showFilters ? 'Hide Filters' : 'More Filters'}
-         </button>
-
-        <button className="w-full md:w-auto bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-8 py-3 rounded-xl transition flex items-center justify-center gap-2">
-          <Search size={20} /> Find Home
+        <button 
+          type="button"
+          onClick={() => setShowFilters(!showFilters)}
+          className="flex items-center gap-2 py-3 px-4 border border-gray-200 rounded-xl text-gray-600 hover:bg-blue-50 transition"
+        >
+          <Search size={18}/> {showFilters ? 'Hide Filters' : 'More Filters'}
         </button>
-      </div>
+
+        <button 
+          type="submit"
+          disabled={loading}
+          className="w-full md:w-auto bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-400 text-gray-900 font-bold px-8 py-3 rounded-xl transition flex items-center justify-center gap-2"
+        >
+          {loading ? <Loader size={20} className="animate-spin" /> : <Search size={20} />} 
+          {loading ? 'Searching...' : 'Find Home'}
+        </button>
+      </form>
 
       <motion.div 
         initial={false}
@@ -159,37 +185,71 @@ const AdvancedSearch = () => {
           <div>
             <h4 className="font-semibold text-gray-700 mb-3">Price (Monthly)</h4>
             <div className="flex gap-2 items-center">
-               <input type="number" placeholder="Min (Rs.)" className="w-full p-2 border rounded-lg" />
-               <input type="number" placeholder="Max (Rs.)" className="w-full p-2 border rounded-lg" />
+              <input 
+                type="number" 
+                name="minPrice"
+                value={searchParams.minPrice}
+                onChange={handleInputChange}
+                placeholder="Min (Rs.)" 
+                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+              />
+              <input 
+                type="number" 
+                name="maxPrice"
+                value={searchParams.maxPrice}
+                onChange={handleInputChange}
+                placeholder="Max (Rs.)" 
+                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+              />
             </div>
           </div>
 
           <div>
             <h4 className="font-semibold text-gray-700 mb-3">Bedrooms</h4>
-            <select className="w-full p-2 border rounded-lg bg-white">
-              <option>Any</option>
-              <option>1+</option><option>2+</option><option>3+</option><option>4+</option>
+            <select 
+              name="bedrooms"
+              value={searchParams.bedrooms}
+              onChange={handleInputChange}
+              className="w-full p-2 border rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="">Any</option>
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="3">3+</option>
+              <option value="4">4+</option>
             </select>
           </div>
 
-           <div>
-             <h4 className="font-semibold text-gray-700 mb-3">Bathrooms</h4>
-             <select className="w-full p-2 border rounded-lg bg-white">
-                <option>Any</option>
-                <option>1+</option><option>2+</option><option>3+</option>
-              </select>
+          <div>
+            <h4 className="font-semibold text-gray-700 mb-3">Bathrooms</h4>
+            <select 
+              name="bathrooms"
+              value={searchParams.bathrooms}
+              onChange={handleInputChange}
+              className="w-full p-2 border rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="">Any</option>
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="3">3+</option>
+            </select>
           </div>
           
-           <div>
-             <h4 className="font-semibold text-gray-700 mb-3">Key Amenities</h4>
-             <div className="grid grid-cols-2 gap-2">
-                {AMENITY_OPTIONS.slice(0, 4).map((amenity) => (
-                  <label key={amenity} className="flex items-center gap-2 text-gray-600 text-sm cursor-pointer">
-                    <input type="checkbox" className="rounded text-blue-600 focus:ring-blue-500" />
-                    {amenity}
-                  </label>
-                ))}
-             </div>
+          <div>
+            <h4 className="font-semibold text-gray-700 mb-3">Key Amenities</h4>
+            <div className="grid grid-cols-2 gap-2">
+              {AMENITY_OPTIONS.slice(0, 4).map((amenity) => (
+                <label key={amenity} className="flex items-center gap-2 text-gray-600 text-sm cursor-pointer hover:text-blue-600">
+                  <input 
+                    type="checkbox"
+                    checked={searchParams.amenities.includes(amenity)}
+                    onChange={() => handleAmenityChange(amenity)}
+                    className="rounded text-blue-600 focus:ring-blue-500" 
+                  />
+                  {amenity}
+                </label>
+              ))}
+            </div>
           </div>
         </div>
       </motion.div>
@@ -218,6 +278,45 @@ const StepCard = ({ icon: Icon, title, description, delay }) => (
 // --- MAIN HOME PAGE ---
 
 const Home = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
+  const [featuredListings, setFeaturedListings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch featured listings from database
+  useEffect(() => {
+    const fetchListings = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/listings', {
+          params: {
+            limit: 6,
+            sort: 'created_at'
+          }
+        });
+        setFeaturedListings(response.data.data || response.data || []);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching listings:', err);
+        setError('Failed to load listings');
+        setFeaturedListings([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchListings();
+  }, []);
+
+  const handleBookClick = (listingId) => {
+    navigate(`/listing/${listingId}`);
+  };
+
+  const handleSearch = (searchParams) => {
+    // Navigation is handled in AdvancedSearch component
+  };
+
   return (
     <div className="w-full min-h-screen bg-gray-50 font-sans">
       
@@ -226,7 +325,7 @@ const Home = () => {
 
       {/* Modern Split Hero Section (Focused on Kathmandu Valley) */}
       <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden bg-blue-50/50">
-         {/* Background Accent Shapes (Defined in your CSS) */}
+         {/* Background Accent Shapes */}
          <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[50rem] h-[50rem] bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
          <div className="absolute bottom-0 left-0 translate-y-1/4 -translate-x-1/4 w-[50rem] h-[50rem] bg-yellow-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
 
@@ -266,7 +365,6 @@ const Home = () => {
             >
                <div className="aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl shadow-blue-300/50 relative z-10">
                 <img 
-                  // **REPLACED IMAGE URL HERE**
                   src={modernInterior} 
                   alt="Modern Apartment in Kathmandu" 
                   className="w-full h-full object-cover"
@@ -282,7 +380,7 @@ const Home = () => {
 
       {/* Advanced Search Section (Overlapping Hero) */}
       <div className="px-6">
-        <AdvancedSearch />
+        <AdvancedSearch onSearch={handleSearch} loading={loading} />
       </div>
 
       {/* How It Works Section */}
@@ -315,7 +413,7 @@ const Home = () => {
       </section>
 
 
-      {/* Featured Listings Section */}
+      {/* Featured Listings Section - DYNAMIC */}
       <section className="max-w-7xl mx-auto mt-24 px-6">
         <div className="flex justify-between items-end mb-12">
            <div>
@@ -327,19 +425,35 @@ const Home = () => {
            </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {FEATURED_LISTINGS.map((item, index) => (
-             <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.15 }}
-                viewport={{ once: true }}
-                key={item.id}
-             >
-              <ListingCard data={item} />
-             </motion.div>
-          ))}
-        </div>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex justify-center items-center py-16">
+            <Loader size={40} className="animate-spin text-blue-600" />
+          </div>
+        ) : featuredListings.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-gray-500 text-lg">No listings available at the moment.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {featuredListings.map((item, index) => (
+               <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.15 }}
+                  viewport={{ once: true }}
+                  key={item.id}
+               >
+                <ListingCard data={item} onBookClick={handleBookClick} />
+               </motion.div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Landlord Call to Action (Fixed Link) */}
