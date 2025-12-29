@@ -292,7 +292,11 @@ const Search = () => {
                           {/* Image */}
                           <div className="relative w-full md:w-64 h-56 md:h-auto flex-shrink-0 overflow-hidden rounded-xl">
                             <img
-                              src={listing.images?.[0]?.url || listing.images?.[0] || '/placeholder.svg'}
+                              src={
+                                listing.images && listing.images.length > 0
+                                  ? (listing.images[0].startsWith('http') ? listing.images[0] : `http://localhost:5000${listing.images[0]}`)
+                                  : '/placeholder.svg'
+                              }
                               alt={listing.title || 'Property'}
                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                               onError={(e) => { e.target.src = '/placeholder.svg' }}

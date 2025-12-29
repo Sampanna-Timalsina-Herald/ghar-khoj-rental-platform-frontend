@@ -119,7 +119,11 @@ const TenantHome = () => {
               >
                 <div className="relative overflow-hidden">
                   <img
-                    src={listing.images?.[0] || listing.images || '/placeholder.svg'}
+                    src={
+                      listing.images && listing.images.length > 0
+                        ? (listing.images[0].startsWith('http') ? listing.images[0] : `http://localhost:5000${listing.images[0]}`)
+                        : '/placeholder.svg'
+                    }
                     alt={listing.title || listing.address}
                     className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
                   />

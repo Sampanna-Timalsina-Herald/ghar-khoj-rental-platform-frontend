@@ -2,30 +2,71 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
-import { Plus, Edit2, Trash2, Loader2, MapPin, Bed, Bath, DollarSign, Eye, X } from 'lucide-react'
+import { Plus, Edit2, Trash2, Loader2, MapPin, Bed, Bath, DollarSign, Eye, X, Search } from 'lucide-react'
 
 const LandlordListings = () => {
   const navigate = useNavigate()
   const [listings, setListings] = useState([])
+  const [filteredListings, setFilteredListings] = useState([])
   const [loading, setLoading] = useState(true)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [deleting, setDeleting] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterCity, setFilterCity] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
 
   useEffect(() => {
     fetchListings()
   }, [])
 
+  useEffect(() => {
+    applyFilters()
+  }, [listings, searchQuery, filterCity, filterStatus])
+
   const fetchListings = async () => {
     try {
-      const response = await api.get('/listings')
+      // Fetch current user's listings
+      console.log('[LISTINGS] Fetching landlord listings...')
+      const response = await api.get('/listings/landlord/my-listings')
+      console.log('[LISTINGS] Response:', response.data)
       setListings(response.data.data || [])
+      console.log('[LISTINGS] Loaded', (response.data.data || []).length, 'listings')
     } catch (error) {
-      console.error('Failed to fetch listings:', error)
+      console.error('[LISTINGS] Failed to fetch listings:', error)
+      console.error('[LISTINGS] Error response:', error.response?.data)
       setMessage({ type: 'error', text: 'Failed to load listings' })
     } finally {
       setLoading(false)
     }
+  }
+
+  const applyFilters = () => {
+    let filtered = [...listings]
+
+    // Filter by search query (title, description, address)
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(listing =>
+        (listing.title?.toLowerCase().includes(query)) ||
+        (listing.description?.toLowerCase().includes(query)) ||
+        (listing.address?.toLowerCase().includes(query))
+      )
+    }
+
+    // Filter by city
+    if (filterCity) {
+      filtered = filtered.filter(listing =>
+        listing.city?.toLowerCase().includes(filterCity.toLowerCase())
+      )
+    }
+
+    // Filter by status
+    if (filterStatus) {
+      filtered = filtered.filter(listing => listing.status === filterStatus)
+    }
+
+    setFilteredListings(filtered)
   }
 
   const handleDelete = async (id) => {
@@ -90,9 +131,65 @@ const LandlordListings = () => {
         </motion.div>
       )}
 
+      {/* Search and Filter Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-xl shadow-lg p-6"
+      >
+        <h2 className="text-lg font-semibold text-text mb-4">Search & Filter</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="relative">
+            <Search size={18} className="absolute left-3 top-3.5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by title, address..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600"
+            />
+          </div>
+          
+          <input
+            type="text"
+            placeholder="Filter by city"
+            value={filterCity}
+            onChange={(e) => setFilterCity(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600"
+          />
+          
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600"
+          >
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="rented">Rented</option>
+          </select>
+
+          {(searchQuery || filterCity || filterStatus) && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                setSearchQuery('')
+                setFilterCity('')
+                setFilterStatus('')
+              }}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+            >
+              Clear Filters
+            </motion.button>
+          )}
+        </div>
+      </motion.div>
+
+      {/* Listings Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <AnimatePresence>
-          {listings.map((listing, index) => (
+          {filteredListings.map((listing, index) => (
             <motion.div
               key={listing.id}
               initial={{ opacity: 0, y: 20 }}
@@ -104,7 +201,11 @@ const LandlordListings = () => {
               {listing.images && listing.images[0] && (
                 <div className="relative h-48 overflow-hidden">
                   <img
-                    src={listing.images[0] || "/placeholder.svg"}
+                    src={
+                      listing.images[0].startsWith('http')
+                        ? listing.images[0]
+                        : `http://localhost:5000${listing.images[0]}`
+                    }
                     alt={listing.title}
                     className="w-full h-full object-cover"
                   />
@@ -184,26 +285,30 @@ const LandlordListings = () => {
             </motion.div>
           ))}
         </AnimatePresence>
-      </div>
 
-      {listings.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center py-12 bg-white rounded-xl shadow-lg"
-        >
-          <Plus size={64} className="mx-auto mb-4 text-gray-300" />
-          <p className="text-gray-600 mb-4 text-lg">No listings yet</p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/landlord/listings/create')}
-            className="px-8 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold shadow-lg"
+        {filteredListings.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-12 bg-white rounded-xl shadow-lg col-span-full"
           >
-            Create Your First Listing
-          </motion.button>
-        </motion.div>
-      )}
+            <Plus size={64} className="mx-auto mb-4 text-gray-300" />
+            <p className="text-gray-600 mb-4 text-lg">
+              {listings.length === 0 ? 'No listings yet' : 'No listings match your search'}
+            </p>
+            {listings.length === 0 && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate('/landlord/listings/create')}
+                className="px-8 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold shadow-lg"
+              >
+                Create Your First Listing
+              </motion.button>
+            )}
+          </motion.div>
+        )}
+      </div>
 
       {/* Delete Confirmation Modal */}
       <AnimatePresence>

@@ -262,7 +262,11 @@ const TenantBrowse = () => {
                   {/* Image */}
                   <div className="relative w-48 h-32 flex-shrink-0 overflow-hidden rounded-lg">
                     <img
-                      src={listing.images?.[0]?.url || listing.images?.[0] || '/placeholder.svg'}
+                      src={
+                        listing.images && listing.images.length > 0
+                          ? (listing.images[0].startsWith('http') ? listing.images[0] : `http://localhost:5000${listing.images[0]}`)
+                          : '/placeholder.svg'
+                      }
                       alt={listing.title || 'Property'}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       onError={(e) => { e.target.src = '/placeholder.svg' }}

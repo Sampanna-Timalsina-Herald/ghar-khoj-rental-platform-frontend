@@ -7,6 +7,7 @@ import Sidebar from '../../components/Sidebar'
 import LandlordHome from './LandlordHome'
 import LandlordListings from './LandlordListings'
 import CreateListing from './CreateListing'
+import EditListing from './EditListing'
 import LandlordConversations from './LandlordConversations'
 import LandlordProfile from './LandlordProfile'
 
@@ -56,6 +57,7 @@ const LandlordDashboard = () => {
             <Route index element={<LandlordHome />} />
             <Route path="listings" element={<LandlordListings />} />
             <Route path="listings/create" element={<CreateListing />} />
+            <Route path="listings/edit/:id" element={<EditListing />} />
             <Route path="messages" element={<LandlordConversations />} />
             <Route path="profile" element={<LandlordProfile />} />
           </Routes>

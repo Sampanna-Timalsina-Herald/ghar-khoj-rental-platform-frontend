@@ -59,15 +59,16 @@ const CreateListing = () => {
           submitData.append(key, formData[key])
         }
       })
-      images.forEach((image) => {
+      
+      console.log('[CREATE-LISTING] Images to upload:', images.length)
+      images.forEach((image, index) => {
+        console.log(`[CREATE-LISTING] Appending image ${index}:`, image.name, image.size, image.type)
         submitData.append('images', image)
       })
 
-      await api.post('/listings', submitData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      })
+      console.log('[CREATE-LISTING] FormData keys:', Array.from(submitData.keys()))
+      
+      await api.post('/listings', submitData)
 
       setSuccess(true)
       setTimeout(() => {

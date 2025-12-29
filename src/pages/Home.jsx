@@ -39,7 +39,11 @@ const ListingCard = ({ data, onBookClick }) => {
     >
       <div className="relative overflow-hidden h-56">
         <img
-          src={data.images?.[0]?.url || data.image || "https://images.unsplash.com/photo-1570129477488-c70a256a7356?q=80&w=600&h=400&auto=format&fit=crop"}
+          src={
+            data.images && data.images.length > 0 
+              ? (data.images[0].startsWith('http') ? data.images[0] : `http://localhost:5000${data.images[0]}`)
+              : "https://images.unsplash.com/photo-1570129477488-c70a256a7356?q=80&w=600&h=400&auto=format&fit=crop"
+          }
           alt={data.title}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           onError={(e) => { e.target.onerror = null; e.target.src="https://images.unsplash.com/photo-1570129477488-c70a256a7356?q=80&w=600&h=400&auto=format&fit=crop" }}

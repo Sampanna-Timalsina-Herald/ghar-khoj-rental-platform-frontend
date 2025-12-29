@@ -105,6 +105,7 @@ import { useAuthStore } from "./stores/authStore";
 // Pages
 import Home from "./pages/Home";
 import Search from "./pages/Search";
+import ListingDetail from "./pages/ListingDetail";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
@@ -143,6 +144,7 @@ function App() {
           <Route path= "/list-property" element={<ListProperty />} />
           <Route path="/" element={<Home />} />
           <Route path="/search" element={<Search />} />
+          <Route path="/listing/:id" element={<ListingDetail />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />

@@ -76,7 +76,11 @@ const TenantFavorites = () => {
               >
                 <div className="relative overflow-hidden">
                   <img
-                    src={favorite.listing?.images?.[0] || favorite.listing?.images || '/placeholder.svg'}
+                    src={
+                      favorite.listing?.images && favorite.listing.images.length > 0
+                        ? (favorite.listing.images[0].startsWith('http') ? favorite.listing.images[0] : `http://localhost:5000${favorite.listing.images[0]}`)
+                        : '/placeholder.svg'
+                    }
                     alt={favorite.listing?.title || favorite.listing?.address}
                     className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
                   />
