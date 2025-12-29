@@ -1,5 +1,5 @@
 import React from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { Home, Plus, MessageSquare, BarChart3, User } from 'lucide-react'
 import Navbar from '../../components/Navbar'
@@ -10,9 +10,57 @@ import CreateListing from './CreateListing'
 import EditListing from './EditListing'
 import LandlordConversations from './LandlordConversations'
 import LandlordProfile from './LandlordProfile'
+import { useAuthStore } from '../../stores/authStore'
+import api from '../../api/axios'
+import { initSocket } from '../../services/socket'
 
 const LandlordDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const { accessToken } = useAuthStore()
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setSidebarOpen(false)
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  // Initialize socket and fetch unread count
+  useEffect(() => {
+    if (accessToken) {
+      initSocket(accessToken)
+      fetchUnreadCount()
+    }
+
+    // Listen for unread count changes
+    const handleUnreadChange = () => {
+      fetchUnreadCount()
+    }
+    window.addEventListener('unreadCountChanged', handleUnreadChange)
+    return () => window.removeEventListener('unreadCountChanged', handleUnreadChange)
+  }, [accessToken])
+
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await api.get('/conversations')
+      console.log('[LandlordDashboard] Conversations response:', response.data)
+      if (response.data && response.data.data) {
+        const total = response.data.data.reduce((sum, conv) => {
+          console.log('[LandlordDashboard] Conv unread_count:', conv.unread_count, conv.other_user_name)
+          return sum + (conv.unread_count || 0)
+        }, 0)
+        console.log('[LandlordDashboard] Total unread:', total)
+        setUnreadCount(total)
+      }
+    } catch (error) {
+      console.error('Error fetching unread count:', error)
+    }
+  }
 
   const menuItems = [
     {
@@ -34,6 +82,7 @@ const LandlordDashboard = () => {
       label: 'Messages',
       path: '/messages',
       icon: <MessageSquare size={20} />,
+      badge: unreadCount,
     },
     {
       label: 'Profile',
@@ -45,14 +94,14 @@ const LandlordDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-      <div className="flex">
+      <div className="flex flex-col lg:flex-row">
         <Sidebar
           items={menuItems}
           basePath="/landlord"
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
         />
-        <main className="flex-1 p-4 lg:p-8">
+        <main className="flex-1 w-full overflow-hidden p-4 lg:p-8 lg:overflow-auto">
           <Routes>
             <Route index element={<LandlordHome />} />
             <Route path="listings" element={<LandlordListings />} />

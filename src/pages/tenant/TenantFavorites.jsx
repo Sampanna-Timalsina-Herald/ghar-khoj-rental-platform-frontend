@@ -38,6 +38,10 @@ const TenantFavorites = () => {
     }
   }
 
+  const handleViewProperty = (listingId) => {
+    navigate(`/listing/${listingId}`)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -72,16 +76,15 @@ const TenantFavorites = () => {
                 transition={{ delay: index * 0.1 }}
                 whileHover={{ y: -5 }}
                 className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 cursor-pointer group"
-                onClick={() => navigate(`/tenant/browse?id=${favorite.listing?.id || favorite.listing_id}`)}
               >
                 <div className="relative overflow-hidden">
                   <img
                     src={
-                      favorite.listing?.images && favorite.listing.images.length > 0
-                        ? (favorite.listing.images[0].startsWith('http') ? favorite.listing.images[0] : `http://localhost:5000${favorite.listing.images[0]}`)
+                      favorite.images && favorite.images.length > 0
+                        ? (favorite.images[0].startsWith('http') ? favorite.images[0] : `http://localhost:5000${favorite.images[0]}`)
                         : '/placeholder.svg'
                     }
-                    alt={favorite.listing?.title || favorite.listing?.address}
+                    alt={favorite.title || favorite.address}
                     className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
                   />
                   <motion.button
@@ -101,26 +104,26 @@ const TenantFavorites = () => {
 
                 <div className="p-6">
                   <h3 className="text-xl font-bold text-text mb-2 line-clamp-1">
-                    {favorite.listing?.title || favorite.listing?.address || 'Property Listing'}
+                    {favorite.title || favorite.address || 'Property Listing'}
                   </h3>
                   <p className="text-gray-600 text-sm mb-4 flex items-center gap-1">
                     <MapPin size={16} className="text-primary-600" />
-                    {favorite.listing?.city || favorite.listing?.address || favorite.listing?.location || 'Location not specified'}
+                    {favorite.city || favorite.address || favorite.location || 'Location not specified'}
                   </p>
 
                   <div className="flex gap-4 mb-4 text-sm text-gray-600">
                     <span className="flex items-center gap-1">
                       <Bed size={16} className="text-primary-600" />
-                      {favorite.listing?.bedrooms || 0} Beds
+                      {favorite.bedrooms || 0} Beds
                     </span>
                     <span className="flex items-center gap-1">
                       <Bath size={16} className="text-primary-600" />
-                      {favorite.listing?.bathrooms || 0} Baths
+                      {favorite.bathrooms || 0} Baths
                     </span>
-                    {favorite.listing?.area && (
+                    {favorite.area && (
                       <span className="flex items-center gap-1">
                         <Ruler size={16} className="text-primary-600" />
-                        {favorite.listing.area} sqft
+                        {favorite.area} sqft
                       </span>
                     )}
                   </div>
@@ -128,7 +131,7 @@ const TenantFavorites = () => {
                   <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                     <div>
                       <p className="text-2xl font-bold text-primary-600">
-                        Rs. {(favorite.listing?.rent_amount || favorite.listing?.price || 0).toLocaleString()}
+                        Rs. {(favorite.rent_amount || favorite.price || 0).toLocaleString()}
                       </p>
                       <p className="text-xs text-gray-500">per month</p>
                     </div>
@@ -138,7 +141,7 @@ const TenantFavorites = () => {
                       className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold text-sm flex items-center gap-2"
                       onClick={(e) => {
                         e.stopPropagation()
-                        navigate(`/tenant/browse?id=${favorite.listing?.id || favorite.listing_id}`)
+                        handleViewProperty(favorite.id)
                       }}
                     >
                       <Eye size={16} />

@@ -19,6 +19,26 @@ const AMENITY_OPTIONS = ["Wifi", "Parking", "Balcony", "Garden", "AC"];
 const ListingCard = ({ data, onBookClick }) => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
+  const [isFavorite, setIsFavorite] = React.useState(false);
+  const [loadingFav, setLoadingFav] = React.useState(false);
+
+  // Check if this listing is favorited when component mounts
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      checkIfFavorited()
+    }
+  }, [data.id, isAuthenticated])
+
+  const checkIfFavorited = async () => {
+    try {
+      const response = await api.get('/favorites')
+      // Response returns full listing objects, so map the id field
+      const favoriteIds = new Set(response.data.data?.map(listing => listing.id) || [])
+      setIsFavorite(favoriteIds.has(data.id))
+    } catch (error) {
+      console.error('Failed to check favorite status:', error)
+    }
+  }
   
   const handleViewClick = () => {
     navigate(`/listing/${data.id}`, { state: { listing: data } });
@@ -32,10 +52,48 @@ const ListingCard = ({ data, onBookClick }) => {
     }
   };
 
+  const handleFavoriteClick = async (e) => {
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: "home", listingId: data.id } });
+      return;
+    }
+
+    setLoadingFav(true);
+    try {
+      if (isFavorite) {
+        // Remove from favorites
+        await api.delete(`/favorites/${data.id}`);
+        setIsFavorite(false);
+      } else {
+        // Add to favorites - use correct endpoint with id in URL
+        try {
+          await api.post(`/favorites/${data.id}`);
+          setIsFavorite(true);
+        } catch (postError) {
+          // If already in favorites error, treat as already favorited
+          if (postError.response?.status === 400 && postError.response?.data?.error?.includes('already')) {
+            setIsFavorite(true);
+          } else {
+            throw postError;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite - Full Error:', error)
+      console.error('Error response:', error.response)
+      console.error('Error message:', error.message)
+      console.error('Error data:', error.response?.data)
+      alert(`Failed to update favorite: ${error.response?.data?.error || error.message}`)
+    } finally {
+      setLoadingFav(false);
+    }
+  };
+
   return (
     <motion.div 
-      whileHover={{ y: -5, boxShadow: "0 10px 15px rgba(0,0,0,0.1)" }}
-      className="bg-white rounded-2xl shadow-lg overflow-hidden group cursor-pointer border border-gray-100"
+      whileHover={{ y: -8, boxShadow: "0 20px 25px rgba(0,0,0,0.15)" }}
+      className="bg-white rounded-2xl shadow-lg overflow-hidden group cursor-pointer border border-gray-100 hover:border-blue-200 transition-all duration-300"
     >
       <div className="relative overflow-hidden h-56">
         <img
@@ -45,38 +103,61 @@ const ListingCard = ({ data, onBookClick }) => {
               : "https://images.unsplash.com/photo-1570129477488-c70a256a7356?q=80&w=600&h=400&auto=format&fit=crop"
           }
           alt={data.title}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           onError={(e) => { e.target.onerror = null; e.target.src="https://images.unsplash.com/photo-1570129477488-c70a256a7356?q=80&w=600&h=400&auto=format&fit=crop" }}
         />
-        <div className="absolute top-4 right-4 bg-yellow-400 text-gray-900 text-xs font-bold px-3 py-1 rounded-full uppercase">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        
+        {/* Badge */}
+        <div className="absolute top-4 right-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
           Featured
         </div>
+
+        {/* Favorite Button */}
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleFavoriteClick}
+          disabled={loadingFav}
+          className="absolute top-4 left-4 bg-white/90 hover:bg-white rounded-full p-2 transition-all shadow-lg z-10"
+        >
+          {loadingFav ? (
+            <Loader size={18} className="animate-spin text-gray-400" />
+          ) : (
+            <Heart
+              size={18}
+              className={isFavorite ? "fill-red-500 text-red-500" : "text-gray-400"}
+            />
+          )}
+        </motion.button>
       </div>
 
       <div className="p-5">
-        <h3 className="text-xl font-bold text-gray-900 line-clamp-1">{data.title}</h3>
-        <div className="flex items-center text-gray-500 text-sm mt-1">
-          <MapPin size={16} className="mr-1 text-blue-600" />
-          {data.address}, {data.city}
+        <h3 className="text-lg font-bold text-gray-900 line-clamp-1 group-hover:text-blue-600 transition-colors">{data.title}</h3>
+        <div className="flex items-center text-gray-500 text-sm mt-2">
+          <MapPin size={16} className="mr-1 text-blue-600 flex-shrink-0" />
+          <span className="line-clamp-1">{data.address}, {data.city}</span>
         </div>
 
-        <div className="flex items-center justify-between mt-4 py-3 border-t border-b border-gray-100 text-gray-600 text-sm">
-          <div className="flex items-center gap-1"><BedDouble size={18} /> <span>{data.bedrooms} Beds</span></div>
-          <div className="flex items-center gap-1"><Bath size={18} /> <span>{data.bathrooms} Baths</span></div>
-          <div className="flex items-center gap-1"><Maximize size={18} /> <span>{data.area || 'N/A'} sqft</span></div>
+        <div className="flex items-center justify-between mt-4 py-3 border-t border-b border-gray-100 text-gray-600 text-xs font-semibold">
+          <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-lg"><BedDouble size={16} /> {data.bedrooms}</div>
+          <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-lg"><Bath size={16} /> {data.bathrooms}</div>
+          <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-lg"><Maximize size={16} /> {data.area || 'N/A'}</div>
         </div>
 
-        <div className="mt-4 flex justify-between items-center">
+        <div className="mt-4 flex justify-between items-center gap-3">
           <div>
             <span className="text-2xl font-extrabold text-blue-600">Rs. {data.rent_amount?.toLocaleString()}</span>
-            <span className="text-gray-500 text-sm"> / mo</span>
+            <span className="text-gray-500 text-xs ml-2"> / mo</span>
           </div>
-          <button 
-            onClick={handleBookClick}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleViewClick}
+            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:shadow-lg transition-all text-sm"
           >
-            Contact
-          </button>
+            View
+          </motion.button>
         </div>
       </div>
     </motion.div>

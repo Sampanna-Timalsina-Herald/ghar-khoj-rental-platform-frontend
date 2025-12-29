@@ -23,10 +23,26 @@ const TenantBrowse = () => {
   })
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [favorites, setFavorites] = useState(new Set())
+  const [loadingFav, setLoadingFav] = useState(null)
 
   useEffect(() => {
     fetchListings()
-  }, [filters])
+    if (isAuthenticated) {
+      fetchUserFavorites()
+    }
+  }, [filters, isAuthenticated])
+
+  const fetchUserFavorites = async () => {
+    try {
+      const response = await api.get('/favorites')
+      // Response returns full listing objects, so map the id field
+      const favoriteIds = new Set(response.data.data?.map(listing => listing.id) || [])
+      setFavorites(favoriteIds)
+      console.log('[TenantBrowse] Favorites loaded:', Array.from(favoriteIds))
+    } catch (error) {
+      console.error('Failed to fetch favorites:', error)
+    }
+  }
 
   const fetchListings = async () => {
     try {
@@ -73,7 +89,7 @@ const TenantBrowse = () => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: 'browse', listingId } })
     } else {
-      navigate(`/listing/${listingId}`)
+      navigate(`/tenant/listing/${listingId}`)
     }
   }
 
@@ -84,15 +100,41 @@ const TenantBrowse = () => {
       return
     }
     
-    const newFavorites = new Set(favorites)
-    if (newFavorites.has(listingId)) {
-      newFavorites.delete(listingId)
-    } else {
-      newFavorites.add(listingId)
+    setLoadingFav(listingId)
+    try {
+      if (favorites.has(listingId)) {
+        // Remove from favorites
+        await api.delete(`/favorites/${listingId}`)
+        const newFavorites = new Set(favorites)
+        newFavorites.delete(listingId)
+        setFavorites(newFavorites)
+      } else {
+        // Add to favorites - use correct endpoint with listingId in URL
+        try {
+          await api.post(`/favorites/${listingId}`)
+          const newFavorites = new Set(favorites)
+          newFavorites.add(listingId)
+          setFavorites(newFavorites)
+        } catch (postError) {
+          // If already in favorites error, treat as already favorited
+          if (postError.response?.status === 400 && postError.response?.data?.error?.includes('already')) {
+            const newFavorites = new Set(favorites)
+            newFavorites.add(listingId)
+            setFavorites(newFavorites)
+          } else {
+            throw postError
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite - Full Error:', error)
+      console.error('Error response:', error.response)
+      console.error('Error message:', error.message)
+      console.error('Error data:', error.response?.data)
+      alert(`Failed to update favorite: ${error.response?.data?.error || error.message}`)
+    } finally {
+      setLoadingFav(null)
     }
-    setFavorites(newFavorites)
-    
-    // TODO: Implement favorite toggle API call
   }
 
   if (loading && listings.length === 0) {
@@ -277,11 +319,11 @@ const TenantBrowse = () => {
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
-                        <h3 className="text-lg font-bold text-text line-clamp-1">
+                        <h3 className="text-lg font-bold text-text line-clamp-1 group-hover:text-primary-600 transition-colors">
                           {listing.title || listing.address || 'Property Listing'}
                         </h3>
                         <p className="text-gray-600 text-sm flex items-center gap-1 mt-1">
-                          <MapPin size={16} className="text-primary-600" />
+                          <MapPin size={16} className="text-primary-600 flex-shrink-0" />
                           {listing.address}, {listing.city || 'Location not specified'}
                         </p>
                       </div>
@@ -289,12 +331,16 @@ const TenantBrowse = () => {
                         whileHover={{ scale: 1.15 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={(e) => handleFavoriteToggle(listing.id, e)}
-                        className="p-2 hover:bg-red-50 rounded-lg flex-shrink-0"
+                        className="p-2 hover:bg-red-50 rounded-lg flex-shrink-0 transition-colors"
                       >
-                        <Heart 
-                          size={20} 
-                          className={favorites.has(listing.id) ? 'fill-red-500 text-red-500' : 'text-gray-400'}
-                        />
+                        {loadingFav === listing.id ? (
+                          <Loader2 size={20} className="animate-spin text-gray-400" />
+                        ) : (
+                          <Heart 
+                            size={20} 
+                            className={favorites.has(listing.id) ? 'fill-red-500 text-red-500' : 'text-gray-400'}
+                          />
+                        )}
                       </motion.button>
                     </div>
 
@@ -303,15 +349,15 @@ const TenantBrowse = () => {
                     </p>
 
                     {/* Property Features */}
-                    <div className="flex gap-4 mb-4 text-sm text-gray-600">
-                      <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
-                        <Bed size={16} /> {listing.bedrooms || '0'} Bed{listing.bedrooms !== 1 ? 's' : ''}
+                    <div className="flex gap-3 mb-4 text-xs text-gray-600 font-semibold flex-wrap">
+                      <span className="flex items-center gap-1 bg-gradient-to-r from-blue-50 to-blue-100 px-3 py-1 rounded-lg border border-blue-200">
+                        <Bed size={14} className="text-blue-600" /> {listing.bedrooms || '0'} Bed{listing.bedrooms !== 1 ? 's' : ''}
                       </span>
-                      <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
-                        <Bath size={16} /> {listing.bathrooms || '0'} Bath{listing.bathrooms !== 1 ? 's' : ''}
+                      <span className="flex items-center gap-1 bg-gradient-to-r from-green-50 to-green-100 px-3 py-1 rounded-lg border border-green-200">
+                        <Bath size={14} className="text-green-600" /> {listing.bathrooms || '0'} Bath{listing.bathrooms !== 1 ? 's' : ''}
                       </span>
-                      <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
-                        <Ruler size={16} /> {listing.area || 'N/A'} sqft
+                      <span className="flex items-center gap-1 bg-gradient-to-r from-purple-50 to-purple-100 px-3 py-1 rounded-lg border border-purple-200">
+                        <Ruler size={14} className="text-purple-600" /> {listing.area || 'N/A'} sqft
                       </span>
                     </div>
 
@@ -330,9 +376,9 @@ const TenantBrowse = () => {
                           e.stopPropagation()
                           handleContactOwner(listing.id)
                         }}
-                        className="px-6 py-2 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors flex items-center gap-2"
+                        className="px-6 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg font-semibold hover:shadow-lg transition-all flex items-center gap-2"
                       >
-                        Contact <ChevronRight size={16} />
+                        View <ChevronRight size={16} />
                       </motion.button>
                     </div>
                   </div>

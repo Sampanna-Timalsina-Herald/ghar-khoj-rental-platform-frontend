@@ -101,6 +101,7 @@
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "./stores/authStore";
+import { initSocket, disconnectSocket } from "./services/socket";
 
 // Pages
 import Home from "./pages/Home";
@@ -116,21 +117,47 @@ import ListProperty from "./pages/ListProperty";
 import AdminDashboard from "./pages/admin/Dashboard";
 import LandlordDashboard from "./pages/landlord/Dashboard";
 import TenantDashboard from "./pages/tenant/Dashboard";
+import TenantListingDetail from "./pages/tenant/TenantListingDetail";
 
 // Components
 import PublicRoute from "./components/PublicRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
-  const { loadFromStorage, isAuthenticated, role } = useAuthStore();
+  const { loadFromStorage, isAuthenticated, role, accessToken } = useAuthStore();
 
   useEffect(() => {
     loadFromStorage();
   }, [loadFromStorage]);
 
+  // Initialize socket when user logs in
+  useEffect(() => {
+    if (isAuthenticated && accessToken) {
+      console.log('[App] User authenticated, initializing socket');
+      initSocket(accessToken);
+    } else {
+      // Disconnect socket when user logs out
+      disconnectSocket();
+    }
+  }, [isAuthenticated, accessToken]);
+
   return (
     <Router>
       <Routes>
+
+        {/* Tenant listing detail - should show before public routes check */}
+        <Route 
+          path="/tenant/listing/:id" 
+          element={
+            <ProtectedRoute
+              isAuthenticated={isAuthenticated}
+              allowedRoles={["tenant"]}
+              userRole={role}
+            />
+          }
+        >
+          <Route path="" element={<TenantListingDetail />} />
+        </Route>
 
         {/* ---------------- PUBLIC ROUTES ---------------- */}
         <Route

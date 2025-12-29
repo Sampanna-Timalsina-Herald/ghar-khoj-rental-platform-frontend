@@ -7,9 +7,16 @@
 
 // export default PublicRoute;
 import React from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 const PublicRoute = ({ isAuthenticated, role }) => {
+  const location = useLocation();
+  
+  // Allow authenticated users to view listing details
+  if (isAuthenticated && location.pathname.startsWith('/listing/')) {
+    return <Outlet />;
+  }
+  
   if (isAuthenticated) {
     return <Navigate to={`/${role}`} replace />;
   }

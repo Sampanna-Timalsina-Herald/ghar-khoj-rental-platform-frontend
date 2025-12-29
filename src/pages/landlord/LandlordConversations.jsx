@@ -1,30 +1,135 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
+import socketService, { initSocket } from '../../services/socket'
 import { MessageSquare, Send, Loader2, User } from 'lucide-react'
+import { useAuthStore } from '../../stores/authStore'
 
 const LandlordConversations = () => {
+  const { user, accessToken } = useAuthStore()
   const [conversations, setConversations] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedConversation, setSelectedConversation] = useState(null)
+  const [messages, setMessages] = useState([])
   const [messageText, setMessageText] = useState('')
   const [sending, setSending] = useState(false)
+  const [messagesLoading, setMessagesLoading] = useState(false)
 
   useEffect(() => {
+    // Initialize socket
+    initSocket(accessToken)
+    
+    // Fetch conversations
     fetchConversations()
-  }, [])
+
+    // Listen for new messages
+    socketService.on('receive-message', (data) => {
+      console.log('[LandlordConversations] Message received:', data)
+      
+      // Update conversations list with new last message
+      setConversations((prev) => {
+        return prev.map((conv) => {
+          if (conv.id === data.conversation_id) {
+            return {
+              ...conv,
+              last_message: data.message,
+              last_message_time: data.created_at,
+              last_message_sender_id: data.sender_id,
+              unread_count: (conv.unread_count || 0) + 1,
+            }
+          }
+          return conv
+        })
+      })
+      
+      // Add message to current conversation if it matches
+      if (selectedConversation && data.conversation_id === selectedConversation.id) {
+        // Only add if not already in messages
+        setMessages((prev) => {
+          const exists = prev.some(m => m.id === data.id)
+          if (!exists) {
+            return [...prev, data]
+          }
+          return prev
+        })
+      }
+      
+      // Trigger dashboard badge update
+      window.dispatchEvent(new Event('unreadCountChanged'))
+    })
+
+    return () => {
+      socketService.off('receive-message')
+    }
+  }, [accessToken, selectedConversation])
 
   const fetchConversations = async () => {
     try {
       const response = await api.get('/conversations')
-      setConversations(response.data.data || [])
-      if (response.data.data && response.data.data.length > 0) {
-        setSelectedConversation(response.data.data[0])
+      const data = response.data.data || []
+      console.log('[LandlordConversations] Fetched conversations:', data)
+      data.forEach(conv => {
+        console.log(`[LandlordConversations] Conv: ${conv.other_user_name}, last_message: "${conv.last_message}", unread: ${conv.unread_count}`)
+      })
+      setConversations(data)
+      if (data.length > 0 && !selectedConversation) {
+        setSelectedConversation(data[0])
+      } else if (data.length === 0) {
+        setSelectedConversation(null)
       }
     } catch (error) {
       console.error('Failed to fetch conversations:', error)
+      setConversations([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchMessages = async (conversationId) => {
+    try {
+      setMessagesLoading(true)
+      const response = await api.get(`/conversations/${conversationId}/messages`)
+      setMessages(response.data.data || response.data || [])
+    } catch (error) {
+      console.error('Failed to fetch messages:', error)
+      setMessages([])
+    } finally {
+      setMessagesLoading(false)
+    }
+  }
+
+  const handleSelectConversation = async (conversation) => {
+    console.log('[LandlordConversations] Selected conversation:', conversation)
+    setSelectedConversation(conversation)
+    setMessages([])
+    setMessagesLoading(true)
+    
+    try {
+      // Fetch messages for this conversation
+      const response = await api.get(`/conversations/${conversation.id}/messages`)
+      if (response.data && response.data.data) {
+        console.log('[LandlordConversations] Loaded messages:', response.data.data)
+        // Sort messages in ascending order (oldest first) for proper display at bottom
+        const sortedMessages = [...response.data.data].sort((a, b) => 
+          new Date(a.created_at) - new Date(b.created_at)
+        )
+        setMessages(sortedMessages)
+      }
+    } catch (error) {
+      console.error('[LandlordConversations] Error loading messages:', error)
+    } finally {
+      setMessagesLoading(false)
+    }
+
+    // Mark conversation as read
+    try {
+      await api.put(`/conversations/${conversation.id}/mark-read`)
+      // Refresh conversations to update unread counts
+      fetchConversations()
+      // Emit event to notify dashboard to update badge
+      window.dispatchEvent(new Event('unreadCountChanged'))
+    } catch (error) {
+      console.error('[LandlordConversations] Error marking as read:', error)
     }
   }
 
@@ -32,17 +137,39 @@ const LandlordConversations = () => {
     if (!messageText.trim() || !selectedConversation) return
 
     setSending(true)
+    const messageContent = messageText
+    setMessageText('')
+    
     try {
-      // TODO: Implement send message API
-      // await api.post(`/conversations/${selectedConversation.id}/messages`, {
-      //   message: messageText
-      // })
+      // Send via API to persist (socket will handle real-time)
+      const response = await api.post('/messages', {
+        receiver_id: selectedConversation.other_user_id,
+        listing_id: selectedConversation.listing_id,
+        message_text: messageContent,
+      })
+
+      // Add message to local state only from API response
+      if (response.data && response.data.data) {
+        setMessages((prev) => {
+          const sorted = [...prev, response.data.data].sort((a, b) => 
+            new Date(a.created_at) - new Date(b.created_at)
+          )
+          return sorted
+        })
+      }
       
-      setMessageText('')
-      // Refresh messages
+      // Send via socket for real-time notification
+      socketService.sendMessage(
+        selectedConversation.other_user_id,
+        messageContent,
+        selectedConversation.listing_id,
+        selectedConversation.id
+      )
+      
       fetchConversations()
     } catch (error) {
       console.error('Failed to send message:', error)
+      setMessageText(messageContent)
     } finally {
       setSending(false)
     }
@@ -89,7 +216,7 @@ const LandlordConversations = () => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 + index * 0.05 }}
-                  onClick={() => setSelectedConversation(conversation)}
+                  onClick={() => handleSelectConversation(conversation)}
                   className={`w-full p-4 border-b border-gray-200 hover:bg-gray-50 transition-colors text-left ${
                     selectedConversation?.id === conversation.id ? 'bg-primary-50 border-l-4 border-primary-600' : ''
                   }`}
@@ -100,12 +227,22 @@ const LandlordConversations = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-text truncate">
-                        {conversation.participant?.name || 'Unknown User'}
+                        {conversation.other_user_name || 'Unknown User'}
                       </p>
                       <p className="text-sm text-gray-600 truncate">
-                        {conversation.listing?.title || conversation.last_message || 'No messages yet'}
+                        {conversation.last_message || 'No messages yet'}
                       </p>
+                      {conversation.last_message_time && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(conversation.last_message_time).toLocaleDateString()}
+                        </p>
+                      )}
                     </div>
+                    {conversation.unread_count > 0 && (
+                      <span className="inline-flex items-center justify-center w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex-shrink-0">
+                        {conversation.unread_count > 99 ? '99+' : conversation.unread_count}
+                      </span>
+                    )}
                   </div>
                 </motion.button>
               ))
@@ -129,53 +266,52 @@ const LandlordConversations = () => {
             <>
               <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-primary-600 to-primary-700 text-white">
                 <h2 className="font-semibold">
-                  Chat with {selectedConversation.participant?.name || 'Tenant'}
+                  Chat with {selectedConversation.other_user_name || 'Tenant'}
                 </h2>
-                {selectedConversation.listing && (
-                  <p className="text-sm text-primary-100 mt-1">
-                    About: {selectedConversation.listing.title}
-                  </p>
-                )}
               </div>
 
               <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
-                <AnimatePresence>
-                  {selectedConversation.messages?.length > 0 ? (
-                    selectedConversation.messages.map((message, index) => (
+                {messagesLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 size={32} className="animate-spin text-primary-600" />
+                  </div>
+                ) : messages.length > 0 ? (
+                  <AnimatePresence>
+                    {messages.map((message, index) => (
                       <motion.div
                         key={message.id || index}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className={`flex ${message.sender_id === 'current' ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
                       >
                         <div
                           className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
-                            message.sender_id === 'current'
+                            message.sender_id === user?.id
                               ? 'bg-primary-600 text-white'
                               : 'bg-white text-text shadow-sm'
                           }`}
                         >
-                          <p className="text-sm">{message.content || message.message}</p>
+                          <p className="text-sm">{message.message || message.content}</p>
                           {message.created_at && (
                             <p className={`text-xs mt-1 ${
-                              message.sender_id === 'current' ? 'text-primary-100' : 'text-gray-500'
+                              message.sender_id === user?.id ? 'text-primary-100' : 'text-gray-500'
                             }`}>
                               {new Date(message.created_at).toLocaleTimeString()}
                             </p>
                           )}
                         </div>
                       </motion.div>
-                    ))
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-500">
-                      <div className="text-center">
-                        <MessageSquare size={48} className="mx-auto mb-4 opacity-50" />
-                        <p>No messages yet. Start the conversation!</p>
-                      </div>
+                    ))}
+                  </AnimatePresence>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    <div className="text-center">
+                      <MessageSquare size={48} className="mx-auto mb-4 opacity-50" />
+                      <p>No messages yet. Start the conversation!</p>
                     </div>
-                  )}
-                </AnimatePresence>
+                  </div>
+                )}
               </div>
 
               <div className="p-4 border-t border-gray-200">

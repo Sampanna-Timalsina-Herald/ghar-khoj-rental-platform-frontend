@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { Users, Home, AlertCircle, BarChart3, User as UserIcon } from 'lucide-react'
 import Navbar from '../../components/Navbar'
@@ -10,6 +10,18 @@ import AdminProfile from './AdminProfile'
 
 const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Close sidebar on window resize if it becomes large enough
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setSidebarOpen(false)
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   const menuItems = [
     {
@@ -42,14 +54,14 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-      <div className="flex">
+      <div className="flex flex-col lg:flex-row">
         <Sidebar
           items={menuItems}
           basePath="/admin"
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
         />
-        <main className="flex-1 p-4 lg:p-8">
+        <main className="flex-1 w-full overflow-hidden p-4 lg:p-8 lg:overflow-auto">
           <Routes>
             <Route index element={<AdminHome />} />
             <Route path="listings" element={<AdminListings />} />
