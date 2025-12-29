@@ -16,7 +16,9 @@ import {
   MapPin,
   Bed,
   Bath,
-  Eye
+  Eye,
+  Grid3X3,
+  List
 } from 'lucide-react'
 
 const AdminListings = () => {
@@ -28,6 +30,7 @@ const AdminListings = () => {
   const [actionLoading, setActionLoading] = useState({})
   const [message, setMessage] = useState({ type: '', text: '' })
   const [saving, setSaving] = useState(false)
+  const [viewMode, setViewMode] = useState('table') // 'table' or 'card'
 
   useEffect(() => {
     fetchListings()
@@ -197,7 +200,7 @@ const AdminListings = () => {
         </motion.div>
       )}
 
-      {/* Search Bar */}
+      {/* Search Bar & View Toggle */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -214,9 +217,27 @@ const AdminListings = () => {
             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
           />
         </div>
+        <div className="flex gap-2 bg-white rounded-lg border border-gray-300 p-1">
+          <button
+            onClick={() => setViewMode('table')}
+            className={`p-2 rounded transition-all ${viewMode === 'table' ? 'bg-primary-100 text-primary-600' : 'text-gray-600 hover:text-gray-900'}`}
+            title="Table View"
+          >
+            <List size={20} />
+          </button>
+          <button
+            onClick={() => setViewMode('card')}
+            className={`p-2 rounded transition-all ${viewMode === 'card' ? 'bg-primary-100 text-primary-600' : 'text-gray-600 hover:text-gray-900'}`}
+            title="Card View"
+          >
+            <Grid3X3 size={20} />
+          </button>
+        </div>
       </motion.div>
 
-      {/* Listings Table */}
+      {/* Listings View */}
+      {viewMode === 'table' ? (
+        /* Table View */
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -423,6 +444,112 @@ const AdminListings = () => {
           </div>
         )}
       </motion.div>
+      ) : (
+        /* Card View */
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          <AnimatePresence>
+            {filteredListings.map((listing) => (
+              <motion.div
+                key={listing.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all"
+              >
+                {/* Card Image Placeholder */}
+                <div className="h-48 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white">
+                  <Home size={48} opacity={0.5} />
+                </div>
+
+                {/* Card Content */}
+                <div className="p-6">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">{listing.title}</h3>
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{listing.description}</p>
+
+                  {/* Location */}
+                  <div className="flex items-center gap-2 text-gray-600 text-sm mb-3">
+                    <MapPin size={16} />
+                    <span>{listing.city || listing.address || 'N/A'}</span>
+                  </div>
+
+                  {/* Price */}
+                  <div className="flex items-center gap-2 text-lg font-bold text-gray-900 mb-4">
+                    <DollarSign size={20} />
+                    <span>Rs. {(listing.rent_amount || listing.price || 0).toLocaleString()}</span>
+                  </div>
+
+                  {/* Details */}
+                  <div className="flex gap-4 mb-4 text-sm text-gray-600">
+                    <span className="flex items-center gap-1">
+                      <Bed size={16} />
+                      {listing.bedrooms || 0} Beds
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Bath size={16} />
+                      {listing.bathrooms || 0} Baths
+                    </span>
+                  </div>
+
+                  {/* Status */}
+                  <div className="flex gap-2 mb-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(listing.status, listing.is_verified)}`}>
+                      {listing.status || 'active'}
+                    </span>
+                    {!listing.is_verified && listing.status === 'active' && (
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+                        Pending
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                    {listing.status === 'active' && !listing.is_verified && (
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleApprove(listing.id)}
+                        disabled={actionLoading[listing.id]}
+                        className="flex-1 p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50 font-medium text-sm"
+                      >
+                        {actionLoading[listing.id] ? <Loader2 size={16} className="animate-spin mx-auto" /> : <Check size={16} className="mx-auto" />}
+                      </motion.button>
+                    )}
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleEdit(listing)}
+                      className="flex-1 p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors font-medium text-sm"
+                    >
+                      <Edit2 size={16} className="mx-auto" />
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setDeleteConfirm(listing.id)}
+                      className="flex-1 p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors font-medium text-sm"
+                    >
+                      <Trash2 size={16} className="mx-auto" />
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
+      )}
+
+      {filteredListings.length === 0 && (
+        <div className="text-center py-12 text-gray-500">
+          <Home size={48} className="mx-auto mb-4 opacity-50" />
+          <p>No listings found</p>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       <AnimatePresence>

@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
 import { useAuthStore } from '../../stores/authStore'
-import { Heart, MapPin, Bed, Bath, Ruler, Filter, Loader2, ChevronRight } from 'lucide-react'
+import { Heart, MapPin, Bed, Bath, Ruler, Filter, Loader2, ChevronRight, Grid3X3, List } from 'lucide-react'
 
 const TenantBrowse = () => {
   const [searchParams] = useSearchParams()
@@ -24,6 +24,7 @@ const TenantBrowse = () => {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [favorites, setFavorites] = useState(new Set())
   const [loadingFav, setLoadingFav] = useState(null)
+  const [viewMode, setViewMode] = useState('list')
 
   useEffect(() => {
     fetchListings()
@@ -159,15 +160,45 @@ const TenantBrowse = () => {
             {listings.length > 0 ? `Found ${listings.length} properties matching your criteria` : 'Find your perfect rental property'}
           </p>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setFiltersOpen(!filtersOpen)}
-          className="lg:hidden p-3 border-2 border-primary-600 text-primary-600 rounded-lg flex items-center gap-2 font-semibold"
-        >
-          <Filter size={20} />
-          Filters
-        </motion.button>
+        <div className="flex items-center gap-3">
+          <div className="flex gap-2 bg-gray-100 rounded-lg border border-gray-300 p-1 w-fit">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setViewMode('grid')}
+              className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all ${
+                viewMode === 'grid'
+                  ? 'bg-white text-primary-600 shadow-md'
+                  : 'text-gray-700 hover:text-primary-600'
+              }`}
+            >
+              <Grid3X3 size={18} />
+              Grid
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setViewMode('list')}
+              className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all ${
+                viewMode === 'list'
+                  ? 'bg-white text-primary-600 shadow-md'
+                  : 'text-gray-700 hover:text-primary-600'
+              }`}
+            >
+              <List size={18} />
+              List
+            </motion.button>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setFiltersOpen(!filtersOpen)}
+            className="lg:hidden p-3 border-2 border-primary-600 text-primary-600 rounded-lg flex items-center gap-2 font-semibold"
+          >
+            <Filter size={20} />
+            Filters
+          </motion.button>
+        </div>
       </motion.div>
 
       {error && (
@@ -289,112 +320,222 @@ const TenantBrowse = () => {
 
         {/* Listings */}
         <div className="lg:col-span-3 space-y-4">
-          <AnimatePresence mode="wait">
-            {listings.length > 0 ? (
-              listings.map((listing, index) => (
-                <motion.div
-                  key={listing.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="bg-white rounded-xl shadow-md p-6 flex gap-4 hover:shadow-xl transition-all duration-300 cursor-pointer group"
-                  onClick={() => navigate(`/listing/${listing.id}`)}
-                >
-                  {/* Image */}
-                  <div className="relative w-48 h-32 flex-shrink-0 overflow-hidden rounded-lg">
-                    <img
-                      src={
-                        listing.images && listing.images.length > 0
-                          ? (listing.images[0].startsWith('http') ? listing.images[0] : `http://localhost:5000${listing.images[0]}`)
-                          : '/placeholder.svg'
-                      }
-                      alt={listing.title || 'Property'}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      onError={(e) => { e.target.src = '/placeholder.svg' }}
-                    />
-                  </div>
+          {viewMode === 'list' ? (
+            <AnimatePresence mode="wait">
+              {listings.length > 0 ? (
+                listings.map((listing, index) => (
+                  <motion.div
+                    key={listing.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="bg-white rounded-xl shadow-md p-6 flex gap-4 hover:shadow-xl transition-all duration-300 cursor-pointer group"
+                    onClick={() => navigate(`/listing/${listing.id}`)}
+                  >
+                    {/* Image */}
+                    <div className="relative w-48 h-32 flex-shrink-0 overflow-hidden rounded-lg">
+                      <img
+                        src={
+                          listing.images && listing.images.length > 0
+                            ? (listing.images[0].startsWith('http') ? listing.images[0] : `http://localhost:5000${listing.images[0]}`)
+                            : '/placeholder.svg'
+                        }
+                        alt={listing.title || 'Property'}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => { e.target.src = '/placeholder.svg' }}
+                      />
+                    </div>
 
-                  {/* Content */}
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold text-text line-clamp-1 group-hover:text-primary-600 transition-colors">
+                    {/* Content */}
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold text-text line-clamp-1 group-hover:text-primary-600 transition-colors">
+                            {listing.title || listing.address || 'Property Listing'}
+                          </h3>
+                          <p className="text-gray-600 text-sm flex items-center gap-1 mt-1">
+                            <MapPin size={16} className="text-primary-600 flex-shrink-0" />
+                            {listing.address}, {listing.city || 'Location not specified'}
+                          </p>
+                        </div>
+                        <motion.button
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => handleFavoriteToggle(listing.id, e)}
+                          className="p-2 hover:bg-red-50 rounded-lg flex-shrink-0 transition-colors"
+                        >
+                          {loadingFav === listing.id ? (
+                            <Loader2 size={20} className="animate-spin text-gray-400" />
+                          ) : (
+                            <Heart 
+                              size={20} 
+                              className={favorites.has(listing.id) ? 'fill-red-500 text-red-500' : 'text-gray-400'}
+                            />
+                          )}
+                        </motion.button>
+                      </div>
+
+                      <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                        {listing.description || 'No description available'}
+                      </p>
+
+                      {/* Property Features */}
+                      <div className="flex gap-3 mb-4 text-xs text-gray-600 font-semibold flex-wrap">
+                        <span className="flex items-center gap-1 bg-gradient-to-r from-blue-50 to-blue-100 px-3 py-1 rounded-lg border border-blue-200">
+                          <Bed size={14} className="text-blue-600" /> {listing.bedrooms || '0'} Bed{listing.bedrooms !== 1 ? 's' : ''}
+                        </span>
+                        <span className="flex items-center gap-1 bg-gradient-to-r from-green-50 to-green-100 px-3 py-1 rounded-lg border border-green-200">
+                          <Bath size={14} className="text-green-600" /> {listing.bathrooms || '0'} Bath{listing.bathrooms !== 1 ? 's' : ''}
+                        </span>
+                        <span className="flex items-center gap-1 bg-gradient-to-r from-purple-50 to-purple-100 px-3 py-1 rounded-lg border border-purple-200">
+                          <Ruler size={14} className="text-purple-600" /> {listing.area || 'N/A'} sqft
+                        </span>
+                      </div>
+
+                      {/* Price and Action */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-2xl font-bold text-primary-600">
+                            Rs. {(listing.rent_amount || listing.price || 0).toLocaleString()}
+                          </p>
+                          <p className="text-xs text-gray-500">per month</p>
+                        </div>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleContactOwner(listing.id)
+                          }}
+                          className="px-6 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg font-semibold hover:shadow-lg transition-all flex items-center gap-2"
+                        >
+                          View <ChevronRight size={16} />
+                        </motion.button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-16 bg-white rounded-xl"
+                >
+                  <p className="text-gray-600 text-lg font-semibold">No listings found</p>
+                  <p className="text-gray-400 text-sm mt-2">Try adjusting your filters or search terms</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          ) : (
+            /* GRID VIEW */
+            <AnimatePresence mode="wait">
+              {listings.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {listings.map((listing, index) => (
+                    <motion.div
+                      key={listing.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group"
+                      onClick={() => navigate(`/listing/${listing.id}`)}
+                    >
+                      {/* Image */}
+                      <div className="relative h-48 overflow-hidden">
+                        <img
+                          src={
+                            listing.images && listing.images.length > 0
+                              ? (listing.images[0].startsWith('http') ? listing.images[0] : `http://localhost:5000${listing.images[0]}`)
+                              : '/placeholder.svg'
+                          }
+                          alt={listing.title || 'Property'}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => { e.target.src = '/placeholder.svg' }}
+                        />
+                        <motion.button
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => handleFavoriteToggle(listing.id, e)}
+                          className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-lg hover:shadow-xl transition-all"
+                        >
+                          {loadingFav === listing.id ? (
+                            <Loader2 size={20} className="animate-spin text-gray-400" />
+                          ) : (
+                            <Heart 
+                              size={20} 
+                              className={favorites.has(listing.id) ? 'fill-red-500 text-red-500' : 'text-gray-400'}
+                            />
+                          )}
+                        </motion.button>
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-4">
+                        <h3 className="text-lg font-bold text-text line-clamp-1 group-hover:text-primary-600 transition-colors mb-1">
                           {listing.title || listing.address || 'Property Listing'}
                         </h3>
-                        <p className="text-gray-600 text-sm flex items-center gap-1 mt-1">
-                          <MapPin size={16} className="text-primary-600 flex-shrink-0" />
-                          {listing.address}, {listing.city || 'Location not specified'}
+                        <p className="text-gray-600 text-sm flex items-center gap-1 mb-3">
+                          <MapPin size={14} className="text-primary-600 flex-shrink-0" />
+                          {listing.city || 'Location not specified'}
                         </p>
-                      </div>
-                      <motion.button
-                        whileHover={{ scale: 1.15 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={(e) => handleFavoriteToggle(listing.id, e)}
-                        className="p-2 hover:bg-red-50 rounded-lg flex-shrink-0 transition-colors"
-                      >
-                        {loadingFav === listing.id ? (
-                          <Loader2 size={20} className="animate-spin text-gray-400" />
-                        ) : (
-                          <Heart 
-                            size={20} 
-                            className={favorites.has(listing.id) ? 'fill-red-500 text-red-500' : 'text-gray-400'}
-                          />
-                        )}
-                      </motion.button>
-                    </div>
 
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                      {listing.description || 'No description available'}
-                    </p>
-
-                    {/* Property Features */}
-                    <div className="flex gap-3 mb-4 text-xs text-gray-600 font-semibold flex-wrap">
-                      <span className="flex items-center gap-1 bg-gradient-to-r from-blue-50 to-blue-100 px-3 py-1 rounded-lg border border-blue-200">
-                        <Bed size={14} className="text-blue-600" /> {listing.bedrooms || '0'} Bed{listing.bedrooms !== 1 ? 's' : ''}
-                      </span>
-                      <span className="flex items-center gap-1 bg-gradient-to-r from-green-50 to-green-100 px-3 py-1 rounded-lg border border-green-200">
-                        <Bath size={14} className="text-green-600" /> {listing.bathrooms || '0'} Bath{listing.bathrooms !== 1 ? 's' : ''}
-                      </span>
-                      <span className="flex items-center gap-1 bg-gradient-to-r from-purple-50 to-purple-100 px-3 py-1 rounded-lg border border-purple-200">
-                        <Ruler size={14} className="text-purple-600" /> {listing.area || 'N/A'} sqft
-                      </span>
-                    </div>
-
-                    {/* Price and Action */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-2xl font-bold text-primary-600">
-                          Rs. {(listing.rent_amount || listing.price || 0).toLocaleString()}
+                        <p className="text-gray-600 text-xs mb-3 line-clamp-2">
+                          {listing.description || 'No description available'}
                         </p>
-                        <p className="text-xs text-gray-500">per month</p>
+
+                        {/* Property Features */}
+                        <div className="flex gap-2 mb-4 text-xs font-semibold flex-wrap">
+                          <span className="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                            <Bed size={12} /> {listing.bedrooms || '0'}
+                          </span>
+                          <span className="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded">
+                            <Bath size={12} /> {listing.bathrooms || '0'}
+                          </span>
+                          <span className="flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                            <Ruler size={12} /> {listing.area || 'N/A'}
+                          </span>
+                        </div>
+
+                        {/* Price */}
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <p className="text-lg font-bold text-primary-600">
+                              Rs. {(listing.rent_amount || listing.price || 0).toLocaleString()}
+                            </p>
+                            <p className="text-xs text-gray-500">per month</p>
+                          </div>
+                        </div>
+
+                        {/* Action Button */}
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleContactOwner(listing.id)
+                          }}
+                          className="w-full px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg font-semibold hover:shadow-lg transition-all"
+                        >
+                          View Details
+                        </motion.button>
                       </div>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleContactOwner(listing.id)
-                        }}
-                        className="px-6 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg font-semibold hover:shadow-lg transition-all flex items-center gap-2"
-                      >
-                        View <ChevronRight size={16} />
-                      </motion.button>
-                    </div>
-                  </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-16 bg-white rounded-xl col-span-full"
+                >
+                  <p className="text-gray-600 text-lg font-semibold">No listings found</p>
+                  <p className="text-gray-400 text-sm mt-2">Try adjusting your filters or search terms</p>
                 </motion.div>
-              ))
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-16 bg-white rounded-xl"
-              >
-                <p className="text-gray-600 text-lg font-semibold">No listings found</p>
-                <p className="text-gray-400 text-sm mt-2">Try adjusting your filters or search terms</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              )}
+            </AnimatePresence>
+          )}
         </div>
       </div>
     </div>

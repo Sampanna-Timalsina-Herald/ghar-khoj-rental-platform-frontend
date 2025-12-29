@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import { Users, Home, AlertCircle, BarChart3, User as UserIcon } from 'lucide-react'
+import { Users, Home, AlertCircle, BarChart3, User as UserIcon, TrendingUp, Settings as SettingsIcon } from 'lucide-react'
 import Navbar from '../../components/Navbar'
 import Sidebar from '../../components/Sidebar'
 import AdminHome from './AdminHome'
 import AdminListings from './AdminListings'
 import AdminUsers from './AdminUsers'
 import AdminProfile from './AdminProfile'
+import AdminReports from './AdminReports'
+import AdminSettings from './AdminSettings'
 
 const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -42,7 +44,12 @@ const AdminDashboard = () => {
     {
       label: 'Reports',
       path: '/reports',
-      icon: <AlertCircle size={20} />,
+      icon: <TrendingUp size={20} />,
+    },
+    {
+      label: 'Settings',
+      path: '/settings',
+      icon: <SettingsIcon size={20} />,
     },
     {
       label: 'Profile',
@@ -66,6 +73,8 @@ const AdminDashboard = () => {
             <Route index element={<AdminHome />} />
             <Route path="listings" element={<AdminListings />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="reports" element={<AdminReports />} />
+            <Route path="settings" element={<AdminSettings />} />
             <Route path="profile" element={<AdminProfile />} />
           </Routes>
         </main>
