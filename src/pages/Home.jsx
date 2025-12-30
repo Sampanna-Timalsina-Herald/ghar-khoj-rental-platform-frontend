@@ -13,6 +13,60 @@ import SmartNav from "../components/SmartNav";
 
 const AMENITY_OPTIONS = ["Wifi", "Parking", "Balcony", "Garden", "AC"];
 
+// --- ANIMATION VARIANTS ---
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.15,
+      delayChildren: 0.2,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: "easeOut" },
+  },
+};
+
+const floatingVariants = {
+  animate: {
+    y: [0, -20, 0],
+    transition: {
+      duration: 4,
+      repeat: Infinity,
+      ease: "easeInOut",
+    },
+  },
+};
+
+const rotateVariants = {
+  animate: {
+    rotateY: [0, 360],
+    transition: {
+      duration: 8,
+      repeat: Infinity,
+      ease: "linear",
+    },
+  },
+};
+
+const scaleVariants = {
+  hover: {
+    scale: 1.05,
+    transition: { duration: 0.3 },
+  },
+};
+
+const glowVariants = {
+  initial: { boxShadow: "0 0 20px rgba(59, 130, 246, 0.5)" },
+  hover: { boxShadow: "0 0 40px rgba(59, 130, 246, 0.8)" },
+};
 
 // --- COMPONENTS ---
 
@@ -92,10 +146,16 @@ const ListingCard = ({ data, onBookClick }) => {
 
   return (
     <motion.div 
-      whileHover={{ y: -8, boxShadow: "0 20px 25px rgba(0,0,0,0.15)" }}
-      className="bg-white rounded-2xl shadow-lg overflow-hidden group cursor-pointer border border-gray-100 hover:border-blue-200 transition-all duration-300"
+      whileHover={{ y: -12, boxShadow: "0 25px 50px rgba(59, 130, 246, 0.25)" }}
+      whileTap={{ scale: 0.98 }}
+      className="bg-white rounded-2xl shadow-lg overflow-hidden group cursor-pointer border border-gray-100 hover:border-blue-400 transition-all duration-300"
+      style={{ perspective: 1000 }}
     >
-      <div className="relative overflow-hidden h-56">
+      <motion.div 
+        className="relative overflow-hidden h-56"
+        whileHover={{ scale: 1.08 }}
+        transition={{ duration: 0.4 }}
+      >
         <img
           src={
             data.images && data.images.length > 0 
@@ -130,7 +190,7 @@ const ListingCard = ({ data, onBookClick }) => {
             />
           )}
         </motion.button>
-      </div>
+      </motion.div>
 
       <div className="p-5">
         <h3 className="text-lg font-bold text-gray-900 line-clamp-1 group-hover:text-blue-600 transition-colors">{data.title}</h3>
@@ -347,13 +407,25 @@ const StepCard = ({ icon: Icon, title, description, delay }) => (
   <motion.div
     initial={{ opacity: 0, y: 30 }}
     whileInView={{ opacity: 1, y: 0 }}
+    whileHover={{ 
+      scale: 1.05, 
+      y: -12,
+      boxShadow: "0 25px 50px rgba(59, 130, 246, 0.2)"
+    }}
     transition={{ duration: 0.6, delay: delay }}
     viewport={{ once: true }}
-    className="bg-white p-8 rounded-2xl shadow-xl border-t-4 border-blue-600/50 flex flex-col items-center text-center"
+    className="bg-white p-8 rounded-2xl shadow-xl border-t-4 border-blue-600/50 flex flex-col items-center text-center hover:border-yellow-400 transition-colors"
   >
-    <div className="p-4 bg-blue-100 rounded-full mb-4">
+    <motion.div 
+      className="p-4 bg-blue-100 rounded-full mb-4"
+      whileHover={{ 
+        background: "linear-gradient(135deg, #3b82f6 0%, #facc15 100%)",
+        scale: 1.1
+      }}
+      transition={{ duration: 0.3 }}
+    >
       <Icon size={36} className="text-blue-600" />
-    </div>
+    </motion.div>
     <h3 className="text-xl font-bold text-gray-900 mb-3">{title}</h3>
     <p className="text-gray-600">{description}</p>
   </motion.div>
@@ -421,24 +493,42 @@ const Home = () => {
                initial={{ x: -50, opacity: 0 }}
                animate={{ x: 0, opacity: 1 }}
                transition={{ duration: 0.8 }}
+               variants={containerVariants}
+               viewport={{ once: true }}
             >
-              <span className="inline-block py-1 px-3 rounded-full bg-blue-100 text-blue-600 text-sm font-semibold mb-4">
+              <motion.span 
+                 variants={itemVariants}
+                 className="inline-block py-1 px-3 rounded-full bg-blue-100 text-blue-600 text-sm font-semibold mb-4"
+              >
                  Your Trusted Home Search Partner
-              </span>
-              <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight">
+              </motion.span>
+              <motion.h1 
+                 variants={itemVariants}
+                 className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight"
+              >
                 Find Your Perfect <span className="text-blue-600">Ghar</span> in <br/> Kathmandu Valley.
-              </h1>
-              <p className="text-xl text-gray-600 mt-6 leading-relaxed max-w-lg">
+              </motion.h1>
+              <motion.p 
+                 variants={itemVariants}
+                 className="text-xl text-gray-600 mt-6 leading-relaxed max-w-lg"
+              >
                 Verified listings of Flats, Apartments, and Rooms for Rent across Kathmandu, Lalitpur, and Bhaktapur.
-              </p>
-              <div className="mt-8 flex gap-4">
-                <Link to="/search" className="px-8 py-3 bg-blue-600 text-white rounded-full font-bold text-lg hover:bg-blue-700 transition shadow-lg shadow-blue-600/30">
-                  Start Your Search
-                </Link>
-                <Link to="/register?role=landlord" className="px-8 py-3 bg-white text-gray-700 border-2 border-gray-200 rounded-full font-bold text-lg hover:border-yellow-400 hover:text-gray-900 transition">
-                  I am a Landlord
-                </Link>
-              </div>
+              </motion.p>
+              <motion.div 
+                 variants={itemVariants}
+                 className="mt-8 flex gap-4"
+              >
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Link to="/search" className="px-8 py-3 bg-blue-600 text-white rounded-full font-bold text-lg hover:bg-blue-700 transition shadow-lg shadow-blue-600/30">
+                    Start Your Search
+                  </Link>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Link to="/register?role=landlord" className="px-8 py-3 bg-white text-gray-700 border-2 border-gray-200 rounded-full font-bold text-lg hover:border-yellow-400 hover:text-gray-900 transition">
+                    I am a Landlord
+                  </Link>
+                </motion.div>
+              </motion.div>
             </motion.div>
 
             {/* Right Image */}
@@ -448,16 +538,22 @@ const Home = () => {
                transition={{ duration: 0.8 }}
                className="relative"
             >
-               <div className="aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl shadow-blue-300/50 relative z-10">
+               <motion.div 
+                  animate={floatingVariants}
+                  className="aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl shadow-blue-300/50 relative z-10"
+               >
                 <img 
                   src={modernInterior} 
                   alt="Modern Apartment in Kathmandu" 
                   className="w-full h-full object-cover"
                 />
-               </div>
+               </motion.div>
                
-               {/* Background accent shape */}
-               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[110%] border-2 border-dashed border-blue-200 rounded-3xl -z-10 animate-spin-slow"></div>
+               {/* Background accent shape with rotation */}
+               <motion.div 
+                  animate={rotateVariants}
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[110%] border-2 border-dashed border-blue-200 rounded-3xl -z-10"
+               ></motion.div>
             </motion.div>
           </div>
         </div>
@@ -470,45 +566,71 @@ const Home = () => {
 
       {/* How It Works Section */}
       <section className="max-w-7xl mx-auto mt-24 px-6">
-        <div className="text-center mb-16">
+        <motion.div 
+           initial={{ opacity: 0, y: 30 }}
+           whileInView={{ opacity: 1, y: 0 }}
+           transition={{ duration: 0.6 }}
+           viewport={{ once: true }}
+           className="text-center mb-16"
+        >
            <h2 className="text-4xl font-extrabold text-gray-900">How Gharkhoj Works</h2>
            <p className="text-xl text-gray-600 mt-3">Simple steps to finding or renting your property.</p>
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <StepCard 
-            icon={Search} 
-            title="1. Search & Filter" 
-            description="Use our detailed filters (from location to amenities) to find exactly what you need." 
-            delay={0}
-          />
-          <StepCard 
-            icon={Users} 
-            title="2. Connect & View" 
-            description="Directly contact the verified landlord or schedule a physical visit to the property." 
-            delay={0.2}
-          />
-          <StepCard 
-            icon={Key} 
-            title="3. Sign & Move In" 
-            description="Finalize the agreement with confidence and move into your new home in Kathmandu." 
-            delay={0.4}
-          />
-        </div>
+        <motion.div 
+           variants={containerVariants}
+           initial="hidden"
+           whileInView="visible"
+           viewport={{ once: true }}
+           className="grid grid-cols-1 md:grid-cols-3 gap-8"
+        >
+          <motion.div variants={itemVariants}>
+            <StepCard 
+              icon={Search} 
+              title="1. Search & Filter" 
+              description="Use our detailed filters (from location to amenities) to find exactly what you need." 
+              delay={0}
+            />
+          </motion.div>
+          <motion.div variants={itemVariants}>
+            <StepCard 
+              icon={Users} 
+              title="2. Connect & View" 
+              description="Directly contact the verified landlord or schedule a physical visit to the property." 
+              delay={0.2}
+            />
+          </motion.div>
+          <motion.div variants={itemVariants}>
+            <StepCard 
+              icon={Key} 
+              title="3. Sign & Move In" 
+              description="Finalize the agreement with confidence and move into your new home in Kathmandu." 
+              delay={0.4}
+            />
+          </motion.div>
+        </motion.div>
       </section>
 
 
       {/* Featured Listings Section - DYNAMIC */}
       <section className="max-w-7xl mx-auto mt-24 px-6">
-        <div className="flex justify-between items-end mb-12">
+        <motion.div 
+           initial={{ opacity: 0, y: 20 }}
+           whileInView={{ opacity: 1, y: 0 }}
+           transition={{ duration: 0.6 }}
+           viewport={{ once: true }}
+           className="flex justify-between items-end mb-12"
+        >
            <div>
              <h2 className="text-3xl font-bold text-gray-900">Featured Homes in the Valley</h2>
              <p className="text-gray-600 mt-2">Verified properties in prime areas of Kathmandu, Lalitpur, and Bhaktapur.</p>
            </div>
-           <Link to="/search" className="hidden md:flex items-center gap-1 text-blue-600 font-semibold hover:gap-3 transition-all">
-             View All Listings <ChevronRight size={20}/>
-           </Link>
-        </div>
+           <motion.div whileHover={{ gap: "12px" }}>
+             <Link to="/search" className="hidden md:flex items-center gap-1 text-blue-600 font-semibold hover:text-blue-700 transition-all">
+               View All Listings <ChevronRight size={20}/>
+             </Link>
+           </motion.div>
+        </motion.div>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
@@ -559,12 +681,20 @@ const Home = () => {
                List your flat, room, or house on Gharkhoj and find verified tenants faster than ever. Free to list, hassle-free management.
              </p>
            </div>
-           <Link 
-             to="/list-property"
-             className="mt-6 md:mt-0 px-8 py-3 bg-yellow-400 text-gray-900 rounded-full font-bold text-lg hover:bg-yellow-500 transition shadow-lg flex items-center gap-2"
+           <motion.div
+             whileHover={{ scale: 1.05 }}
+             whileTap={{ scale: 0.98 }}
            >
-             List My Property Now <ChevronRight size={20}/>
-           </Link>
+             <Link 
+               to="/list-property"
+               className="mt-6 md:mt-0 px-8 py-3 bg-yellow-400 text-gray-900 rounded-full font-bold text-lg hover:bg-yellow-500 transition shadow-lg hover:shadow-yellow-400/50 flex items-center gap-2"
+               style={{
+                 boxShadow: "0 0 20px rgba(250, 204, 21, 0.4)"
+               }}
+             >
+               List My Property Now <ChevronRight size={20}/>
+             </Link>
+           </motion.div>
          </motion.div>
       </section>
 

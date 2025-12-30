@@ -102,9 +102,11 @@ import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "./stores/authStore";
 import { initSocket, disconnectSocket } from "./services/socket";
+import { ToastProvider } from "./context/ToastContext";
 
 // Pages
 import Home from "./pages/Home";
+import About from "./pages/About";
 import Search from "./pages/Search";
 import ListingDetail from "./pages/ListingDetail";
 import LoginPage from "./pages/auth/LoginPage";
@@ -142,8 +144,9 @@ function App() {
   }, [isAuthenticated, accessToken]);
 
   return (
-    <Router>
-      <Routes>
+    <ToastProvider>
+      <Router>
+        <Routes>
 
         {/* Tenant listing detail - should show before public routes check */}
         <Route 
@@ -170,6 +173,7 @@ function App() {
         >
           <Route path= "/list-property" element={<ListProperty />} />
           <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
           <Route path="/search" element={<Search />} />
           <Route path="/listing/:id" element={<ListingDetail />} />
           <Route path="/login" element={<LoginPage />} />
@@ -221,7 +225,8 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
 
       </Routes>
-    </Router>
+      </Router>
+    </ToastProvider>
   );
 }
 

@@ -14,7 +14,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   localStorage.removeItem('accessToken') // extra safety
   localStorage.removeItem('refreshToken') // if you use refresh tokens
   localStorage.removeItem('user') // remove stored user info
-  navigate('/login') // redirect to login
+  navigate('/') // redirect to home page
 }
 
  const getImageUrl = (profileImage) => {

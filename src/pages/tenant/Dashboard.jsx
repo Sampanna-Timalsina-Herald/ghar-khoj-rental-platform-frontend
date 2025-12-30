@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Routes, Route } from 'react-router-dom'
-import { Search, Heart, MessageSquare, BarChart3, User } from 'lucide-react'
+import { Search, Heart, MessageSquare, BarChart3, User, FileText } from 'lucide-react'
 import Navbar from '../../components/Navbar'
 import Sidebar from '../../components/Sidebar'
 import TenantHome from './TenantHome'
@@ -8,6 +8,7 @@ import TenantBrowse from './TenantBrowse'
 import TenantFavorites from './TenantFavorites'
 import TenantConversations from './TenantConversations'
 import TenantProfile from './TenantProfile'
+import TenantAgreements from './TenantAgreements'
 import { useAuthStore } from '../../stores/authStore'
 import api from '../../api/axios'
 import { initSocket } from '../../services/socket'
@@ -78,6 +79,11 @@ const TenantDashboard = () => {
       icon: <Heart size={20} />,
     },
     {
+      label: 'Agreements',
+      path: '/agreements',
+      icon: <FileText size={20} />,
+    },
+    {
       label: 'Messages',
       path: '/messages',
       icon: <MessageSquare size={20} />,
@@ -105,6 +111,7 @@ const TenantDashboard = () => {
             <Route index element={<TenantHome />} />
             <Route path="browse" element={<TenantBrowse />} />
             <Route path="favorites" element={<TenantFavorites />} />
+            <Route path="agreements" element={<TenantAgreements />} />
             <Route path="messages" element={<TenantConversations />} />
             <Route path="profile" element={<TenantProfile />} />
           </Routes>

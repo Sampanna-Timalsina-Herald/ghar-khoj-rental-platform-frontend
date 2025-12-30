@@ -1,24 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-// Using a placeholder for the image source
+// Using the same image from LoginPage
 import modernInterior from '../../assets/interior1.jpg'; 
 import { 
-  Eye, 
-  EyeOff, 
-  Loader2, 
-  User, 
-  Mail, 
-  Phone, 
-  KeyRound, 
-  CheckCircle2, 
-  Building2, 
-  ArrowRight,
-  Lock,
-  MailCheck,
-  X
+  Eye, 
+  EyeOff, 
+  Loader2, 
+  User, 
+  Mail, 
+  Phone, 
+  KeyRound, 
+  CheckCircle2, 
+  Building2, 
+  ArrowRight,
+  Lock,
+  MailCheck,
+  X
 } from 'lucide-react';
-// Assuming Input is a custom component that accepts label, name, value, onChange, error, and icon props
-import Input from './ui/Input'; 
+import { motion } from 'framer-motion';
+import Input from './ui/Input';
 import api from '../../api/axios'; // Placeholder for your axios instance
 
 // 🟢 NEW: Import the validation utilities
@@ -29,9 +29,33 @@ const UserRole = {
   LANDLORD: "landlord"
 };
 
-// ------------------------------------------------------------------
-// --- 🟢 NEW: PASSWORD VALIDATION FEEDBACK COMPONENT (Helper) ---
-// ------------------------------------------------------------------
+// --- Framer Motion Variants (matching LoginPage) ---
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      duration: 0.4,
+      when: "beforeChildren",
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 30, scale: 0.95 },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    scale: 1, 
+    transition: { duration: 0.7, ease: "easeOut", type: "spring", damping: 12 } 
+  },
+};
+
+const imageVariants = {
+  hidden: { opacity: 0, scale: 1.1 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 1.5, ease: "easeInOut" } },
+};
 const PasswordFeedback = ({ password }) => {
     if (!password) return null;
 
@@ -82,19 +106,42 @@ const PasswordFeedback = ({ password }) => {
     );
 };
 
+// ------------------------------------------------------------------
+// --- PASSWORD MATCH FEEDBACK COMPONENT (Helper) ---
+// ------------------------------------------------------------------
+const PasswordMatchFeedback = ({ password, confirmPassword }) => {
+    if (!password || !confirmPassword) return null;
+
+    const isMatch = password === confirmPassword;
+
+    return (
+        <div className="mt-2 text-xs">
+            <div className="flex items-center gap-2">
+                {isMatch ? (
+                    <CheckCircle2 size={14} className="text-green-500 flex-shrink-0" />
+                ) : (
+                    <X size={14} className="text-red-500 flex-shrink-0" />
+                )}
+                <span className={isMatch ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+                    {isMatch ? '✓ Passwords Match' : '✗ Passwords Don\'t Match'}
+                </span>
+            </div>
+        </div>
+    );
+};
+
 
 const RegisterPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState('register'); // 'register' or 'verify'
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
-  // Registration Form State
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    role: UserRole.TENANT,
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Registration Form State
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
     password: '',
     confirmPassword: '',
   });
@@ -422,20 +469,28 @@ const RegisterPage = () => {
         />
 
         <Input
-          label="Confirm"
-          name="confirmPassword"
-          type="password"
-          placeholder="••••••••"
-          value={formData.confirmPassword}
-          onChange={handleChange}
-          error={errors.confirmPassword}
-          icon={<KeyRound size={18} />}
-        />
-
-      </div>
-    </>
-  );
-
+          label="Confirm Password"
+          name="confirmPassword"
+          type={showConfirmPassword ? 'text' : 'password'}
+          placeholder="••••••••"
+          value={formData.confirmPassword}
+          onChange={handleChange}
+          error={errors.confirmPassword}
+          icon={<KeyRound size={18} />}
+          rightElement={
+            <button 
+              type="button" 
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)} 
+              className="hover:text-slate-600 focus:outline-none"
+            >
+              {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          }
+          footer={<PasswordMatchFeedback password={formData.password} confirmPassword={formData.confirmPassword} />}
+        />
+      </div>
+    </>
+  );
   const renderVerificationForm = () => (
     <div className="space-y-6">
       <div className="text-center mb-8">
@@ -496,61 +551,67 @@ const RegisterPage = () => {
   );
 
   return (
-    <div className="min-h-screen w-full flex bg-slate-50 font-sans">
+    <div className="min-h-screen w-full flex bg-gray-50 overflow-hidden">
 
-      {/* Left Branding Section (Remains the same) */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-brand-dark">
-        <div className="absolute inset-0 z-0">
-          {/* Using a placeholder image for demo purposes */}
-          <img 
-            src={`https://placehold.co/1000x1000/0f172a/94a3b8?text=Luxury+Property`} 
-            alt="Modern interior" 
-            className="w-full h-full object-cover opacity-60"
-            onError={(e) => { e.target.onerror = null; e.target.src="https://placehold.co/1000x1000/0f172a/94a3b8?text=Luxury+Property"; }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/50 to-transparent" />
-        </div>
+      {/* 🌟 Left Aesthetic Branding Section (Image + Light Overlay - same as LoginPage) */}
+      <motion.div 
+        initial={{ x: "-100%" }}
+        animate={{ x: "0%" }}
+        transition={{ duration: 0.8, ease: [0.6, 0.01, -0.05, 0.9] }}
+        className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-white/50"
+      >
+        <motion.div 
+          variants={imageVariants} 
+          initial="hidden" 
+          animate="visible"
+          className="absolute inset-0 z-0"
+        >
+          <img
+            src={modernInterior}
+            alt="Modern interior"
+            className="w-full h-full object-cover opacity-80"
+          />
+          {/* Light, subtle gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-white via-white/50 to-transparent" />
+        </motion.div>
 
-        <div className="relative z-10 flex flex-col justify-between p-16 w-full h-full text-white">
-          <div>
-            <div className="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center mb-8 shadow-lg shadow-primary-600/30">
-              <span className="text-2xl font-bold text-white">GK</span>
-            </div>
-            <h1 className="text-5xl font-bold leading-tight mb-6">
-              Find your perfect <br/>
-              <span className="text-primary-400">Sanctuary.</span>
-            </h1>
-            <p className="text-lg text-slate-300 max-w-md leading-relaxed">
-              Join Gharkhoj today. Smart search, secure contracts, happy homes.
-            </p>
-          </div>
+        <div className="relative z-10 flex flex-col justify-between p-16 w-full h-full text-slate-900">
+          <motion.div variants={containerVariants} initial="hidden" animate="visible">
+            {/* --- Desktop Logo (Linked to Home) --- */}
+            <motion.div variants={itemVariants}>
+              <Link to="/" className="inline-block">
+                {/* GK Logo - clickable to go to home */}
+                <div className="w-14 h-14 bg-primary-600 rounded-xl flex items-center justify-center mb-10 shadow-xl shadow-primary-600/30 transition-transform duration-200 cursor-pointer hover:scale-[1.05] hover:rotate-2">
+                  <span className="text-3xl font-extrabold text-white">GK</span>
+                </div>
+              </Link>
+            </motion.div>
+            
+            <motion.h1 variants={itemVariants} className="text-5xl font-extrabold text-slate-900 leading-tight mb-6">
+              Join Gharkhoj<br />
+              <motion.span 
+                 initial={{ color: "#3b82f6" }}
+                 animate={{ color: ["#3b82f6", "#f59e0b", "#3b82f6"] }}
+                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                 className="inline-block"
+              >
+                Today.
+              </motion.span>
+            </motion.h1>
+            
+            <motion.p variants={itemVariants} className="text-lg text-slate-600 leading-relaxed">
+              Find your perfect home or manage your property with ease. Join thousands of satisfied users on our platform.
+            </motion.p>
+          </motion.div>
 
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10">
-            <div className="flex gap-4 items-center mb-4">
-              <div className="flex -space-x-3">
-                {[1,2,3].map(i => (
-                  <img 
-                    key={i}
-                    src={`https://placehold.co/40x40/5a67d8/ffffff?text=U${i}`} 
-                    className="w-10 h-10 rounded-full border-2 border-gray-900" 
-                    alt="User" 
-                    onError={(e) => { e.target.onerror = null; e.target.src="https://placehold.co/40x40/5a67d8/ffffff?text=U"; }}
-                  />
-                ))}
-              </div>
-              <div className="text-sm">
-                <p className="font-semibold">Trusted by 10k+ users</p>
-                <div className="flex text-yellow-400 text-xs">★★★★★</div>
-              </div>
-            </div>
-            <p className="text-slate-300 italic text-sm">
-              "The easiest way I've found to rent out my properties without the usual headache."
-            </p>
-          </div>
-        </div>
-      </div>
+          <motion.div variants={itemVariants} className="space-y-4 text-sm text-slate-600">
+            <p>✨ Browse beautiful properties</p>
+            <p>🔒 Secure tenant-landlord matching</p>
+            <p>📱 Easy digital agreements</p>
+          </motion.div>
+        </div>
+      </motion.div>
 
-      {/* Right Form Section */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 md:p-12 lg:p-24 relative">
 
         <div className="w-full max-w-md z-10 animate-fade-in">

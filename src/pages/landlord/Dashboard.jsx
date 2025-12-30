@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState, useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import { Home, Plus, MessageSquare, BarChart3, User } from 'lucide-react'
+import { Home, Plus, MessageSquare, BarChart3, User, FileText } from 'lucide-react'
 import Navbar from '../../components/Navbar'
 import Sidebar from '../../components/Sidebar'
 import LandlordHome from './LandlordHome'
@@ -10,6 +10,7 @@ import CreateListing from './CreateListing'
 import EditListing from './EditListing'
 import LandlordConversations from './LandlordConversations'
 import LandlordProfile from './LandlordProfile'
+import LandlordAgreements from './LandlordAgreements'
 import { useAuthStore } from '../../stores/authStore'
 import api from '../../api/axios'
 import { initSocket } from '../../services/socket'
@@ -79,6 +80,11 @@ const LandlordDashboard = () => {
       icon: <Plus size={20} />,
     },
     {
+      label: 'Agreements',
+      path: '/agreements',
+      icon: <FileText size={20} />,
+    },
+    {
       label: 'Messages',
       path: '/messages',
       icon: <MessageSquare size={20} />,
@@ -107,6 +113,7 @@ const LandlordDashboard = () => {
             <Route path="listings" element={<LandlordListings />} />
             <Route path="listings/create" element={<CreateListing />} />
             <Route path="listings/edit/:id" element={<EditListing />} />
+            <Route path="agreements" element={<LandlordAgreements />} />
             <Route path="messages" element={<LandlordConversations />} />
             <Route path="profile" element={<LandlordProfile />} />
           </Routes>

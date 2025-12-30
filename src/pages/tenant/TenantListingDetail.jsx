@@ -23,9 +23,13 @@ const TenantListingDetail = () => {
   const [showAgreementForm, setShowAgreementForm] = useState(false)
   const [showMessaging, setShowMessaging] = useState(false)
   const [contactMessage, setContactMessage] = useState('')
-  const [agreementMessage, setAgreementMessage] = useState('')
   const [sendingContact, setSendingContact] = useState(false)
   const [sendingAgreement, setSendingAgreement] = useState(false)
+  const [agreementForm, setAgreementForm] = useState({
+    start_date: '',
+    end_date: '',
+    terms: ''
+  })
 
   useEffect(() => {
     fetchListing()
@@ -112,27 +116,46 @@ const TenantListingDetail = () => {
   }
 
   const handleRequestAgreement = async () => {
-    if (!agreementMessage.trim()) {
-      alert('Please enter a message')
+    // Validate form fields
+    if (!agreementForm.start_date) {
+      alert('Please select a move-in date')
+      return
+    }
+    if (!agreementForm.end_date) {
+      alert('Please select a move-out date')
       return
     }
 
+    // Validate date range
+    const startDate = new Date(agreementForm.start_date)
+    const endDate = new Date(agreementForm.end_date)
+    if (endDate <= startDate) {
+      alert('Move-out date must be after move-in date')
+      return
+    }
+
+    if (sendingAgreement) return
+
     setSendingAgreement(true)
     try {
-      // Send agreement request
-      await api.post('/agreements', {
+      const monthlyRent = listing.rent_amount || listing.price
+      const deposit = Math.round(monthlyRent * 2) // 2 months deposit
+
+      const response = await api.post('/agreements/request-rent', {
         listing_id: listing.id,
-        landlord_id: listing.landlord_id,
-        tenant_id: user.id,
-        message: agreementMessage,
-        status: 'pending',
+        start_date: agreementForm.start_date,
+        end_date: agreementForm.end_date,
+        monthly_rent: monthlyRent,
+        deposit: deposit,
+        terms: agreementForm.terms || ''
       })
+
       alert('Agreement request sent successfully!')
-      setAgreementMessage('')
       setShowAgreementForm(false)
+      setAgreementForm({ start_date: '', end_date: '', terms: '' })
     } catch (error) {
       console.error('Failed to send agreement:', error)
-      alert('Failed to send agreement request')
+      alert(error.response?.data?.message || 'Failed to send agreement request')
     } finally {
       setSendingAgreement(false)
     }
@@ -481,14 +504,60 @@ const TenantListingDetail = () => {
               exit={{ opacity: 0, scale: 0.95 }}
               className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 mt-16"
             >
-              <motion.div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Request Agreement</h3>
-                <textarea
-                  value={agreementMessage}
-                  onChange={(e) => setAgreementMessage(e.target.value)}
-                  placeholder="Mention your requirements, move-in date, and any specific terms..."
-                  className="w-full border border-gray-300 rounded-lg p-3 mb-4 h-32 resize-none focus:outline-none focus:border-primary-600"
-                />
+              <motion.div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full max-h-96 overflow-y-auto">
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">Request Rent Agreement</h3>
+                
+                {/* Property Summary */}
+                <div className="bg-gray-50 p-3 rounded-lg mb-4 text-sm">
+                  <p className="font-semibold text-gray-900">{listing.title}</p>
+                  <p className="text-gray-600">₹{listing.rent_amount || listing.price}/month</p>
+                  <p className="text-gray-500 text-xs mt-1">Security Deposit: ₹{Math.round((listing.rent_amount || listing.price) * 2)}</p>
+                </div>
+
+                {/* Move-in Date */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Move-in Date</label>
+                  <input
+                    type="date"
+                    value={agreementForm.start_date}
+                    onChange={(e) => setAgreementForm({ ...agreementForm, start_date: e.target.value })}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:border-primary-600"
+                  />
+                </div>
+
+                {/* Move-out Date */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Move-out Date</label>
+                  <input
+                    type="date"
+                    value={agreementForm.end_date}
+                    onChange={(e) => setAgreementForm({ ...agreementForm, end_date: e.target.value })}
+                    min={agreementForm.start_date || new Date().toISOString().split('T')[0]}
+                    className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:border-primary-600"
+                  />
+                </div>
+
+                {/* Duration Display */}
+                {agreementForm.start_date && agreementForm.end_date && (
+                  <div className="bg-blue-50 p-3 rounded-lg mb-4 text-sm">
+                    <p className="text-gray-700">
+                      Duration: <span className="font-semibold">{Math.ceil((new Date(agreementForm.end_date) - new Date(agreementForm.start_date)) / (1000 * 60 * 60 * 24))} days</span>
+                    </p>
+                  </div>
+                )}
+
+                {/* Additional Terms */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Additional Terms (Optional)</label>
+                  <textarea
+                    value={agreementForm.terms}
+                    onChange={(e) => setAgreementForm({ ...agreementForm, terms: e.target.value })}
+                    placeholder="Any special conditions or requirements..."
+                    className="w-full border border-gray-300 rounded-lg p-2 h-20 resize-none focus:outline-none focus:border-primary-600 text-sm"
+                  />
+                </div>
+
                 <div className="flex gap-3">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
@@ -502,7 +571,7 @@ const TenantListingDetail = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleRequestAgreement}
-                    disabled={sendingAgreement}
+                    disabled={sendingAgreement || !agreementForm.start_date || !agreementForm.end_date}
                     className="flex-1 px-4 py-2 bg-accent text-white rounded-lg hover:bg-opacity-90 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {sendingAgreement ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
