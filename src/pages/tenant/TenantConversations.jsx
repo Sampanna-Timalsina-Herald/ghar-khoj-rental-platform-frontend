@@ -15,7 +15,7 @@ const TenantConversations = () => {
   const [sending, setSending] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [messagesLoading, setMessagesLoading] = useState(false)
-
+//use effect
   useEffect(() => {
     // Initialize socket
     initSocket(accessToken)
