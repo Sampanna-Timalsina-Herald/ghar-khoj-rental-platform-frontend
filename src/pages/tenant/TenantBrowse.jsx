@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
 import { useAuthStore } from '../../stores/authStore'
-import { Heart, MapPin, Bed, Bath, Ruler, Filter, Loader2, ChevronRight, Grid3X3, List } from 'lucide-react'
+import { Heart, MapPin, Bed, Bath, Ruler, Filter, Loader2, ChevronRight, Grid3X3, List, ChevronDown, X, Settings2 } from 'lucide-react'
 
 const TenantBrowse = () => {
   const [searchParams] = useSearchParams()
@@ -25,6 +25,15 @@ const TenantBrowse = () => {
   const [favorites, setFavorites] = useState(new Set())
   const [loadingFav, setLoadingFav] = useState(null)
   const [viewMode, setViewMode] = useState('list')
+  const [sortBy, setSortBy] = useState('newest')
+  const [expandedSections, setExpandedSections] = useState({
+    location: true,
+    price: true,
+    bedrooms: false,
+    bathrooms: false,
+    type: false,
+    amenities: false,
+  })
 
   useEffect(() => {
     fetchListings()
@@ -84,6 +93,78 @@ const TenantBrowse = () => {
         ? prev.amenities.filter(a => a !== amenity)
         : [...prev.amenities, amenity]
     }))
+  }
+
+  const toggleFilterSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+  }
+
+  const getActiveFiltersCount = () => {
+    let count = 0
+    if (filters.location) count++
+    if (filters.minPrice || filters.maxPrice) count++
+    if (filters.bedrooms) count++
+    if (filters.bathrooms) count++
+    if (filters.propertyType) count++
+    if (filters.amenities.length > 0) count++
+    return count
+  }
+
+  const removeFilter = (filterName) => {
+    if (filterName === 'amenities') {
+      setFilters(prev => ({ ...prev, amenities: [] }))
+    } else {
+      setFilters(prev => ({ ...prev, [filterName]: '' }))
+    }
+  }
+
+  const removeAmenity = (amenity) => {
+    setFilters(prev => ({
+      ...prev,
+      amenities: prev.amenities.filter(a => a !== amenity)
+    }))
+  }
+
+  const clearAllFilters = () => {
+    setFilters({
+      minPrice: '',
+      maxPrice: '',
+      bedrooms: '',
+      bathrooms: '',
+      location: '',
+      propertyType: '',
+      amenities: [],
+    })
+    setSortBy('newest')
+  }
+
+  const appliedPresets = {
+    budget: filters.maxPrice && parseInt(filters.maxPrice) <= 20000,
+    luxury: filters.minPrice && parseInt(filters.minPrice) >= 50000,
+    studio: filters.bedrooms === '1' && filters.bathrooms === '1',
+    family: filters.bedrooms && parseInt(filters.bedrooms) >= 3,
+  }
+
+  const setSortedListings = (sortType) => {
+    let sorted = [...listings]
+    switch(sortType) {
+      case 'price-low':
+        sorted.sort((a, b) => (a.rent_amount || a.price) - (b.rent_amount || b.price))
+        break
+      case 'price-high':
+        sorted.sort((a, b) => (b.rent_amount || b.price) - (a.rent_amount || a.price))
+        break
+      case 'area-large':
+        sorted.sort((a, b) => (parseInt(b.area) || 0) - (parseInt(a.area) || 0))
+        break
+      case 'newest':
+      default:
+        sorted.sort((a, b) => (new Date(b.created_at) || 0) - (new Date(a.created_at) || 0))
+    }
+    return sorted
   }
 
   const handleContactOwner = (listingId) => {
@@ -148,58 +229,211 @@ const TenantBrowse = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header Section */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex items-center justify-between"
+        className="space-y-4"
       >
-        <div>
-          <h1 className="text-3xl font-bold text-text">Search Properties</h1>
-          <p className="text-gray-600 mt-1">
-            {listings.length > 0 ? `Found ${listings.length} properties matching your criteria` : 'Find your perfect rental property'}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex gap-2 bg-gray-100 rounded-lg border border-gray-300 p-1 w-fit">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-text">Search Properties</h1>
+            <p className="text-gray-600 mt-1">
+              {listings.length > 0 ? `Found ${listings.length} properties` : 'Find your perfect rental property'}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Sorting Dropdown */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-white focus:ring-2 focus:ring-primary-600 outline-none"
+            >
+              <option value="newest">Newest</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+              <option value="area-large">Largest Area</option>
+            </select>
+
+            {/* View Mode Toggle */}
+            <div className="flex gap-2 bg-gray-100 rounded-lg border border-gray-300 p-1 w-fit">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setViewMode('grid')}
+                className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all ${
+                  viewMode === 'grid'
+                    ? 'bg-white text-primary-600 shadow-md'
+                    : 'text-gray-700 hover:text-primary-600'
+                }`}
+              >
+                <Grid3X3 size={18} />
+                Grid
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setViewMode('list')}
+                className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all ${
+                  viewMode === 'list'
+                    ? 'bg-white text-primary-600 shadow-md'
+                    : 'text-gray-700 hover:text-primary-600'
+                }`}
+              >
+                <List size={18} />
+                List
+              </motion.button>
+            </div>
+
+            {/* Filters Button with Badge */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setViewMode('grid')}
-              className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all ${
-                viewMode === 'grid'
-                  ? 'bg-white text-primary-600 shadow-md'
-                  : 'text-gray-700 hover:text-primary-600'
-              }`}
+              onClick={() => setFiltersOpen(!filtersOpen)}
+              className="lg:hidden p-3 border-2 border-primary-600 text-primary-600 rounded-lg flex items-center gap-2 font-semibold relative"
             >
-              <Grid3X3 size={18} />
-              Grid
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setViewMode('list')}
-              className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all ${
-                viewMode === 'list'
-                  ? 'bg-white text-primary-600 shadow-md'
-                  : 'text-gray-700 hover:text-primary-600'
-              }`}
-            >
-              <List size={18} />
-              List
+              <Filter size={20} />
+              {getActiveFiltersCount() > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
+                  {getActiveFiltersCount()}
+                </span>
+              )}
             </motion.button>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setFiltersOpen(!filtersOpen)}
-            className="lg:hidden p-3 border-2 border-primary-600 text-primary-600 rounded-lg flex items-center gap-2 font-semibold"
-          >
-            <Filter size={20} />
-            Filters
-          </motion.button>
         </div>
       </motion.div>
+
+      {/* Active Filters Display */}
+      <AnimatePresence>
+        {(getActiveFiltersCount() > 0 || Object.values(appliedPresets).some(v => v)) && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Settings2 size={18} className="text-blue-600" />
+                <span className="font-semibold text-blue-900">Active Filters ({getActiveFiltersCount()})</span>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={clearAllFilters}
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700 px-3 py-1 rounded bg-blue-100 hover:bg-blue-200 transition-all"
+              >
+                Clear All
+              </motion.button>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {filters.location && (
+                <motion.div
+                  initial={{ scale: 0.9 }}
+                  animate={{ scale: 1 }}
+                  className="flex items-center gap-2 bg-white border border-blue-300 rounded-full px-3 py-1 text-sm"
+                >
+                  <MapPin size={14} className="text-blue-600" />
+                  <span className="font-medium">{filters.location}</span>
+                  <button
+                    onClick={() => removeFilter('location')}
+                    className="hover:bg-blue-100 rounded p-0.5 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </motion.div>
+              )}
+
+              {(filters.minPrice || filters.maxPrice) && (
+                <motion.div
+                  initial={{ scale: 0.9 }}
+                  animate={{ scale: 1 }}
+                  className="flex items-center gap-2 bg-white border border-blue-300 rounded-full px-3 py-1 text-sm"
+                >
+                  <span className="font-medium">
+                    Rs. {filters.minPrice || '0'} - {filters.maxPrice || '∞'}
+                  </span>
+                  <button
+                    onClick={() => { setFilters(prev => ({ ...prev, minPrice: '', maxPrice: '' })) }}
+                    className="hover:bg-blue-100 rounded p-0.5 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </motion.div>
+              )}
+
+              {filters.bedrooms && (
+                <motion.div
+                  initial={{ scale: 0.9 }}
+                  animate={{ scale: 1 }}
+                  className="flex items-center gap-2 bg-white border border-blue-300 rounded-full px-3 py-1 text-sm"
+                >
+                  <Bed size={14} className="text-blue-600" />
+                  <span className="font-medium">{filters.bedrooms}+ Beds</span>
+                  <button
+                    onClick={() => removeFilter('bedrooms')}
+                    className="hover:bg-blue-100 rounded p-0.5 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </motion.div>
+              )}
+
+              {filters.bathrooms && (
+                <motion.div
+                  initial={{ scale: 0.9 }}
+                  animate={{ scale: 1 }}
+                  className="flex items-center gap-2 bg-white border border-blue-300 rounded-full px-3 py-1 text-sm"
+                >
+                  <Bath size={14} className="text-blue-600" />
+                  <span className="font-medium">{filters.bathrooms}+ Baths</span>
+                  <button
+                    onClick={() => removeFilter('bathrooms')}
+                    className="hover:bg-blue-100 rounded p-0.5 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </motion.div>
+              )}
+
+              {filters.propertyType && (
+                <motion.div
+                  initial={{ scale: 0.9 }}
+                  animate={{ scale: 1 }}
+                  className="flex items-center gap-2 bg-white border border-blue-300 rounded-full px-3 py-1 text-sm"
+                >
+                  <span className="font-medium capitalize">{filters.propertyType}</span>
+                  <button
+                    onClick={() => removeFilter('propertyType')}
+                    className="hover:bg-blue-100 rounded p-0.5 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </motion.div>
+              )}
+
+              {filters.amenities.map(amenity => (
+                <motion.div
+                  key={amenity}
+                  initial={{ scale: 0.9 }}
+                  animate={{ scale: 1 }}
+                  className="flex items-center gap-2 bg-white border border-blue-300 rounded-full px-3 py-1 text-sm"
+                >
+                  <span className="font-medium">{amenity}</span>
+                  <button
+                    onClick={() => removeAmenity(amenity)}
+                    className="hover:bg-blue-100 rounded p-0.5 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
@@ -208,112 +442,271 @@ const TenantBrowse = () => {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Filters Sidebar */}
+        {/* Enhanced Filters Sidebar */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           className={`${filtersOpen ? 'block' : 'hidden'} lg:block col-span-1`}
         >
-          <div className="bg-white rounded-xl shadow-lg p-6 space-y-6 sticky top-6">
-            <h3 className="font-bold text-lg text-text flex items-center gap-2">
-              <Filter size={20} /> Filters
-            </h3>
+          <div className="bg-white rounded-lg shadow p-6 space-y-4 sticky top-6">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-lg text-text flex items-center gap-2">
+                <Filter size={20} /> Advanced Filters
+              </h3>
+              {getActiveFiltersCount() > 0 && (
+                <span className="bg-primary-100 text-primary-700 text-xs font-bold px-2 py-1 rounded-full">
+                  {getActiveFiltersCount()}
+                </span>
+              )}
+            </div>
 
             {/* Location */}
-            <div>
-              <label className="block text-sm font-medium text-text mb-2">Location / Area</label>
-              <input
-                type="text"
-                value={filters.location}
-                onChange={(e) => handleFilterChange('location', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 outline-none"
-                placeholder="Enter area name"
-              />
+            <div className="border-b pb-4">
+              <button
+                onClick={() => toggleFilterSection('location')}
+                className="w-full flex items-center justify-between text-sm font-semibold text-text hover:text-primary-600 transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <MapPin size={16} />
+                  Location / Area
+                </span>
+                <motion.div
+                  animate={{ rotate: expandedSections.location ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronDown size={16} />
+                </motion.div>
+              </button>
+              <AnimatePresence>
+                {expandedSections.location && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-3"
+                  >
+                    <input
+                      type="text"
+                      value={filters.location}
+                      onChange={(e) => handleFilterChange('location', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                      placeholder="Enter area name"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Price Range */}
-            <div>
-              <label className="block text-sm font-medium text-text mb-2">Price Range (Monthly)</label>
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="number"
-                  value={filters.minPrice}
-                  onChange={(e) => handleFilterChange('minPrice', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 outline-none"
-                  placeholder="Min"
-                />
-                <input
-                  type="number"
-                  value={filters.maxPrice}
-                  onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 outline-none"
-                  placeholder="Max"
-                />
-              </div>
+            <div className="border-b pb-4">
+              <button
+                onClick={() => toggleFilterSection('price')}
+                className="w-full flex items-center justify-between text-sm font-semibold text-text hover:text-primary-600 transition-colors"
+              >
+                <span>Price Range (Monthly)</span>
+                <motion.div
+                  animate={{ rotate: expandedSections.price ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronDown size={16} />
+                </motion.div>
+              </button>
+              <AnimatePresence>
+                {expandedSections.price && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-3 space-y-2"
+                  >
+                    <input
+                      type="number"
+                      value={filters.minPrice}
+                      onChange={(e) => handleFilterChange('minPrice', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                      placeholder="Min"
+                    />
+                    <input
+                      type="number"
+                      value={filters.maxPrice}
+                      onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                      placeholder="Max"
+                    />
+                    {/* Quick Presets */}
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      <button
+                        onClick={() => { setFilters(prev => ({ ...prev, minPrice: '', maxPrice: '20000' })) }}
+                        className="text-xs font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 py-2 rounded transition-colors"
+                      >
+                        Budget
+                      </button>
+                      <button
+                        onClick={() => { setFilters(prev => ({ ...prev, minPrice: '50000', maxPrice: '' })) }}
+                        className="text-xs font-semibold bg-purple-50 hover:bg-purple-100 text-purple-700 py-2 rounded transition-colors"
+                      >
+                        Luxury
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Bedrooms */}
-            <div>
-              <label className="block text-sm font-medium text-text mb-2">Bedrooms</label>
-              <select
-                value={filters.bedrooms}
-                onChange={(e) => handleFilterChange('bedrooms', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 outline-none bg-white"
+            <div className="border-b pb-4">
+              <button
+                onClick={() => toggleFilterSection('bedrooms')}
+                className="w-full flex items-center justify-between text-sm font-semibold text-text hover:text-primary-600 transition-colors"
               >
-                <option value="">All Bedrooms</option>
-                <option value="1">1+</option>
-                <option value="2">2+</option>
-                <option value="3">3+</option>
-                <option value="4">4+</option>
-              </select>
+                <span className="flex items-center gap-2">
+                  <Bed size={16} />
+                  Bedrooms
+                </span>
+                <motion.div
+                  animate={{ rotate: expandedSections.bedrooms ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronDown size={16} />
+                </motion.div>
+              </button>
+              <AnimatePresence>
+                {expandedSections.bedrooms && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-3"
+                  >
+                    <select
+                      value={filters.bedrooms}
+                      onChange={(e) => handleFilterChange('bedrooms', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 outline-none bg-white"
+                    >
+                      <option value="">All Bedrooms</option>
+                      <option value="1">1+</option>
+                      <option value="2">2+</option>
+                      <option value="3">3+</option>
+                      <option value="4">4+</option>
+                    </select>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Bathrooms */}
-            <div>
-              <label className="block text-sm font-medium text-text mb-2">Bathrooms</label>
-              <select
-                value={filters.bathrooms}
-                onChange={(e) => handleFilterChange('bathrooms', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 outline-none bg-white"
+            <div className="border-b pb-4">
+              <button
+                onClick={() => toggleFilterSection('bathrooms')}
+                className="w-full flex items-center justify-between text-sm font-semibold text-text hover:text-primary-600 transition-colors"
               >
-                <option value="">All Bathrooms</option>
-                <option value="1">1+</option>
-                <option value="2">2+</option>
-                <option value="3">3+</option>
-              </select>
+                <span className="flex items-center gap-2">
+                  <Bath size={16} />
+                  Bathrooms
+                </span>
+                <motion.div
+                  animate={{ rotate: expandedSections.bathrooms ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronDown size={16} />
+                </motion.div>
+              </button>
+              <AnimatePresence>
+                {expandedSections.bathrooms && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-3"
+                  >
+                    <select
+                      value={filters.bathrooms}
+                      onChange={(e) => handleFilterChange('bathrooms', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 outline-none bg-white"
+                    >
+                      <option value="">All Bathrooms</option>
+                      <option value="1">1+</option>
+                      <option value="2">2+</option>
+                      <option value="3">3+</option>
+                    </select>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Property Type */}
-            <div>
-              <label className="block text-sm font-medium text-text mb-2">Property Type</label>
-              <select
-                value={filters.propertyType}
-                onChange={(e) => handleFilterChange('propertyType', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 outline-none bg-white"
+            <div className="border-b pb-4">
+              <button
+                onClick={() => toggleFilterSection('type')}
+                className="w-full flex items-center justify-between text-sm font-semibold text-text hover:text-primary-600 transition-colors"
               >
-                <option value="">All Types</option>
-                <option value="flat">Flat / Apartment</option>
-                <option value="house">House</option>
-                <option value="room">Single Room</option>
-              </select>
+                <span>Property Type</span>
+                <motion.div
+                  animate={{ rotate: expandedSections.type ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronDown size={16} />
+                </motion.div>
+              </button>
+              <AnimatePresence>
+                {expandedSections.type && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-3"
+                  >
+                    <select
+                      value={filters.propertyType}
+                      onChange={(e) => handleFilterChange('propertyType', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 outline-none bg-white"
+                    >
+                      <option value="">All Types</option>
+                      <option value="flat">Flat / Apartment</option>
+                      <option value="house">House</option>
+                      <option value="room">Single Room</option>
+                    </select>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Amenities */}
             <div>
-              <label className="block text-sm font-medium text-text mb-2">Amenities</label>
-              <div className="space-y-2">
-                {['Wifi', 'Parking', 'Balcony', 'Garden', 'AC'].map((amenity) => (
-                  <label key={amenity} className="flex items-center gap-2 text-gray-600 text-sm cursor-pointer hover:text-primary-600">
-                    <input
-                      type="checkbox"
-                      checked={filters.amenities.includes(amenity)}
-                      onChange={() => handleAmenityChange(amenity)}
-                      className="rounded text-primary-600 focus:ring-primary-600"
-                    />
-                    {amenity}
-                  </label>
-                ))}
-              </div>
+              <button
+                onClick={() => toggleFilterSection('amenities')}
+                className="w-full flex items-center justify-between text-sm font-semibold text-text hover:text-primary-600 transition-colors"
+              >
+                <span>Amenities</span>
+                <motion.div
+                  animate={{ rotate: expandedSections.amenities ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronDown size={16} />
+                </motion.div>
+              </button>
+              <AnimatePresence>
+                {expandedSections.amenities && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-3 space-y-2"
+                  >
+                    {['Wifi', 'Parking', 'Balcony', 'Garden', 'AC'].map((amenity) => (
+                      <label key={amenity} className="flex items-center gap-2 text-gray-600 text-sm cursor-pointer hover:text-primary-600 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={filters.amenities.includes(amenity)}
+                          onChange={() => handleAmenityChange(amenity)}
+                          className="rounded text-primary-600 focus:ring-primary-600"
+                        />
+                        {amenity}
+                      </label>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </motion.div>
@@ -323,7 +716,7 @@ const TenantBrowse = () => {
           {viewMode === 'list' ? (
             <AnimatePresence mode="wait">
               {listings.length > 0 ? (
-                listings.map((listing, index) => (
+                setSortedListings(sortBy).map((listing, index) => (
                   <motion.div
                     key={listing.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -432,7 +825,7 @@ const TenantBrowse = () => {
             <AnimatePresence mode="wait">
               {listings.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {listings.map((listing, index) => (
+                  {setSortedListings(sortBy).map((listing, index) => (
                     <motion.div
                       key={listing.id}
                       initial={{ opacity: 0, y: 20 }}
