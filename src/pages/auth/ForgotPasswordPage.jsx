@@ -4,7 +4,7 @@ import { Mail, ArrowRight, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react
 import Input from "./ui/Input";
 import api from "../../api/axios";
 import modernInterior from "../../assets/interior1.jpg";
-
+//enhanced ui
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
