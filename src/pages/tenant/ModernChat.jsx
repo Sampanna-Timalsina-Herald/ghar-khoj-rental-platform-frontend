@@ -2,8 +2,17 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
 import socketService, { initSocket } from '../../services/socket'
-import { MessageSquare, Send, Loader2, User, Search, Paperclip, Smile, Clock, Check, CheckCheck } from 'lucide-react'
+import { MessageSquare, Send, Loader2, User, Search, Paperclip, Smile, Clock, Check, CheckCheck, X, File } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
+
+// Emoji data
+const EMOJI_CATEGORIES = {
+  smileys: '😀😃😄😁😆😅🤣😂😊🙂🙃😉😌😌😍🥰😘😗😚😙😜😛😜😝😝🤑🤗🤭🤫🤔🤐🤨😐😑😶😏😒🙄😬🤥😌😔😪🤤😴😷🤒🤕🤮🤢🤮🤢🤮🤮🤢🤮🤮🤮🤮🤮'.split(''),
+  gestures: '👋🤚🖐️✋🖖👌🤌🤏✌️🤞🫰🤟🤘🤙👍👎👊👏🙌👐🤲🤲🤝🙏💅🦵🦶👂👃🧠🦷🦴👀👁️👅👄'.split(''),
+  hearts: '❤️🧡💛💚💙💜🖤🤍🤎💔💕💞💓💗💖💘💝💟'.split(''),
+}
+
+const EMOJIS = Object.values(EMOJI_CATEGORIES).flat()
 
 const ModernChat = () => {
   const { user, accessToken } = useAuthStore()
@@ -17,9 +26,13 @@ const ModernChat = () => {
   const [messagesLoading, setMessagesLoading] = useState(false)
   const [typingUsers, setTypingUsers] = useState({})
   const [pendingMessages, setPendingMessages] = useState({})
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [attachedFiles, setAttachedFiles] = useState([])
   const messagesEndRef = useRef(null)
   const typingTimeoutRef = useRef({})
   const sentMessageIdsRef = useRef(new Set())
+  const fileInputRef = useRef(null)
+  const emojiPickerRef = useRef(null)
 
   // Auto-scroll to bottom
   const scrollToBottom = useCallback(() => {
@@ -29,6 +42,20 @@ const ModernChat = () => {
   useEffect(() => {
     scrollToBottom()
   }, [messages, scrollToBottom])
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+        setShowEmojiPicker(false)
+      }
+    }
+
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showEmojiPicker])
 
   // Initialize socket and fetch data
   useEffect(() => {
@@ -145,7 +172,7 @@ const ModernChat = () => {
   }
 
   const handleSendMessage = async () => {
-    if (!messageText.trim() || !selectedConversation) return
+    if ((!messageText.trim() && attachedFiles.length === 0) || !selectedConversation) return
 
     const optimisticId = `temp-${Date.now()}-${Math.random()}`
     const messageContent = messageText
@@ -161,17 +188,29 @@ const ModernChat = () => {
       created_at: new Date().toISOString(),
       is_read: false,
       status: 'pending',
+      attachments: attachedFiles,
     }
 
     setMessages((prev) => [...prev, optimisticMessage])
     setPendingMessages((prev) => ({ ...prev, [optimisticId]: true }))
+    setAttachedFiles([])
     scrollToBottom()
 
     try {
-      const response = await api.post('/messages', {
-        receiver_id: selectedConversation.other_user_id,
-        listing_id: selectedConversation.listing_id,
-        message_text: messageContent,
+      const formData = new FormData()
+      formData.append('receiver_id', selectedConversation.other_user_id)
+      formData.append('listing_id', selectedConversation.listing_id)
+      formData.append('message_text', messageContent)
+
+      // Add files to form data
+      attachedFiles.forEach((file) => {
+        formData.append('attachments', file.file)
+      })
+
+      const response = await api.post('/messages', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       })
 
       if (response.data?.data) {
@@ -216,6 +255,26 @@ const ModernChat = () => {
     } finally {
       setSending(false)
     }
+  }
+
+  const handleAddEmoji = (emoji) => {
+    setMessageText((prev) => prev + emoji)
+    setShowEmojiPicker(false)
+  }
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files || [])
+    const newFiles = files.map((file) => ({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      file: file,
+    }))
+    setAttachedFiles((prev) => [...prev, ...newFiles])
+  }
+
+  const removeAttachment = (index) => {
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
   const handleTyping = () => {
@@ -403,7 +462,31 @@ const ModernChat = () => {
                                 : 'bg-white text-text border border-gray-200 rounded-br-3xl'
                             } ${isPending ? 'opacity-75' : ''}`}
                           >
-                            <p className="text-sm leading-relaxed">{message.message || message.message_text}</p>
+                            {message.message && (
+                              <p className="text-sm leading-relaxed">{message.message || message.message_text}</p>
+                            )}
+
+                            {/* Attachments */}
+                            {(message.attachments || []).length > 0 && (
+                              <div className="mt-2 space-y-2">
+                                {(message.attachments || []).map((attachment, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={attachment.path}
+                                    download={attachment.filename}
+                                    className={`flex items-center gap-2 p-2 rounded-lg transition ${
+                                      isOwnMessage
+                                        ? 'bg-white/20 hover:bg-white/30'
+                                        : 'bg-gray-100 hover:bg-gray-200'
+                                    }`}
+                                  >
+                                    <File size={16} />
+                                    <span className="text-xs truncate">{attachment.filename}</span>
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+
                             <div
                               className={`flex items-center justify-end gap-2 mt-2 text-xs ${
                                 isOwnMessage ? 'text-primary-100' : 'text-gray-500'
@@ -470,15 +553,95 @@ const ModernChat = () => {
 
               {/* Input Area */}
               <div className="p-4 border-t border-gray-200 bg-white">
-                <div className="flex gap-2 items-end">
+                {/* Attachments Preview */}
+                {attachedFiles.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-3 flex flex-wrap gap-2"
+                  >
+                    {attachedFiles.map((attachment, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2 text-sm"
+                      >
+                        <File size={16} className="text-primary-600" />
+                        <span className="text-gray-700 truncate max-w-[150px]">{attachment.name}</span>
+                        <button
+                          onClick={() => removeAttachment(index)}
+                          className="p-0.5 hover:bg-gray-200 rounded transition"
+                        >
+                          <X size={16} className="text-gray-500" />
+                        </button>
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+
+                {/* Input Controls */}
+                <div className="flex gap-2 items-end relative">
+                  {/* File Input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    accept="*/*"
+                  />
+
+                  {/* Action Buttons */}
                   <div className="flex gap-1">
-                    <button className="p-2.5 hover:bg-gray-100 rounded-full transition text-gray-600">
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="p-2.5 hover:bg-gray-100 rounded-full transition text-gray-600 hover:text-primary-600"
+                      title="Attach file"
+                    >
                       <Paperclip size={20} />
-                    </button>
-                    <button className="p-2.5 hover:bg-gray-100 rounded-full transition text-gray-600">
-                      <Smile size={20} />
-                    </button>
+                    </motion.button>
+
+                    {/* Emoji Picker */}
+                    <div className="relative">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        className="p-2.5 hover:bg-gray-100 rounded-full transition text-gray-600 hover:text-primary-600"
+                        title="Add emoji"
+                      >
+                        <Smile size={20} />
+                      </motion.button>
+
+                      {/* Emoji Picker Popup */}
+                      <AnimatePresence>
+                        {showEmojiPicker && (
+                          <motion.div
+                            ref={emojiPickerRef}
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-xl p-3 z-50 w-64"
+                          >
+                            <div className="grid grid-cols-8 gap-1 max-h-64 overflow-y-auto">
+                              {EMOJIS.map((emoji, index) => (
+                                <button
+                                  key={index}
+                                  onClick={() => handleAddEmoji(emoji)}
+                                  className="text-2xl p-1 hover:bg-gray-100 rounded transition cursor-pointer hover:scale-110"
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
+
+                  {/* Message Input */}
                   <input
                     type="text"
                     value={messageText}
@@ -490,11 +653,13 @@ const ModernChat = () => {
                     placeholder="Type a message..."
                     className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
                   />
+
+                  {/* Send Button */}
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={handleSendMessage}
-                    disabled={!messageText.trim() || sending}
+                    disabled={(messageText.trim() === '' && attachedFiles.length === 0) || sending}
                     className="p-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-full hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                   >
                     {sending ? (
