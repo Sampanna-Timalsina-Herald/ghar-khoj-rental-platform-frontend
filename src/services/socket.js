@@ -33,11 +33,21 @@ export const initSocket = (token) => {
     console.error('[Socket] Error:', error)
   })
 
-  // Listen for incoming messages
+  // Listen for incoming messages (from REST API via socket emission)
   socket.on('receive-message', (data) => {
-    console.log('[Socket] Message received:', data)
+    console.log('[Socket] Message received from sender:', data)
     if (socketCallbacks.onMessageReceived) {
       socketCallbacks.onMessageReceived(data)
+    }
+  })
+
+  // Listen for message notifications (real-time only, not for display)
+  socket.on('message-notification', (data) => {
+    console.log('[Socket] Message notification (real-time):', data)
+    // This is just a notification that a message was sent
+    // The actual message will come from the API response
+    if (socketCallbacks.onMessageNotification) {
+      socketCallbacks.onMessageNotification(data)
     }
   })
 
