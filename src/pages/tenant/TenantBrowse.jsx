@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
 import { useAuthStore } from '../../stores/authStore'
-import { Heart, MapPin, Bed, Bath, Ruler, Filter, Loader2, ChevronRight, Grid3X3, List, ChevronDown, X, Settings2 } from 'lucide-react'
+import { Heart, MapPin, Bed, Bath, Ruler, Filter, Loader2, ChevronRight, Grid3X3, List, ChevronDown, X, Settings2, Search as SearchIcon } from 'lucide-react'
+import SearchSuggestions from '../../components/SearchSuggestions'
 
 const TenantBrowse = () => {
   const [searchParams] = useSearchParams()
@@ -12,7 +13,13 @@ const TenantBrowse = () => {
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [filters, setFilters] = useState({
+  const searchInputRef = useRef(null)
+  const suggestionsRef = useRef(null)
+  const filterDebounceTimerRef = useRef(null)
+  const [searchBarValue, setSearchBarValue] = useState('')
+  
+  // Local filter states for controlled inputs
+  const [localFilters, setLocalFilters] = useState({
     minPrice: searchParams.get('minPrice') || '',
     maxPrice: searchParams.get('maxPrice') || '',
     bedrooms: searchParams.get('bedrooms') || '',
@@ -20,7 +27,11 @@ const TenantBrowse = () => {
     location: searchParams.get('location') || '',
     propertyType: searchParams.get('type') || '',
     amenities: searchParams.get('amenities') ? searchParams.get('amenities').split(',') : [],
+    searchText: '',
   })
+  
+  // Actual filters for API calls (debounced)
+  const [filters, setFilters] = useState(localFilters)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [favorites, setFavorites] = useState(new Set())
   const [loadingFav, setLoadingFav] = useState(null)
@@ -35,26 +46,34 @@ const TenantBrowse = () => {
     amenities: false,
   })
 
+  // Load initial data once on mount
   useEffect(() => {
     fetchListings()
     if (isAuthenticated) {
       fetchUserFavorites()
     }
-  }, [filters, isAuthenticated])
+  }, [])
 
-  const fetchUserFavorites = async () => {
+  // Debounced filter effect - fetch when filters change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchListings()
+    }, 500)
+    
+    return () => clearTimeout(timer)
+  }, [filters])
+
+  const fetchUserFavorites = useCallback(async () => {
     try {
       const response = await api.get('/favorites')
-      // Response returns full listing objects, so map the id field
       const favoriteIds = new Set(response.data.data?.map(listing => listing.id) || [])
       setFavorites(favoriteIds)
-      console.log('[TenantBrowse] Favorites loaded:', Array.from(favoriteIds))
     } catch (error) {
       console.error('Failed to fetch favorites:', error)
     }
-  }
+  }, [])
 
-  const fetchListings = async () => {
+  const fetchListings = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -67,8 +86,13 @@ const TenantBrowse = () => {
       if (filters.location) queryParams.append('location', filters.location)
       if (filters.propertyType) queryParams.append('type', filters.propertyType)
       if (filters.amenities.length > 0) queryParams.append('amenities', filters.amenities.join(','))
+      // Add search text parameter for global search
+      if (filters.searchText) queryParams.append('search', filters.searchText)
 
-      const response = await api.get(`/listings?${queryParams}`)
+      const url = `/listings?${queryParams}`
+      console.log('[TenantBrowse] Fetching listings with filters:', { filters, url })
+      const response = await api.get(url)
+      console.log('[TenantBrowse] Listings fetched:', response.data.data?.length || 0, 'items')
       setListings(response.data.data || response.data || [])
     } catch (err) {
       console.error('Failed to fetch listings:', err)
@@ -77,23 +101,46 @@ const TenantBrowse = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters])
 
-  const handleFilterChange = (name, value) => {
-    setFilters((prev) => ({
+  // Handle local filter changes with debounce
+  const handleFilterChange = useCallback((name, value) => {
+    // Update local state immediately for UI feedback
+    setLocalFilters(prev => ({
       ...prev,
       [name]: value,
     }))
-  }
 
-  const handleAmenityChange = (amenity) => {
-    setFilters(prev => ({
+    // Debounce actual filter update
+    clearTimeout(filterDebounceTimerRef.current)
+    filterDebounceTimerRef.current = setTimeout(() => {
+      setFilters(prev => ({
+        ...prev,
+        [name]: value,
+      }))
+    }, 500)
+  }, [])
+
+  const handleAmenityChange = useCallback((amenity) => {
+    // Update local state immediately
+    const newAmenities = localFilters.amenities.includes(amenity)
+      ? localFilters.amenities.filter(a => a !== amenity)
+      : [...localFilters.amenities, amenity]
+    
+    setLocalFilters(prev => ({
       ...prev,
-      amenities: prev.amenities.includes(amenity)
-        ? prev.amenities.filter(a => a !== amenity)
-        : [...prev.amenities, amenity]
+      amenities: newAmenities,
     }))
-  }
+
+    // Debounce actual filter update
+    clearTimeout(filterDebounceTimerRef.current)
+    filterDebounceTimerRef.current = setTimeout(() => {
+      setFilters(prev => ({
+        ...prev,
+        amenities: newAmenities,
+      }))
+    }, 500)
+  }, [localFilters.amenities])
 
   const toggleFilterSection = (section) => {
     setExpandedSections(prev => ({
@@ -243,6 +290,37 @@ const TenantBrowse = () => {
               {listings.length > 0 ? `Found ${listings.length} properties` : 'Find your perfect rental property'}
             </p>
           </div>
+        </div>
+
+        {/* YouTube-Style Search Bar */}
+        <div className="max-w-2xl">
+          <SearchSuggestions
+            value={searchBarValue}
+            onChange={setSearchBarValue}
+            onSelect={(selected) => {
+              console.log('[TenantBrowse] onSelect called with:', selected, 'type:', typeof selected)
+              if (typeof selected === 'string') {
+                // Search text entered - IMMEDIATE search without debounce
+                console.log('[TenantBrowse] Setting search bar value to string:', selected, 'length:', selected.length)
+                setSearchBarValue(selected)
+                // Immediate filter update for search (no debounce for search action)
+                clearTimeout(filterDebounceTimerRef.current)
+                setFilters(prev => ({ ...prev, searchText: selected }))
+              } else if (selected && selected.id) {
+                // Property selected from dropdown
+                console.log('[TenantBrowse] Setting search bar value to title:', selected.title)
+                setSearchBarValue(selected.title || '')
+                // Show only the selected property
+                clearTimeout(filterDebounceTimerRef.current)
+                setListings([selected])
+              }
+            }}
+            placeholder="Search properties by name, location..."
+            className="w-full"
+          />
+        </div>
+
+        <div className="flex items-center gap-3 justify-end">
           <div className="flex items-center gap-3">
             {/* Sorting Dropdown */}
             <select
@@ -486,11 +564,21 @@ const TenantBrowse = () => {
                     className="mt-3"
                   >
                     <input
+                      ref={searchInputRef}
                       type="text"
-                      value={filters.location}
-                      onChange={(e) => handleFilterChange('location', e.target.value)}
+                      value={localFilters.location}
+                      onChange={(e) => {
+                        // Update local state for immediate UI feedback, but don't trigger search
+                        setLocalFilters(prev => ({ ...prev, location: e.target.value }))
+                      }}
+                      onKeyDown={(e) => {
+                        // Only trigger search on Enter
+                        if (e.key === 'Enter') {
+                          setFilters(prev => ({ ...prev, location: localFilters.location }))
+                        }
+                      }}
+                      placeholder="Enter area name (press Enter to search)"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 outline-none"
-                      placeholder="Enter area name"
                     />
                   </motion.div>
                 )}
@@ -521,14 +609,14 @@ const TenantBrowse = () => {
                   >
                     <input
                       type="number"
-                      value={filters.minPrice}
+                      value={localFilters.minPrice}
                       onChange={(e) => handleFilterChange('minPrice', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 outline-none"
                       placeholder="Min"
                     />
                     <input
                       type="number"
-                      value={filters.maxPrice}
+                      value={localFilters.maxPrice}
                       onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 outline-none"
                       placeholder="Max"
@@ -579,7 +667,7 @@ const TenantBrowse = () => {
                     className="mt-3"
                   >
                     <select
-                      value={filters.bedrooms}
+                      value={localFilters.bedrooms}
                       onChange={(e) => handleFilterChange('bedrooms', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 outline-none bg-white"
                     >
@@ -620,7 +708,7 @@ const TenantBrowse = () => {
                     className="mt-3"
                   >
                     <select
-                      value={filters.bathrooms}
+                      value={localFilters.bathrooms}
                       onChange={(e) => handleFilterChange('bathrooms', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 outline-none bg-white"
                     >
@@ -657,7 +745,7 @@ const TenantBrowse = () => {
                     className="mt-3"
                   >
                     <select
-                      value={filters.propertyType}
+                      value={localFilters.propertyType}
                       onChange={(e) => handleFilterChange('propertyType', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 outline-none bg-white"
                     >
@@ -697,7 +785,7 @@ const TenantBrowse = () => {
                       <label key={amenity} className="flex items-center gap-2 text-gray-600 text-sm cursor-pointer hover:text-primary-600 transition-colors">
                         <input
                           type="checkbox"
-                          checked={filters.amenities.includes(amenity)}
+                          checked={localFilters.amenities.includes(amenity)}
                           onChange={() => handleAmenityChange(amenity)}
                           className="rounded text-primary-600 focus:ring-primary-600"
                         />

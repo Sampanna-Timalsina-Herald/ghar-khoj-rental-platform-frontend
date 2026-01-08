@@ -9,7 +9,8 @@ import {
 import modernInterior from "../assets/interior1.jpg";
 import api from "../api/axios";
 import { useAuthStore } from "../stores/authStore";
-import SmartNav from "../components/SmartNav"; 
+import SmartNav from "../components/SmartNav";
+import SearchSuggestions from "../components/SearchSuggestions";
 
 const AMENITY_OPTIONS = ["Wifi", "Parking", "Balcony", "Garden", "AC"];
 
@@ -440,6 +441,7 @@ const Home = () => {
   const [featuredListings, setFeaturedListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch featured listings from database
   useEffect(() => {
@@ -476,7 +478,6 @@ const Home = () => {
 
   return (
     <div className="w-full min-h-screen bg-gray-50 font-sans">
-      
       {/* 1. Smart Navbar Integration */}
       <SmartNav />
 
@@ -559,8 +560,37 @@ const Home = () => {
         </div>
       </section>
 
+      {/* YouTube-Style Search Bar */}
+      <div className="px-6 -mt-8 relative z-30 mb-12">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="max-w-2xl mx-auto"
+        >
+          <SearchSuggestions
+            value={searchQuery}
+            onChange={setSearchQuery}
+            onSelect={(selected) => {
+              if (typeof selected === 'string') {
+                // Search text entered
+                console.log('[Home] Search text:', selected)
+                navigate(`/search?search=${encodeURIComponent(selected)}`)
+              } else if (selected?.id) {
+                // Property selected from dropdown
+                console.log('[Home] Property selected:', selected)
+                navigate(`/listing/${selected.id}`)
+              }
+            }}
+            placeholder="Search by location, area, or price..."
+            className="w-full"
+            disableHistory={true}
+          />
+        </motion.div>
+      </div>
+
       {/* Advanced Search Section (Overlapping Hero) */}
-      <div className="px-6">
+      <div className="px-6 mt-8">
         <AdvancedSearch onSearch={handleSearch} loading={loading} />
       </div>
 

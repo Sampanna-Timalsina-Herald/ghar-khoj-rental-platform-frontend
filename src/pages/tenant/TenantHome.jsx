@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
 import { Search, Heart, MapPin, Bed, Bath, Ruler, Loader2, Eye, TrendingUp, ArrowRight, Zap, Shield, Clock, Sparkles } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
+import SearchSuggestions from '../../components/SearchSuggestions'
 
 const TenantHome = () => {
   const [featuredListings, setFeaturedListings] = useState([])
@@ -41,12 +42,6 @@ const TenantHome = () => {
       console.error('Failed to fetch listings:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleSearch = () => {
-    if (searchQuery.trim()) {
-      navigate(`/tenant/browse?search=${encodeURIComponent(searchQuery)}`)
     }
   }
 
@@ -128,30 +123,30 @@ const TenantHome = () => {
           <p className="text-gray-500 mt-2 text-lg">Find your perfect home in Kathmandu Valley</p>
         </div>
 
-        {/* Minimal Search Bar */}
+        {/* YouTube-Style Search Bar */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="flex flex-col md:flex-row gap-3 max-w-3xl"
+          className="max-w-2xl"
         >
-          <input
-            type="text"
+          <SearchSuggestions
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+            onChange={setSearchQuery}
+            onSelect={(selected) => {
+              if (typeof selected === 'string') {
+                // Search text entered
+                console.log('[TenantHome] Search text:', selected)
+                navigate(`/tenant/browse?search=${encodeURIComponent(selected)}`)
+              } else if (selected?.id) {
+                // Property selected from dropdown
+                console.log('[TenantHome] Property selected:', selected)
+                navigate(`/tenant/listing/${selected.id}`)
+              }
+            }}
             placeholder="Search by location, area, or price..."
-            className="flex-1 px-5 py-3 rounded-lg text-gray-900 outline-none bg-white border border-gray-200 hover:border-gray-300 focus:border-primary-500 transition-all text-base font-medium"
+            className="w-full"
           />
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleSearch}
-            className="bg-primary-600 text-white px-7 py-3 rounded-lg hover:bg-primary-700 transition-all font-semibold flex items-center justify-center gap-2"
-          >
-            <Search size={18} />
-            <span className="hidden md:inline">Search</span>
-          </motion.button>
         </motion.div>
       </motion.div>
 
