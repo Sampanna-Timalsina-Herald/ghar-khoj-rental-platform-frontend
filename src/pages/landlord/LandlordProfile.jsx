@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import api from '../../api/axios'
 import { useAuthStore } from '../../stores/authStore'
-import { User, Mail, Phone, MapPin, Camera, Save, Loader2, CheckCircle2, XCircle, Lock, Eye, EyeOff } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Camera, Save, Loader2, CheckCircle2, XCircle, Lock, Eye, EyeOff, Home } from 'lucide-react'
 
 const LandlordProfile = () => {
   const { user } = useAuthStore()
@@ -247,8 +247,13 @@ const LandlordProfile = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className="text-3xl font-bold text-text">My Profile</h1>
-        <p className="text-gray-600 mt-2">Manage your account information</p>
+        <div className="flex items-center gap-3">
+          <Home size={32} className="text-primary-600" />
+          <div>
+            <h1 className="text-3xl font-bold text-text">Landlord Profile</h1>
+            <p className="text-gray-600 mt-1">Manage your account information</p>
+          </div>
+        </div>
       </motion.div>
 
       {message.text && (
@@ -307,12 +312,16 @@ const LandlordProfile = () => {
               type="file"
               accept="image/*"
               onChange={handleImageUpload}
+              disabled={uploadingImage}
               className="hidden"
             />
           </div>
           <div>
             <h3 className="text-xl font-semibold text-text">{formData.name || 'Your Name'}</h3>
             <p className="text-gray-600">{formData.email}</p>
+            <span className="inline-block mt-2 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
+              Landlord
+            </span>
           </div>
         </div>
 
@@ -378,7 +387,7 @@ const LandlordProfile = () => {
           </div>
         </div>
 
-        <div className="pt-6 border-t border-gray-200 flex gap-4">
+        <div className="pt-6 border-t border-gray-200 flex flex-col md:flex-row gap-3">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -403,7 +412,7 @@ const LandlordProfile = () => {
             whileTap={{ scale: 0.98 }}
             type="button"
             onClick={() => setShowPasswordModal(true)}
-            className="px-8 py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-colors flex items-center justify-center gap-2"
+            className="flex-1 px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
           >
             <Lock size={20} />
             Change Password
@@ -424,10 +433,13 @@ const LandlordProfile = () => {
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6"
             onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md"
           >
-            <h2 className="text-2xl font-bold text-text mb-4">Change Password</h2>
+            <div className="flex items-center gap-2 mb-6">
+              <Lock size={24} className="text-primary-600" />
+              <h2 className="text-2xl font-bold text-text">Change Password</h2>
+            </div>
 
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
               {/* Current Password */}
@@ -517,29 +529,30 @@ const LandlordProfile = () => {
                 </div>
               </div>
 
-              {/* Buttons */}
-              <div className="pt-4 flex gap-3">
+              <div className="flex gap-3 pt-4">
                 <motion.button
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   type="button"
                   onClick={() => setShowPasswordModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors"
                 >
                   Cancel
                 </motion.button>
                 <motion.button
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   type="submit"
                   disabled={saving}
                   className="flex-1 px-4 py-2 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {saving ? (
                     <>
-                      <Loader2 size={18} className="animate-spin" />
-                      Updating...
+                      <Loader2 size={16} className="animate-spin" />
+                      Changing...
                     </>
                   ) : (
-                    'Update Password'
+                    'Change Password'
                   )}
                 </motion.button>
               </div>
