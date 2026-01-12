@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, MapPin, Clock, X, ArrowRight } from 'lucide-react'
+import api from '../api/axios'
 
 const SearchSuggestions = ({ 
   value = '', 
@@ -29,6 +30,32 @@ const SearchSuggestions = ({
     }
   }, [disableHistory])
 
+  // Handle selection - defined early so it can be used in handleKeyDown
+  const handleSelect = useCallback((selectedItem) => {
+    console.log('[SearchSuggestions] handleSelect called with:', selectedItem, 'type:', typeof selectedItem)
+    
+    // Save search text for recent searches (only if history is enabled)
+    const searchText = typeof selectedItem === 'string' 
+      ? selectedItem 
+      : selectedItem?.title || selectedItem?.location || 'Search'
+    
+    console.log('[SearchSuggestions] Extracted search text:', searchText, 'length:', searchText.length)
+    
+    if (!disableHistory) {
+      const updated = [searchText, ...recentSearches.filter(s => s !== searchText)].slice(0, 5)
+      setRecentSearches(updated)
+      localStorage.setItem('recentSearches', JSON.stringify(updated))
+    }
+
+    // Callback with full data
+    console.log('[SearchSuggestions] Calling onSelect with:', selectedItem)
+    onSelect?.(selectedItem)
+    
+    // Keep the search text in input, just close dropdown
+    setIsOpen(false)
+    setSelectedIndex(-1)
+  }, [disableHistory, recentSearches, onSelect])
+
   // Fetch suggestions with debouncing
   useEffect(() => {
     if (debounceTimerRef.current) {
@@ -50,28 +77,25 @@ const SearchSuggestions = ({
     setLoading(true)
     debounceTimerRef.current = setTimeout(async () => {
       try {
-        const url = `/api/listings/suggest?q=${encodeURIComponent(value)}`
-        console.log('[SearchSuggestions] Fetching from:', url)
-        const response = await fetch(url)
+        const response = await api.get(`/listings/suggest?q=${encodeURIComponent(value)}`)
         console.log('[SearchSuggestions] Response status:', response.status)
         
-        if (response.ok) {
-          const data = await response.json()
+        if (response.status === 200 && response.data) {
+          const data = response.data
           console.log('[SearchSuggestions] API Response received:', data)
           console.log('[SearchSuggestions] Suggestions count:', Array.isArray(data) ? data.length : 0)
           setSuggestions(Array.isArray(data) ? data.slice(0, 8) : [])
           setIsOpen(true)
           setSelectedIndex(-1)
         } else {
-          const errorText = await response.text()
-          console.error('[SearchSuggestions] API Error:', response.status, errorText)
+          console.error('[SearchSuggestions] Unexpected response:', response)
           setSuggestions([])
-          setIsOpen(true)  // Keep dropdown open to show "no results"
+          setIsOpen(true)
         }
       } catch (error) {
         console.error('[SearchSuggestions] Fetch Error:', error)
         setSuggestions([])
-        setIsOpen(true)  // Keep dropdown open to show error state
+        setIsOpen(true)
       } finally {
         setLoading(false)
       }
@@ -106,11 +130,22 @@ const SearchSuggestions = ({
         break
       case 'Enter':
         e.preventDefault()
+        
+        // Clear any pending debounce timers to prevent race conditions
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current)
+        }
+        
+        // Get the actual current value from the input element (most reliable)
+        const currentValue = inputRef.current?.value || value
+        
+        console.log('[SearchSuggestions] Enter pressed - currentValue:', currentValue, 'length:', currentValue.length)
+        
         // PRIORITY: If user typed text, always use the typed text (not dropdown selection)
-        if (value.trim().length > 0) {
+        if (currentValue.trim().length > 0) {
           // User has typed text - use it regardless of dropdown selection
-          console.log('[SearchSuggestions] Enter with typed text:', value.trim())
-          handleSelect(value.trim())
+          console.log('[SearchSuggestions] Enter with typed text:', currentValue.trim())
+          handleSelect(currentValue.trim())
         } else if (selectedIndex >= 0) {
           // User selected an item from dropdown without typing
           const selectedItem = selectedIndex < suggestions.length
@@ -130,33 +165,7 @@ const SearchSuggestions = ({
       default:
         break
     }
-  }, [suggestions, recentSearches, selectedIndex])
-
-  const handleSelect = (selectedItem) => {
-    console.log('[SearchSuggestions] handleSelect called with:', selectedItem, 'type:', typeof selectedItem)
-    
-    // Save search text for recent searches (only if history is enabled)
-    const searchText = typeof selectedItem === 'string' 
-      ? selectedItem 
-      : selectedItem?.title || selectedItem?.location || 'Search'
-    
-    console.log('[SearchSuggestions] Extracted search text:', searchText, 'length:', searchText.length)
-    
-    if (!disableHistory) {
-      const updated = [searchText, ...recentSearches.filter(s => s !== searchText)].slice(0, 5)
-      setRecentSearches(updated)
-      localStorage.setItem('recentSearches', JSON.stringify(updated))
-    }
-
-    // Callback with full data
-    console.log('[SearchSuggestions] Calling onSelect with:', selectedItem)
-    onSelect?.(selectedItem)
-    
-    // Keep the search text in input, just close dropdown
-    // onChange?.('')
-    setIsOpen(false)
-    setSelectedIndex(-1)
-  }
+  }, [suggestions, recentSearches, selectedIndex, value, handleSelect])
 
   const clearRecentSearch = (text) => {
     if (!disableHistory) {
@@ -245,19 +254,53 @@ const SearchSuggestions = ({
                         <motion.button
                           key={index}
                           onClick={() => handleSelect(suggestion)}
-                          className={`w-full px-4 py-3 text-left text-sm flex items-center gap-3 transition-colors border-b border-gray-100 ${
+                          className={`w-full px-3 py-2 text-left text-sm flex items-center gap-3 transition-colors border-b border-gray-100 ${
                             isSelected ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'
                           }`}
                           whileHover={{ backgroundColor: 'rgb(243, 244, 246)' }}
                         >
-                          <MapPin size={14} className="text-gray-400 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="truncate font-medium">{suggestion.title}</p>
-                            <div className="flex gap-2 text-xs text-gray-500">
-                              <span>{suggestion.location}</span>
-                              {suggestion.price && <span>Rs. {suggestion.price.toLocaleString()}</span>}
-                              {suggestion.bedrooms && <span>{suggestion.bedrooms} bed</span>}
+                          {/* Property Image */}
+                          {suggestion.images && suggestion.images.length > 0 ? (
+                            <img
+                              src={
+                                suggestion.images[0].startsWith('http') 
+                                  ? suggestion.images[0] 
+                                  : `http://localhost:5000${suggestion.images[0]}`
+                              }
+                              alt={suggestion.title}
+                              className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                              onError={(e) => {
+                                e.target.onerror = null
+                                e.target.src = 'https://images.unsplash.com/photo-1570129477488-c70a256a7356?q=80&w=100&h=100&auto=format&fit=crop'
+                              }}
+                            />
+                          ) : (
+                            <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <MapPin size={24} className="text-gray-400" />
                             </div>
+                          )}
+                          
+                          {/* Property Details */}
+                          <div className="flex-1 min-w-0">
+                            <p className="truncate font-medium text-gray-900">{suggestion.title}</p>
+                            <div className="flex gap-2 text-xs text-gray-500 mt-1">
+                              <span className="flex items-center gap-1">
+                                <MapPin size={12} />
+                                {suggestion.location}
+                              </span>
+                              {suggestion.price && (
+                                <span className="font-semibold text-primary-600">
+                                  Rs. {suggestion.price.toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                            {(suggestion.bedrooms || suggestion.bathrooms) && (
+                              <div className="flex gap-2 text-xs text-gray-500 mt-1">
+                                {suggestion.bedrooms && <span>{suggestion.bedrooms} bed</span>}
+                                {suggestion.bathrooms && <span>{suggestion.bathrooms} bath</span>}
+                                {suggestion.type && <span className="capitalize">{suggestion.type}</span>}
+                              </div>
+                            )}
                           </div>
                         </motion.button>
                       )

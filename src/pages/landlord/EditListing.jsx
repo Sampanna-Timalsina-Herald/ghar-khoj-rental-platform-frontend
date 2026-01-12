@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import api from '../../api/axios'
 import { Loader2, ArrowLeft, Upload, X, CheckCircle2 } from 'lucide-react'
+import CollegeSelect from '../../components/CollegeSelect'
 
 const EditListing = () => {
   const navigate = useNavigate()
@@ -238,13 +239,12 @@ const EditListing = () => {
                 required
                 className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600"
               />
-              <input
-                type="text"
-                name="college_name"
-                placeholder="Nearby College (Optional)"
+              <CollegeSelect
                 value={formData.college_name}
-                onChange={handleChange}
-                className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600"
+                onChange={(collegeName) => setFormData(prev => ({ ...prev, college_name: collegeName }))}
+                label="Near College/University"
+                placeholder="Select nearby college (Optional)"
+                showLocation={true}
               />
             </div>
           </div>

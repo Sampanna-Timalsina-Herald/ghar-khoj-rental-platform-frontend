@@ -8,6 +8,7 @@ const LandlordProfile = () => {
   const { user } = useAuthStore()
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -221,6 +222,7 @@ const LandlordProfile = () => {
       if (response.data.success) {
         setMessage({ type: 'success', text: '✅ Profile updated successfully!' })
         useAuthStore.setState({ user: { ...user, ...response.data.user } })
+        setIsEditMode(false)
         setTimeout(() => setMessage({ type: '', text: '' }), 3000)
       }
     } catch (error) {
@@ -230,6 +232,12 @@ const LandlordProfile = () => {
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditMode(false)
+    // Reset form data to original values
+    fetchProfile()
   }
 
   if (loading) {
@@ -295,18 +303,20 @@ const LandlordProfile = () => {
                 <User size={40} className="text-primary-600" />
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingImage}
-              className="absolute bottom-0 right-0 p-2 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {uploadingImage ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Camera size={16} />
-              )}
-            </button>
+            {isEditMode && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="absolute bottom-0 right-0 p-2 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {uploadingImage ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Camera size={16} />
+                )}
+              </button>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -336,7 +346,8 @@ const LandlordProfile = () => {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+              disabled={!isEditMode}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed"
               placeholder="Enter your full name"
             />
           </div>
@@ -366,7 +377,8 @@ const LandlordProfile = () => {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+              disabled={!isEditMode}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed"
               placeholder="+977 9999999999"
             />
           </div>
@@ -381,42 +393,70 @@ const LandlordProfile = () => {
               name="city"
               value={formData.city}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+              disabled={!isEditMode}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed"
               placeholder="Enter your city"
             />
           </div>
         </div>
 
         <div className="pt-6 border-t border-gray-200 flex flex-col md:flex-row gap-3">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            type="submit"
-            disabled={saving}
-            className="flex-1 px-8 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {saving ? (
-              <>
-                <Loader2 size={20} className="animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save size={20} />
-                Save Changes
-              </>
-            )}
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            type="button"
-            onClick={() => setShowPasswordModal(true)}
-            className="flex-1 px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-          >
-            <Lock size={20} />
-            Change Password
-          </motion.button>
+          {!isEditMode ? (
+            <>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={() => setIsEditMode(true)}
+                className="flex-1 px-8 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <User size={20} />
+                Edit Profile
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={() => setShowPasswordModal(true)}
+                className="flex-1 px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Lock size={20} />
+                Change Password
+              </motion.button>
+            </>
+          ) : (
+            <>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={handleCancelEdit}
+                className="flex-1 px-8 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors flex items-center justify-center gap-2"
+              >
+                <XCircle size={20} />
+                Cancel
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={saving}
+                className="flex-1 px-8 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 size={20} className="animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={20} />
+                    Save Changes
+                  </>
+                )}
+              </motion.button>
+            </>
+          )}
         </div>
       </motion.form>
 

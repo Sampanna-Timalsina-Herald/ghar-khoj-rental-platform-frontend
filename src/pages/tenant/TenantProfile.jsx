@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import api from '../../api/axios'
 import { useAuthStore } from '../../stores/authStore'
-import { User, Mail, Phone, MapPin, GraduationCap, Camera, Save, Loader2, CheckCircle2, XCircle, Lock, Eye, EyeOff, Users } from 'lucide-react'
+import { User, Mail, Phone, MapPin, GraduationCap, Camera, Save, Loader2, CheckCircle2, XCircle, Lock, Eye, EyeOff, Users, Settings } from 'lucide-react'
+import CollegeSelect from '../../components/CollegeSelect'
+import PreferencesModal from '../../components/PreferencesModal'
 
 const TenantProfile = () => {
   const { user } = useAuthStore()
@@ -11,7 +13,11 @@ const TenantProfile = () => {
   const [saving, setSaving] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [showPreferencesModal, setShowPreferencesModal] = useState(false)
+  const [showClearConfirmModal, setShowClearConfirmModal] = useState(false)
+  const [preferences, setPreferences] = useState(null)
   const [message, setMessage] = useState({ type: '', text: '' })
+  const [isEditMode, setIsEditMode] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -34,6 +40,7 @@ const TenantProfile = () => {
     const { isAuthenticated } = useAuthStore.getState()
     if (isAuthenticated) {
       fetchProfile()
+      fetchPreferences()
     } else {
       setLoading(false)
       setMessage({ type: 'error', text: 'Please log in to view your profile.' })
@@ -81,6 +88,17 @@ const TenantProfile = () => {
       }
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchPreferences = async () => {
+    try {
+      const response = await api.get('/preferences')
+      if (response.data.success) {
+        setPreferences(response.data.data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch preferences:', error)
     }
   }
 
@@ -224,6 +242,7 @@ const TenantProfile = () => {
         setMessage({ type: 'success', text: '✅ Profile updated successfully!' })
         // Update auth store with new user data
         useAuthStore.setState({ user: { ...user, ...response.data.user } })
+        setIsEditMode(false)
         setTimeout(() => setMessage({ type: '', text: '' }), 3000)
       }
     } catch (error) {
@@ -232,6 +251,29 @@ const TenantProfile = () => {
       setTimeout(() => setMessage({ type: '', text: '' }), 5000)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditMode(false)
+    // Reset form data to original values
+    fetchProfile()
+  }
+
+  const handleClearPreferences = async () => {
+    try {
+      const response = await api.delete('/preferences')
+      if (response.data.success) {
+        setPreferences(null)
+        setShowClearConfirmModal(false)
+        setMessage({ type: 'success', text: '✅ Preferences cleared successfully!' })
+        setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+      }
+    } catch (error) {
+      console.error('Failed to clear preferences:', error)
+      setShowClearConfirmModal(false)
+      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to clear preferences' })
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000)
     }
   }
 
@@ -299,18 +341,20 @@ const TenantProfile = () => {
                 <User size={40} className="text-primary-600" />
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingImage}
-              className="absolute bottom-0 right-0 p-2 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {uploadingImage ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Camera size={16} />
-              )}
-            </button>
+            {isEditMode && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="absolute bottom-0 right-0 p-2 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {uploadingImage ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Camera size={16} />
+                )}
+              </button>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -341,7 +385,8 @@ const TenantProfile = () => {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+              disabled={!isEditMode}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed"
               placeholder="Enter your full name"
             />
           </div>
@@ -372,7 +417,8 @@ const TenantProfile = () => {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+              disabled={!isEditMode}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed"
               placeholder="+977 9999999999"
             />
           </div>
@@ -387,59 +433,198 @@ const TenantProfile = () => {
               name="city"
               value={formData.city}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+              disabled={!isEditMode}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed"
               placeholder="Enter your city"
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-semibold text-text mb-2">
-              <GraduationCap size={16} className="inline mr-2" />
-              College/University
-            </label>
-            <input
-              type="text"
-              name="college"
+            <CollegeSelect
               value={formData.college}
-              onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-              placeholder="Enter your college or university"
+              onChange={(collegeName) => setFormData(prev => ({ ...prev, college: collegeName }))}
+              label="College/University"
+              placeholder="Select your college or university"
+              showLocation={true}
+              disabled={!isEditMode}
             />
           </div>
         </div>
 
         <div className="pt-6 border-t border-gray-200 flex flex-col md:flex-row gap-3">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            type="submit"
-            disabled={saving}
-            className="flex-1 px-8 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {saving ? (
-              <>
-                <Loader2 size={20} className="animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save size={20} />
-                Save Changes
-              </>
-            )}
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            type="button"
-            onClick={() => setShowPasswordModal(true)}
-            className="flex-1 px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-          >
-            <Lock size={20} />
-            Change Password
-          </motion.button>
+          {!isEditMode ? (
+            <>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={() => setIsEditMode(true)}
+                className="flex-1 px-8 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <User size={20} />
+                Edit Profile
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={() => setShowPasswordModal(true)}
+                className="flex-1 px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Lock size={20} />
+                Change Password
+              </motion.button>
+            </>
+          ) : (
+            <>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={handleCancelEdit}
+                className="flex-1 px-8 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors flex items-center justify-center gap-2"
+              >
+                <XCircle size={20} />
+                Cancel
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={saving}
+                className="flex-1 px-8 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 size={20} className="animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={20} />
+                    Save Changes
+                  </>
+                )}
+              </motion.button>
+            </>
+          )}
         </div>
       </motion.form>
+
+      {/* Preferences Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="bg-white rounded-xl shadow-lg p-6 md:p-8"
+      >
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <Settings size={24} className="text-purple-600" />
+            <div>
+              <h2 className="text-2xl font-bold text-text">Property Preferences</h2>
+              <p className="text-gray-600 text-sm">Get notified when properties matching your preferences are listed</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {preferences?.has_set_preferences && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowClearConfirmModal(true)}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 hover:shadow-lg transition"
+              >
+                Clear
+              </motion.button>
+            )}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowPreferencesModal(true)}
+              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition"
+            >
+              {preferences?.has_set_preferences ? 'Update' : 'Set'} Preferences
+            </motion.button>
+          </div>
+        </div>
+
+        {preferences?.has_set_preferences ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {preferences.locations && preferences.locations.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-gray-700 mb-2">Preferred Locations</h3>
+                <div className="flex flex-wrap gap-2">
+                  {preferences.locations.map((loc, idx) => (
+                    <span key={idx} className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm">
+                      {loc}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {(preferences.min_price || preferences.max_price) && (
+              <div>
+                <h3 className="font-semibold text-gray-700 mb-2">Price Range</h3>
+                <p className="text-gray-600">
+                  Rs. {preferences.min_price?.toLocaleString() || '0'} - Rs. {preferences.max_price?.toLocaleString() || '∞'}
+                </p>
+              </div>
+            )}
+
+            {preferences.bedrooms && (
+              <div>
+                <h3 className="font-semibold text-gray-700 mb-2">Minimum Bedrooms</h3>
+                <p className="text-gray-600">{preferences.bedrooms}+ BHK</p>
+              </div>
+            )}
+
+            {preferences.property_types && preferences.property_types.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-gray-700 mb-2">Property Types</h3>
+                <div className="flex flex-wrap gap-2">
+                  {preferences.property_types.map((type, idx) => (
+                    <span key={idx} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm capitalize">
+                      {type}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {preferences.amenities && preferences.amenities.length > 0 && (
+              <div className="md:col-span-2">
+                <h3 className="font-semibold text-gray-700 mb-2">Preferred Amenities</h3>
+                <div className="flex flex-wrap gap-2">
+                  {preferences.amenities.map((amenity, idx) => (
+                    <span key={idx} className="px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-sm">
+                      {amenity}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-500 mb-4">You haven't set your property preferences yet.</p>
+            <p className="text-sm text-gray-400">Set your preferences to receive email notifications when matching properties are listed!</p>
+          </div>
+        )}
+      </motion.div>
+
+      {/* Preferences Modal */}
+      <PreferencesModal
+        isOpen={showPreferencesModal}
+        onClose={() => setShowPreferencesModal(false)}
+        onSave={() => {
+          setShowPreferencesModal(false)
+          fetchPreferences()
+          setMessage({ type: 'success', text: '✅ Preferences updated successfully!' })
+          setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+        }}
+        isFirstTime={false}
+      />
 
       {/* Password Change Modal */}
       {showPasswordModal && (
@@ -578,6 +763,58 @@ const TenantProfile = () => {
                 </motion.button>
               </div>
             </form>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Clear Preferences Confirmation Modal */}
+      {showClearConfirmModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowClearConfirmModal(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-red-100 rounded-full">
+                <XCircle size={24} className="text-red-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-text">Clear Preferences?</h2>
+            </div>
+
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to clear all your property preferences? You will no longer receive email notifications for matching properties. This action cannot be undone.
+            </p>
+
+            <div className="flex gap-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={() => setShowClearConfirmModal(false)}
+                className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={handleClearPreferences}
+                className="flex-1 px-4 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <XCircle size={20} />
+                Clear Preferences
+              </motion.button>
+            </div>
           </motion.div>
         </motion.div>
       )}

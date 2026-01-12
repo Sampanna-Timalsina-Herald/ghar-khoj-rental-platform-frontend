@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import { Search, Heart, MessageSquare, BarChart3, User, FileText } from 'lucide-react'
 import Navbar from '../../components/Navbar'
 import Sidebar from '../../components/Sidebar'
+import PreferencesModal from '../../components/PreferencesModal'
 import TenantHome from './TenantHome'
 import TenantBrowse from './TenantBrowse'
 import TenantFavorites from './TenantFavorites'
@@ -16,6 +17,8 @@ import { initSocket } from '../../services/socket'
 const TenantDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [showPreferencesModal, setShowPreferencesModal] = useState(false)
+  const [isFirstTime, setIsFirstTime] = useState(false)
   const { accessToken } = useAuthStore()
 
   // Close sidebar on window resize if it becomes large enough
@@ -43,6 +46,25 @@ const TenantDashboard = () => {
     }
     window.addEventListener('unreadCountChanged', handleUnreadChange)
     return () => window.removeEventListener('unreadCountChanged', handleUnreadChange)
+  }, [accessToken])
+
+  // Check if user has set preferences (first-time login)
+  useEffect(() => {
+    const checkPreferences = async () => {
+      try {
+        const response = await api.get('/preferences/check')
+        if (!response.data.hasSetPreferences) {
+          setIsFirstTime(true)
+          setShowPreferencesModal(true)
+        }
+      } catch (error) {
+        console.error('Error checking preferences:', error)
+      }
+    }
+
+    if (accessToken) {
+      checkPreferences()
+    }
   }, [accessToken])
 
   const fetchUnreadCount = async () => {
@@ -117,6 +139,17 @@ const TenantDashboard = () => {
           </Routes>
         </main>
       </div>
+
+      {/* Preferences Modal */}
+      <PreferencesModal
+        isOpen={showPreferencesModal}
+        onClose={() => setShowPreferencesModal(false)}
+        onSave={() => {
+          setShowPreferencesModal(false)
+          setIsFirstTime(false)
+        }}
+        isFirstTime={isFirstTime}
+      />
     </div>
   )
 }

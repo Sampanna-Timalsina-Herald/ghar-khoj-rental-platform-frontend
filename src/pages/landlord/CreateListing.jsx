@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
 import { Loader2, ArrowLeft, Upload, X, CheckCircle2, Home, MapPin, DollarSign, Image, Info, AlertCircle, AlertTriangle } from 'lucide-react'
+import CollegeSelect from '../../components/CollegeSelect'
 
 const CreateListing = () => {
   const navigate = useNavigate()
@@ -584,16 +585,12 @@ const CreateListing = () => {
                   </motion.div>
 
                   <motion.div whileHover={{ scale: 1.01 }}>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Near College/University
-                    </label>
-                    <input
-                      type="text"
-                      name="college_name"
+                    <CollegeSelect
                       value={formData.college_name}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all bg-slate-50 hover:bg-white"
-                      placeholder="e.g., Tribhuvan University"
+                      onChange={(collegeName) => setFormData(prev => ({ ...prev, college_name: collegeName }))}
+                      label="Near College/University"
+                      placeholder="Select nearby college or university"
+                      showLocation={true}
                     />
                   </motion.div>
                 </div>

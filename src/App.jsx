@@ -103,6 +103,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { useAuthStore } from "./stores/authStore";
 import { initSocket, disconnectSocket } from "./services/socket";
 import { ToastProvider } from "./context/ToastContext";
+import { startTokenRefresh, stopTokenRefresh } from "./utils/tokenRefresh";
 
 // Pages
 import Home from "./pages/Home";
@@ -137,10 +138,22 @@ function App() {
     if (isAuthenticated && accessToken) {
       console.log('[App] User authenticated, initializing socket');
       initSocket(accessToken);
+      
+      // Start automatic token refresh
+      console.log('[App] Starting automatic token refresh');
+      startTokenRefresh();
     } else {
       // Disconnect socket when user logs out
       disconnectSocket();
+      
+      // Stop token refresh when user logs out
+      stopTokenRefresh();
     }
+    
+    // Cleanup on unmount
+    return () => {
+      stopTokenRefresh();
+    };
   }, [isAuthenticated, accessToken]);
 
   // Show loading spinner while auth is loading
