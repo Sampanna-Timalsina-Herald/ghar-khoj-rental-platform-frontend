@@ -278,7 +278,7 @@ const LandlordAgreementVerification = ({ agreementId, onApprove, onCancel }) => 
                     />
                   ) : (
                     <p className="text-2xl font-bold text-red-600 mt-2">
-                      ₹ {Number(editedData.monthly_rent).toLocaleString()}
+                      Rs. {Number(editedData.monthly_rent).toLocaleString()}
                     </p>
                   )}
                 </div>
@@ -287,7 +287,7 @@ const LandlordAgreementVerification = ({ agreementId, onApprove, onCancel }) => 
                 <div className="bg-pink-50 rounded-lg p-4 border border-pink-100">
                   <p className="text-sm text-gray-600 font-medium mb-2">Security Deposit</p>
                   <p className="text-2xl font-bold text-pink-600 mt-2">
-                    ₹ {Number(agreement.deposit).toLocaleString()}
+                    Rs. {Number(agreement.deposit).toLocaleString()}
                   </p>
                 </div>
 
@@ -295,7 +295,7 @@ const LandlordAgreementVerification = ({ agreementId, onApprove, onCancel }) => 
                 <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-100">
                   <p className="text-sm text-gray-600 font-medium mb-2">Total Payment</p>
                   <p className="text-2xl font-bold text-emerald-600 mt-2">
-                    ₹ {(Number(editedData.monthly_rent) * duration + Number(agreement.deposit)).toLocaleString()}
+                    Rs. {(Number(editedData.monthly_rent) * duration + Number(agreement.deposit)).toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -438,7 +438,7 @@ const LandlordAgreementVerification = ({ agreementId, onApprove, onCancel }) => 
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-600"
                     />
                   ) : (
-                    <p className="text-lg font-bold text-purple-700">₹ {requirements.parkingFee}</p>
+                    <p className="text-lg font-bold text-purple-700">Rs. {requirements.parkingFee}</p>
                   )}
                   <p className="text-xs text-gray-600 mt-1">If applicable</p>
                 </div>

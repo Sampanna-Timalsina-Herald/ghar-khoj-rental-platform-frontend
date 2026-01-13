@@ -363,7 +363,7 @@ const TenantListingDetail = () => {
             <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
               <p className="text-gray-600 text-sm font-medium mb-2 uppercase tracking-wide">Monthly Rent</p>
               <p className="text-4xl font-bold text-blue-600 mb-4">
-                ₹{(listing.rent_amount || 0).toLocaleString()}
+                Rs. {(listing.rent_amount || 0).toLocaleString()}
               </p>
 
               {/* Quick Features */}
@@ -428,7 +428,7 @@ const TenantListingDetail = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-2 bg-blue-50 rounded-lg">
                   <span className="text-xs text-gray-600 font-medium">Security Deposit</span>
-                  <span className="font-bold text-gray-900 text-sm">₹{Math.round((listing.rent_amount || 0) * 2).toLocaleString()}</span>
+                  <span className="font-bold text-gray-900 text-sm">Rs. {Math.round((listing.rent_amount || 0) * 2).toLocaleString()}</span>
                 </div>
                 <div className="flex items-center justify-between p-2 bg-green-50 rounded-lg">
                   <span className="text-xs text-gray-600 font-medium">Available</span>
@@ -660,8 +660,8 @@ const TenantListingDetail = () => {
                 {/* Property Summary */}
                 <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-xl mb-6 border border-blue-200">
                   <p className="font-bold text-gray-900 text-lg">{listing.title}</p>
-                  <p className="text-blue-600 font-bold text-2xl mt-2">₹{listing.rent_amount || listing.price}/month</p>
-                  <p className="text-gray-600 text-sm mt-3">Security Deposit: <span className="font-bold">₹{Math.round((listing.rent_amount || listing.price) * 2)}</span></p>
+                  <p className="text-blue-600 font-bold text-2xl mt-2">Rs. {listing.rent_amount || listing.price}/month</p>
+                  <p className="text-gray-600 text-sm mt-3">Security Deposit: <span className="font-bold">Rs. {Math.round((listing.rent_amount || listing.price) * 2)}</span></p>
                 </div>
 
                 {/* Move-in Date */}

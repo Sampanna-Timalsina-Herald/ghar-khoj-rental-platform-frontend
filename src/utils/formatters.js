@@ -1,12 +1,12 @@
 export const formatPrice = (price) => {
-  return new Intl.NumberFormat('en-PK', {
+  return new Intl.NumberFormat('en-NP', {
     style: 'currency',
-    currency: 'PKR',
+    currency: 'NPR',
   }).format(price)
 }
 
 export const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('en-PK', {
+  return new Date(date).toLocaleDateString('en-NP', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

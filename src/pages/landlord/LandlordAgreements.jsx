@@ -221,7 +221,7 @@ const LandlordAgreements = () => {
                       <span className="font-medium">Move-out:</span> {agreement.end_date}
                     </div>
                     <div>
-                      <span className="font-medium">Rent:</span> ₹{agreement.monthly_rent}/month
+                      <span className="font-medium">Rent:</span> Rs. {agreement.monthly_rent}/month
                     </div>
                   </div>
                 </div>
@@ -289,11 +289,11 @@ const LandlordAgreements = () => {
                         </div>
                         <div>
                           <span className="text-gray-600">Monthly Rent</span>
-                          <p className="font-medium text-gray-900">₹{selectedAgreement.monthly_rent}</p>
+                          <p className="font-medium text-gray-900">Rs. {selectedAgreement.monthly_rent}</p>
                         </div>
                         <div>
                           <span className="text-gray-600">Security Deposit</span>
-                          <p className="font-medium text-gray-900">₹{selectedAgreement.deposit}</p>
+                          <p className="font-medium text-gray-900">Rs. {selectedAgreement.deposit}</p>
                         </div>
                       </div>
                     </div>
