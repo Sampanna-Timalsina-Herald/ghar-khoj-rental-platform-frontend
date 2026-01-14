@@ -28,6 +28,7 @@ const EditListing = () => {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [listingStatus, setListingStatus] = useState(null)
 
   useEffect(() => {
     fetchListing()
@@ -50,6 +51,12 @@ const EditListing = () => {
         deposit_amount: listing.deposit_amount || '',
         furnished: listing.furnished || 'semi',
         type: listing.type || 'apartment',
+      })
+      
+      setListingStatus({
+        status: listing.status,
+        is_verified: listing.is_verified,
+        admin_notes: listing.admin_notes
       })
       
       if (listing.images && Array.isArray(listing.images)) {
@@ -148,6 +155,108 @@ const EditListing = () => {
         <ArrowLeft size={20} />
         Back to Listings
       </motion.button>
+
+      {/* Admin Feedback Banner for Corrections */}
+      {listingStatus && listingStatus.admin_notes && listingStatus.status === 'active' && !listingStatus.is_verified && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-400 rounded-xl shadow-lg p-6"
+        >
+          <div className="flex items-start gap-4">
+            <div className="bg-orange-500 rounded-full p-3 flex-shrink-0">
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-orange-900 mb-2">⚠️ Admin Requested Changes</h3>
+              <div className="bg-white rounded-lg p-4 border border-orange-200 mb-3">
+                <p className="text-sm text-gray-600 font-semibold mb-1">Admin Message:</p>
+                <p className="text-orange-900 whitespace-pre-wrap">{listingStatus.admin_notes}</p>
+              </div>
+              <p className="text-orange-800 text-sm">
+                Please review the admin's feedback and update your listing accordingly. Once you've made the changes, it will be reviewed again.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Rejection Banner */}
+      {listingStatus && listingStatus.admin_notes && listingStatus.status === 'inactive' && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-400 rounded-xl shadow-lg p-6"
+        >
+          <div className="flex items-start gap-4">
+            <div className="bg-red-500 rounded-full p-3 flex-shrink-0">
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-red-900 mb-2">❌ Listing Rejected</h3>
+              <div className="bg-white rounded-lg p-4 border border-red-200 mb-3">
+                <p className="text-sm text-gray-600 font-semibold mb-1">Rejection Reason:</p>
+                <p className="text-red-900 whitespace-pre-wrap">{listingStatus.admin_notes}</p>
+              </div>
+              <p className="text-red-800 text-sm">
+                This listing has been rejected by the admin. Please contact support if you have questions.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Approval Status Banner */}
+      {listingStatus && listingStatus.status === 'active' && !listingStatus.is_verified && !listingStatus.admin_notes && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl shadow-md p-6"
+        >
+          <div className="flex items-start gap-4">
+            <div className="bg-yellow-400 rounded-full p-3">
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-yellow-900 mb-2">⏳ Pending Admin Approval</h3>
+              <p className="text-yellow-800 mb-3">
+                Your listing is currently under review by our admin team. It will be visible to tenants once approved.
+              </p>
+              <div className="bg-white/60 rounded-lg p-3 border border-yellow-200">
+                <p className="text-sm text-yellow-900">
+                  <span className="font-semibold">What's happening:</span> Our team is reviewing your listing to ensure it meets quality standards and guidelines.
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {listingStatus && listingStatus.status === 'active' && listingStatus.is_verified && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl shadow-md p-6"
+        >
+          <div className="flex items-center gap-3">
+            <div className="bg-green-500 rounded-full p-2">
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-green-900">✓ Listing Approved & Active</h3>
+              <p className="text-green-700 text-sm">Your listing is live and visible to potential tenants!</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}

@@ -2,6 +2,7 @@ import React,{ useState } from 'react'
 import { Menu, X, LogOut, User } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { Link, useNavigate } from 'react-router-dom'
+import NotificationPanel from './NotificationPanel'
 
 const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   const { user, logout, role } = useAuthStore()
@@ -50,6 +51,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
         </div>
 
         <div className="flex items-center gap-4">
+          <NotificationPanel />
           <span className="text-sm text-gray-600 hidden sm:inline">
             {user?.name || 'User'}
           </span>

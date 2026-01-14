@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
-import { Plus, Edit2, Trash2, Loader2, MapPin, Bed, Bath, DollarSign, Eye, X, Search, Grid3X3, List } from 'lucide-react'
+import { Plus, Edit2, Trash2, Loader2, MapPin, Bed, Bath, Eye, X, Search, Grid3X3, List } from 'lucide-react'
 
 const LandlordListings = () => {
   const navigate = useNavigate()
@@ -241,17 +241,21 @@ const LandlordListings = () => {
                       alt={listing.title}
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute top-4 right-4">
+                    <div className="absolute top-4 right-4 flex flex-col gap-2">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm ${
-                          listing.status === 'active' || listing.is_verified
+                          listing.status === 'active' && listing.is_verified
                             ? 'bg-green-500/80 text-white'
+                            : listing.status === 'active' && !listing.is_verified
+                            ? 'bg-yellow-500/80 text-white'
                             : listing.status === 'inactive'
                             ? 'bg-red-500/80 text-white'
-                            : 'bg-yellow-500/80 text-white'
+                            : 'bg-gray-500/80 text-white'
                         }`}
                       >
-                        {listing.status || 'Pending'}
+                        {listing.status === 'active' && listing.is_verified ? 'Active' : 
+                         listing.status === 'active' && !listing.is_verified ? 'Pending Approval' :
+                         listing.status || 'Inactive'}
                       </span>
                     </div>
                   </div>
@@ -260,6 +264,27 @@ const LandlordListings = () => {
                   <h3 className="text-lg font-bold text-text mb-2 line-clamp-1">
                     {listing.title || listing.address}
                   </h3>
+                  
+                  {/* Admin Feedback Alert */}
+                  {listing.admin_notes && (
+                    <div className={`mb-3 p-3 rounded-lg border-2 ${
+                      listing.status === 'inactive' 
+                        ? 'bg-red-50 border-red-300' 
+                        : 'bg-orange-50 border-orange-300'
+                    }`}>
+                      <p className={`text-xs font-semibold mb-1 ${
+                        listing.status === 'inactive' ? 'text-red-800' : 'text-orange-800'
+                      }`}>
+                        {listing.status === 'inactive' ? '❌ Rejected' : '⚠️ Changes Requested'}
+                      </p>
+                      <p className={`text-xs line-clamp-2 ${
+                        listing.status === 'inactive' ? 'text-red-700' : 'text-orange-700'
+                      }`}>
+                        {listing.admin_notes}
+                      </p>
+                    </div>
+                  )}
+                  
                   <p className="text-gray-600 text-sm mb-4 line-clamp-2">
                     {listing.description?.substring(0, 100) || 'No description'}
                     {listing.description?.length > 100 ? '...' : ''}
@@ -281,9 +306,8 @@ const LandlordListings = () => {
                   </div>
 
                   <div className="flex items-center justify-between mb-4">
-                    <p className="text-2xl font-bold text-primary-600 flex items-center gap-1">
-                      <DollarSign size={20} />
-                      {(listing.rent_amount || listing.price || 0).toLocaleString()}
+                    <p className="text-2xl font-bold text-primary-600">
+                      Rs. {(listing.rent_amount || listing.price || 0).toLocaleString()}
                     </p>
                     {listing.views && (
                       <span className="text-sm text-gray-500 flex items-center gap-1">
@@ -399,14 +423,18 @@ const LandlordListings = () => {
                       <td className="px-6 py-4">
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            listing.status === 'active' || listing.is_verified
+                            listing.status === 'active' && listing.is_verified
                               ? 'bg-green-100 text-green-700'
+                              : listing.status === 'active' && !listing.is_verified
+                              ? 'bg-yellow-100 text-yellow-700'
                               : listing.status === 'inactive'
                               ? 'bg-red-100 text-red-700'
-                              : 'bg-yellow-100 text-yellow-700'
+                              : 'bg-gray-100 text-gray-700'
                           }`}
                         >
-                          {listing.status || 'Pending'}
+                          {listing.status === 'active' && listing.is_verified ? 'Active' : 
+                           listing.status === 'active' && !listing.is_verified ? 'Pending Approval' :
+                           listing.status || 'Inactive'}
                         </span>
                       </td>
                       <td className="px-6 py-4">

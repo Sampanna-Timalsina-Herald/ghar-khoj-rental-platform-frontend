@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   XCircle,
   Check,
-  DollarSign,
   MapPin,
   Bed,
   Bath,
@@ -26,7 +25,11 @@ const AdminListings = () => {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [editingListing, setEditingListing] = useState(null)
+  const [viewingListing, setViewingListing] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [requestChangesModal, setRequestChangesModal] = useState(null)
+  const [rejectModal, setRejectModal] = useState(null)
+  const [feedbackMessage, setFeedbackMessage] = useState('')
   const [actionLoading, setActionLoading] = useState({})
   const [message, setMessage] = useState({ type: '', text: '' })
   const [saving, setSaving] = useState(false)
@@ -73,19 +76,45 @@ const AdminListings = () => {
   const handleReject = async (id) => {
     setActionLoading(prev => ({ ...prev, [id]: true }))
     try {
-      const response = await api.put(`/admin/listings/${id}/reject`)
+      const response = await api.put(`/admin/listings/${id}/reject`, { reason: feedbackMessage })
       if (response.data.success) {
         setListings(prev =>
           prev.map(listing =>
-            listing.id === id ? { ...listing, status: 'inactive' } : listing
+            listing.id === id ? { ...listing, status: 'inactive', admin_notes: feedbackMessage } : listing
           )
         )
         setMessage({ type: 'success', text: 'Listing rejected' })
         setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+        setRejectModal(null)
+        setFeedbackMessage('')
       }
     } catch (error) {
       console.error('Failed to reject listing:', error)
       setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to reject listing' })
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000)
+    } finally {
+      setActionLoading(prev => ({ ...prev, [id]: false }))
+    }
+  }
+
+  const handleRequestChanges = async (id) => {
+    setActionLoading(prev => ({ ...prev, [id]: true }))
+    try {
+      const response = await api.put(`/admin/listings/${id}/request-changes`, { message: feedbackMessage })
+      if (response.data.success) {
+        setListings(prev =>
+          prev.map(listing =>
+            listing.id === id ? { ...listing, is_verified: false, admin_notes: feedbackMessage } : listing
+          )
+        )
+        setMessage({ type: 'success', text: 'Correction request sent to landlord' })
+        setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+        setRequestChangesModal(null)
+        setFeedbackMessage('')
+      }
+    } catch (error) {
+      console.error('Failed to request changes:', error)
+      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to request changes' })
       setTimeout(() => setMessage({ type: '', text: '' }), 5000)
     } finally {
       setActionLoading(prev => ({ ...prev, [id]: false }))
@@ -361,8 +390,7 @@ const AdminListings = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-1 font-semibold text-text">
-                            <DollarSign size={16} />
+                          <div className="font-semibold text-text">
                             Rs. {(listing.rent_amount || listing.price || 0).toLocaleString()}
                           </div>
                         </td>
@@ -411,11 +439,11 @@ const AdminListings = () => {
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
-                              onClick={() => handleEdit(listing)}
+                              onClick={() => setViewingListing(listing)}
                               className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
-                              title="Edit"
+                              title="View Details"
                             >
-                              <Edit2 size={16} />
+                              <Eye size={16} />
                             </motion.button>
                             <motion.button
                               whileHover={{ scale: 1.1 }}
@@ -478,9 +506,8 @@ const AdminListings = () => {
                   </div>
 
                   {/* Price */}
-                  <div className="flex items-center gap-2 text-lg font-bold text-gray-900 mb-4">
-                    <DollarSign size={20} />
-                    <span>Rs. {(listing.rent_amount || listing.price || 0).toLocaleString()}</span>
+                  <div className="text-lg font-bold text-gray-900 mb-4">
+                    Rs. {(listing.rent_amount || listing.price || 0).toLocaleString()}
                   </div>
 
                   {/* Details */}
@@ -523,10 +550,10 @@ const AdminListings = () => {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => handleEdit(listing)}
+                      onClick={() => setViewingListing(listing)}
                       className="flex-1 p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors font-medium text-sm"
                     >
-                      <Edit2 size={16} className="mx-auto" />
+                      <Eye size={16} className="mx-auto" />
                     </motion.button>
                     <motion.button
                       whileHover={{ scale: 1.05 }}
@@ -550,6 +577,316 @@ const AdminListings = () => {
           <p>No listings found</p>
         </div>
       )}
+
+      {/* View Details Modal */}
+      <AnimatePresence>
+        {viewingListing && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => setViewingListing(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            >
+              {/* Modal Header */}
+              <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between z-10">
+                <h3 className="text-2xl font-bold text-text">Listing Details</h3>
+                <button
+                  onClick={() => setViewingListing(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 space-y-6">
+                {/* Images */}
+                {viewingListing.images && viewingListing.images.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {viewingListing.images.map((image, index) => (
+                      <img
+                        key={index}
+                        src={image.startsWith('http') ? image : `http://localhost:5000${image}`}
+                        alt={`Property ${index + 1}`}
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Basic Info */}
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h4 className="text-xl font-bold text-text mb-4">{viewingListing.title}</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600 font-medium">Location:</span>
+                      <p className="text-text flex items-center gap-2 mt-1">
+                        <MapPin size={16} className="text-primary-600" />
+                        {viewingListing.city}, {viewingListing.address}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 font-medium">Monthly Rent:</span>
+                      <p className="text-2xl font-bold text-primary-600 mt-1">
+                        Rs. {(viewingListing.rent_amount || viewingListing.price || 0).toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 font-medium">Bedrooms:</span>
+                      <p className="text-text flex items-center gap-2 mt-1">
+                        <Bed size={16} />
+                        {viewingListing.bedrooms || 0} Beds
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 font-medium">Bathrooms:</span>
+                      <p className="text-text flex items-center gap-2 mt-1">
+                        <Bath size={16} />
+                        {viewingListing.bathrooms || 0} Baths
+                      </p>
+                    </div>
+                    {viewingListing.college_name && (
+                      <div className="md:col-span-2">
+                        <span className="text-gray-600 font-medium">Nearby College:</span>
+                        <p className="text-text mt-1">{viewingListing.college_name}</p>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-gray-600 font-medium">Property Type:</span>
+                      <p className="text-text mt-1 capitalize">{viewingListing.type || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 font-medium">Furnished:</span>
+                      <p className="text-text mt-1 capitalize">{viewingListing.furnished || 'N/A'}</p>
+                    </div>
+                    {viewingListing.deposit_amount && (
+                      <div>
+                        <span className="text-gray-600 font-medium">Security Deposit:</span>
+                        <p className="text-text mt-1">Rs. {viewingListing.deposit_amount.toLocaleString()}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Description */}
+                {viewingListing.description && (
+                  <div>
+                    <h4 className="text-lg font-semibold text-text mb-2">Description</h4>
+                    <p className="text-gray-700 leading-relaxed">{viewingListing.description}</p>
+                  </div>
+                )}
+
+                {/* Amenities */}
+                {viewingListing.amenities && viewingListing.amenities.length > 0 && (
+                  <div>
+                    <h4 className="text-lg font-semibold text-text mb-3">Amenities</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {viewingListing.amenities.map((amenity, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium"
+                        >
+                          {amenity}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Status Badge */}
+                <div className="flex gap-3">
+                  <span
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold ${
+                      viewingListing.status === 'active' && viewingListing.is_verified
+                        ? 'bg-green-100 text-green-700'
+                        : viewingListing.status === 'active' && !viewingListing.is_verified
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : 'bg-red-100 text-red-700'
+                    }`}
+                  >
+                    {viewingListing.status === 'active' && viewingListing.is_verified
+                      ? 'Active & Verified'
+                      : viewingListing.status === 'active' && !viewingListing.is_verified
+                      ? 'Pending Approval'
+                      : viewingListing.status || 'Inactive'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Modal Footer - Actions */}
+              <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 p-6 flex gap-4 justify-end">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setViewingListing(null)}
+                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  Close
+                </motion.button>
+                {viewingListing.status === 'active' && !viewingListing.is_verified && (
+                  <>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setRejectModal(viewingListing.id)
+                        setViewingListing(null)
+                      }}
+                      className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                    >
+                      <XCircle size={16} />
+                      Reject
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setRequestChangesModal(viewingListing.id)
+                        setViewingListing(null)
+                      }}
+                      className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
+                    >
+                      <Edit2 size={16} />
+                      Request Changes
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        handleApprove(viewingListing.id)
+                        setViewingListing(null)
+                      }}
+                      disabled={actionLoading[viewingListing.id]}
+                      className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {actionLoading[viewingListing.id] ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        <Check size={16} />
+                      )}
+                      Approve
+                    </motion.button>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Request Changes Modal */}
+      <AnimatePresence>
+        {requestChangesModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            onClick={() => { setRequestChangesModal(null); setFeedbackMessage(''); }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-xl p-6 max-w-md w-full mx-4"
+            >
+              <h3 className="text-xl font-bold text-text mb-4">Request Changes</h3>
+              <p className="text-gray-600 mb-4">
+                Please provide feedback about what needs to be corrected in this listing. The landlord will be able to view your message.
+              </p>
+              <textarea
+                value={feedbackMessage}
+                onChange={(e) => setFeedbackMessage(e.target.value)}
+                placeholder="E.g., Please update the property images and add more details about amenities..."
+                rows={4}
+                className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:border-primary-600 mb-4"
+              />
+              <div className="flex gap-4 justify-end">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => { setRequestChangesModal(null); setFeedbackMessage(''); }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleRequestChanges(requestChangesModal)}
+                  disabled={!feedbackMessage.trim() || actionLoading[requestChangesModal]}
+                  className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {actionLoading[requestChangesModal] ? <Loader2 size={16} className="animate-spin" /> : null}
+                  Send Request
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Reject Modal */}
+      <AnimatePresence>
+        {rejectModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            onClick={() => { setRejectModal(null); setFeedbackMessage(''); }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-xl p-6 max-w-md w-full mx-4"
+            >
+              <h3 className="text-xl font-bold text-text mb-4">Reject Listing</h3>
+              <p className="text-gray-600 mb-4">
+                Please provide a reason for rejecting this listing. The landlord will be able to view your message.
+              </p>
+              <textarea
+                value={feedbackMessage}
+                onChange={(e) => setFeedbackMessage(e.target.value)}
+                placeholder="E.g., This listing violates our terms of service..."
+                rows={4}
+                className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:border-primary-600 mb-4"
+              />
+              <div className="flex gap-4 justify-end">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => { setRejectModal(null); setFeedbackMessage(''); }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleReject(rejectModal)}
+                  disabled={!feedbackMessage.trim() || actionLoading[rejectModal]}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {actionLoading[rejectModal] ? <Loader2 size={16} className="animate-spin" /> : null}
+                  Reject Listing
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
