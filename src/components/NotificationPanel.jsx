@@ -152,14 +152,33 @@ const NotificationPanel = () => {
       {/* Bell Icon */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
+        className="relative p-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-all hover:scale-110"
       >
-        <Bell size={24} />
-        {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        )}
+        <motion.div
+          animate={unreadCount > 0 ? { 
+            scale: [1, 1.2, 1],
+            rotate: [0, 15, -15, 0]
+          } : {}}
+          transition={{ 
+            duration: 0.5,
+            repeat: unreadCount > 0 ? Infinity : 0,
+            repeatDelay: 3 
+          }}
+        >
+          <Bell size={24} />
+        </motion.div>
+        <AnimatePresence>
+          {unreadCount > 0 && (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0 }}
+              className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg"
+            >
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </motion.span>
+          )}
+        </AnimatePresence>
       </button>
 
       {/* Notification Panel */}
@@ -199,55 +218,99 @@ const NotificationPanel = () => {
             {/* Notifications List */}
             <div className="overflow-y-auto flex-1">
               {loading ? (
-                <div className="p-8 text-center text-gray-500">
-                  Loading notifications...
-                </div>
-              ) : notifications.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
-                  <Bell size={48} className="mx-auto mb-2 text-gray-300" />
-                  <p>No notifications yet</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      onClick={() => handleNotificationClick(notification)}
-                      className={`p-4 cursor-pointer transition-colors ${
-                        notification.is_read
-                          ? 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700'
-                          : 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl flex-shrink-0">
-                          {getNotificationIcon(notification.type)}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-                              {notification.title}
-                            </h4>
-                            <button
-                              onClick={(e) => handleDelete(e, notification.id, notification.is_read)}
-                              className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 flex-shrink-0"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                            {notification.message}
-                          </p>
-                          <span className="text-xs text-gray-400 dark:text-gray-500 mt-2 block">
-                            {formatTimeAgo(notification.created_at)}
-                          </span>
-                        </div>
-                        {!notification.is_read && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1"></div>
-                        )}
+                <div className="p-4 space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse flex gap-3 p-4">
+                      <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+                        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
                       </div>
                     </div>
                   ))}
+                </div>
+              ) : notifications.length === 0 ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-8 text-center text-gray-500"
+                >
+                  <Bell size={48} className="mx-auto mb-2 text-gray-300" />
+                  <p>No notifications yet</p>
+                </motion.div>
+              ) : (
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                  <AnimatePresence mode="popLayout">
+                    {notifications.map((notification, index) => (
+                      <motion.div
+                        key={notification.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ 
+                          opacity: 1, 
+                          x: 0,
+                          transition: { 
+                            delay: index * 0.05,
+                            duration: 0.3
+                          }
+                        }}
+                        exit={{ 
+                          opacity: 0, 
+                          x: 20,
+                          height: 0,
+                          transition: { duration: 0.2 }
+                        }}
+                        whileHover={{ 
+                          scale: 1.02,
+                          transition: { duration: 0.2 }
+                        }}
+                        onClick={() => handleNotificationClick(notification)}
+                        className={`p-4 cursor-pointer transition-colors ${
+                          notification.is_read
+                            ? 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700'
+                            : 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <motion.span 
+                            className="text-2xl flex-shrink-0"
+                            whileHover={{ scale: 1.2, rotate: 10 }}
+                            transition={{ type: "spring", stiffness: 300 }}
+                          >
+                            {getNotificationIcon(notification.type)}
+                          </motion.span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+                                {notification.title}
+                              </h4>
+                              <motion.button
+                                whileHover={{ scale: 1.2 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={(e) => handleDelete(e, notification.id, notification.is_read)}
+                                className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 flex-shrink-0 transition-colors"
+                              >
+                                <Trash2 size={14} />
+                              </motion.button>
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                              {notification.message}
+                            </p>
+                            <span className="text-xs text-gray-400 dark:text-gray-500 mt-2 block">
+                              {formatTimeAgo(notification.created_at)}
+                            </span>
+                          </div>
+                          {!notification.is_read && (
+                            <motion.div 
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1 shadow-lg shadow-blue-500/50"
+                            />
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
               )}
             </div>
