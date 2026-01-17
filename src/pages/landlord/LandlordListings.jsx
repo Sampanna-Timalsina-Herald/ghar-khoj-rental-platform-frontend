@@ -87,6 +87,23 @@ const LandlordListings = () => {
     }
   }
 
+  const handleDismissAdminNotes = async (id, e) => {
+    e.stopPropagation() // Prevent navigation
+    try {
+      await api.put(`/listings/${id}/mark-admin-changes-seen`)
+      // Update the listing in state to hide the banner
+      setListings((prev) =>
+        prev.map((listing) =>
+          listing.id === id ? { ...listing, admin_changes_seen: true } : listing
+        )
+      )
+      setMessage({ type: 'success', text: 'Admin notification dismissed' })
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+    } catch (error) {
+      console.error('Failed to dismiss admin notes:', error)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -266,13 +283,20 @@ const LandlordListings = () => {
                   </h3>
                   
                   {/* Admin Feedback Alert */}
-                  {listing.admin_notes && (
-                    <div className={`mb-3 p-3 rounded-lg border-2 ${
+                  {listing.admin_notes && !listing.admin_changes_seen && (
+                    <div className={`mb-3 p-3 rounded-lg border-2 relative ${
                       listing.status === 'inactive' 
                         ? 'bg-red-50 border-red-300' 
                         : 'bg-orange-50 border-orange-300'
                     }`}>
-                      <p className={`text-xs font-semibold mb-1 ${
+                      <button
+                        onClick={(e) => handleDismissAdminNotes(listing.id, e)}
+                        className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors"
+                        title="Dismiss notification"
+                      >
+                        <X size={16} />
+                      </button>
+                      <p className={`text-xs font-semibold mb-1 pr-6 ${
                         listing.status === 'inactive' ? 'text-red-800' : 'text-orange-800'
                       }`}>
                         {listing.status === 'inactive' ? '❌ Rejected' : '⚠️ Changes Requested'}

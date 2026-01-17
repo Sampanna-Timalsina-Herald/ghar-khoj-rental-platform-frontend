@@ -29,10 +29,29 @@ const EditListing = () => {
   const [updating, setUpdating] = useState(false)
   const [success, setSuccess] = useState(false)
   const [listingStatus, setListingStatus] = useState(null)
+  const [adminChangesSeen, setAdminChangesSeen] = useState(false)
 
   useEffect(() => {
     fetchListing()
   }, [id])
+
+  useEffect(() => {
+    // Mark admin changes as seen when landlord views the page
+    if (listingStatus && listingStatus.admin_notes && !adminChangesSeen) {
+      markAdminChangesAsSeen()
+    }
+  }, [listingStatus, adminChangesSeen])
+
+  const markAdminChangesAsSeen = async () => {
+    try {
+      await api.put(`/listings/${id}/mark-admin-changes-seen`)
+      setAdminChangesSeen(true)
+      console.log('Admin changes marked as seen')
+    } catch (err) {
+      console.error('Failed to mark admin changes as seen:', err)
+      // Don't show error to user, this is a background action
+    }
+  }
 
   const fetchListing = async () => {
     try {
@@ -56,8 +75,14 @@ const EditListing = () => {
       setListingStatus({
         status: listing.status,
         is_verified: listing.is_verified,
-        admin_notes: listing.admin_notes
+        admin_notes: listing.admin_notes,
+        admin_changes_seen: listing.admin_changes_seen
       })
+      
+      // If already seen, set the flag
+      if (listing.admin_changes_seen) {
+        setAdminChangesSeen(true)
+      }
       
       if (listing.images && Array.isArray(listing.images)) {
         setExistingImages(listing.images)

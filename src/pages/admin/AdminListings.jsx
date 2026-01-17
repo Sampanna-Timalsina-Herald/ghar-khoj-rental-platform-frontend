@@ -416,6 +416,16 @@ const AdminListings = () => {
                                 Pending Verification
                               </span>
                             )}
+                            {listing.admin_notes && listing.admin_changes_seen && (
+                              <span className="px-3 py-1 rounded-full text-xs font-semibold w-fit bg-green-100 text-green-700">
+                                ✓ Seen
+                              </span>
+                            )}
+                            {listing.admin_notes && !listing.admin_changes_seen && (
+                              <span className="px-3 py-1 rounded-full text-xs font-semibold w-fit bg-orange-100 text-orange-700">
+                                ⏳ Pending
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -523,13 +533,23 @@ const AdminListings = () => {
                   </div>
 
                   {/* Status */}
-                  <div className="flex gap-2 mb-4">
+                  <div className="flex gap-2 mb-4 flex-wrap">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(listing.status, listing.is_verified)}`}>
                       {listing.status || 'active'}
                     </span>
                     {!listing.is_verified && listing.status === 'active' && (
                       <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
                         Pending
+                      </span>
+                    )}
+                    {listing.admin_notes && listing.admin_changes_seen && (
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 flex items-center gap-1">
+                        ✓ Changes Seen
+                      </span>
+                    )}
+                    {listing.admin_notes && !listing.admin_changes_seen && (
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 flex items-center gap-1">
+                        ⏳ Awaiting Review
                       </span>
                     )}
                   </div>
@@ -719,6 +739,54 @@ const AdminListings = () => {
                       : viewingListing.status || 'Inactive'}
                   </span>
                 </div>
+
+                {/* Admin Change Request Status */}
+                {viewingListing.admin_notes && (
+                  <div className="border-l-4 border-orange-500 bg-orange-50 p-4 rounded">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="text-lg font-semibold text-orange-900 mb-2 flex items-center gap-2">
+                          📝 Admin Change Request
+                          {viewingListing.admin_changes_seen && (
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                              ✓ Seen by Landlord
+                            </span>
+                          )}
+                          {!viewingListing.admin_changes_seen && (
+                            <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-medium">
+                              ⏳ Pending
+                            </span>
+                          )}
+                        </h4>
+                        <div className="bg-white rounded p-3 mb-2">
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap">{viewingListing.admin_notes}</p>
+                        </div>
+                        {viewingListing.admin_changes_details && (
+                          <div className="text-xs text-gray-600 space-y-1">
+                            {viewingListing.admin_changes_details.adminName && (
+                              <p>
+                                <span className="font-semibold">Requested by:</span>{' '}
+                                {viewingListing.admin_changes_details.adminName}
+                              </p>
+                            )}
+                            {viewingListing.admin_changes_details.requestedAt && (
+                              <p>
+                                <span className="font-semibold">Requested at:</span>{' '}
+                                {new Date(viewingListing.admin_changes_details.requestedAt).toLocaleString()}
+                              </p>
+                            )}
+                            {viewingListing.admin_changes_seen_at && (
+                              <p className="text-green-700">
+                                <span className="font-semibold">Seen at:</span>{' '}
+                                {new Date(viewingListing.admin_changes_seen_at).toLocaleString()}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Modal Footer - Actions */}
