@@ -121,6 +121,7 @@ const NotificationPanel = () => {
       listing_rejected: '❌',
       changes_requested: '📝',
       listing_favorited: '❤️',
+      listing_match: '🎯',
       new_message: '💬',
       agreement_created: '📄',
       agreement_requested: '📝',
