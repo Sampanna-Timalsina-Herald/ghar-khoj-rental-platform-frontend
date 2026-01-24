@@ -130,9 +130,7 @@ const ModernChat = () => {
       const response = await api.get('/conversations')
       const data = response.data.data || []
       setConversations(data)
-      if (data.length > 0 && !selectedConversation) {
-        setSelectedConversation(data[0])
-      }
+      // Don't auto-select any conversation - let user click to select
     } catch (error) {
       console.error('Failed to fetch conversations:', error)
       setConversations([])

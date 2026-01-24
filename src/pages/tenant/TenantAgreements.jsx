@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FileText, Clock, CheckCircle, AlertCircle, X, Send, ThumbsUp, Download } from 'lucide-react'
+import { FileText, Clock, CheckCircle, AlertCircle, X, Send, ThumbsUp, Download, Trash2 } from 'lucide-react'
 import api from '../../api/axios'
 import { useToast } from '../../context/ToastContext'
 
@@ -11,6 +11,8 @@ const TenantAgreements = () => {
   const [selectedAgreement, setSelectedAgreement] = useState(null)
   const [approving, setApproving] = useState(false)
   const [downloadingPDF, setDownloadingPDF] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
     fetchAgreements()
@@ -123,6 +125,29 @@ const TenantAgreements = () => {
     } finally {
       setDownloadingPDF(false)
     }
+  }
+
+  const handleDeleteAgreement = async (agreementId) => {
+    setDeleting(true)
+    try {
+      await api.delete(`/agreements/${agreementId}`)
+      addToast('✅ Agreement deleted successfully', 'success')
+      fetchAgreements()
+      setSelectedAgreement(null)
+      setShowDeleteConfirm(false)
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Failed to delete agreement'
+      addToast(errorMsg, 'error')
+      console.error('Delete agreement error:', error)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const confirmDelete = () => {
+    addToast('⚠️ Click "Confirm Delete" button to permanently delete this agreement', 'info')
+    setShowDeleteConfirm(true)
+    setTimeout(() => setShowDeleteConfirm(false), 5000) // Reset after 5 seconds
   }
 
   if (loading) {
@@ -272,6 +297,19 @@ const TenantAgreements = () => {
                 >
                   Close
                 </button>
+
+                {selectedAgreement.status === 'rejected' && (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => showDeleteConfirm ? handleDeleteAgreement(selectedAgreement.id) : confirmDelete()}
+                    disabled={deleting}
+                    className={`px-4 py-2 ${showDeleteConfirm ? 'bg-red-700 animate-pulse' : 'bg-red-600'} text-white rounded-lg hover:bg-red-700 font-medium flex items-center gap-2 disabled:opacity-50`}
+                  >
+                    <Trash2 size={18} />
+                    {deleting ? 'Deleting...' : showDeleteConfirm ? 'Confirm Delete?' : 'Delete Agreement'}
+                  </motion.button>
+                )}
 
                 {selectedAgreement.status !== 'pending' && (
                   <motion.button
