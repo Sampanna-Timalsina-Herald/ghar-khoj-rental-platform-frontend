@@ -824,8 +824,14 @@ const CreateListing = () => {
                 <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center">
                   <Image size={20} className="text-cyan-600" />
                 </div>
-                <h2 className="text-lg font-bold text-slate-900">Add Photos</h2>
+                <h2 className="text-lg font-bold text-slate-900">
+                  Add Photos <span className="text-red-500">*</span>
+                </h2>
               </div>
+              
+              <p className="text-sm text-slate-600 mb-4">
+                Upload at least one image of your property (required)
+              </p>
 
               <motion.div
                 onDragEnter={handleDrag}
