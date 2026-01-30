@@ -176,24 +176,286 @@ const TenantHome = () => {
         </div>
       </motion.div>
 
-      {/* AI Recommendations Section (Placeholder) */}
+      {/* AI Recommendations Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100"
+        className="space-y-6"
       >
-        <div className="flex items-start gap-4">
-          <div className="p-3 bg-blue-100 rounded-lg">
-            <Sparkles size={20} className="text-blue-600" />
+        {/* Section Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
+              <Sparkles size={20} className="text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold text-text">Recommended For You</h2>
+              <p className="text-gray-500 text-sm mt-1">Personalized based on your preferences</p>
+            </div>
           </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-text mb-1">AI-Powered Recommendations</h3>
-            <p className="text-gray-600 text-sm">
-              We're building personalized recommendations based on your preferences. Coming soon!
-            </p>
-          </div>
-          <div className="text-xs font-medium bg-blue-100 text-blue-700 px-3 py-1 rounded-full">Coming Soon</div>
+          <div className="text-xs font-medium bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full">AI Powered</div>
+        </div>
+
+        {/* Recommendation Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {/* Sample Recommendation Card 1 */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            whileHover={{ y: -4 }}
+            className="bg-white rounded-lg overflow-hidden border border-blue-200 hover:border-blue-300 transition-all duration-300 cursor-pointer group relative"
+          >
+            {/* Recommendation Badge */}
+            <div className="absolute top-3 left-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 z-10 shadow-lg">
+              <Sparkles size={12} />
+              <span>Top Match</span>
+            </div>
+
+            {/* Image Container */}
+            <div className="relative overflow-hidden h-48">
+              <img
+                src="/placeholder.svg"
+                alt="Recommended Property"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+              
+              {/* Favorite Button */}
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className="absolute top-3 right-3 p-2 bg-white/95 hover:bg-white rounded-full shadow flex items-center justify-center z-10 transition-all"
+              >
+                <Heart size={16} className="text-gray-400" />
+              </motion.button>
+
+              {/* Match Score */}
+              <div className="absolute bottom-3 right-3 bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-semibold border border-green-200">
+                95% Match
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-5">
+              <h3 className="font-semibold text-text mb-1 line-clamp-1 group-hover:text-primary-600 transition-colors text-sm">
+                Modern Apartment in Baneshwor
+              </h3>
+              <p className="text-gray-500 text-xs mb-4 flex items-center gap-1">
+                <MapPin size={14} className="text-gray-400 flex-shrink-0" />
+                Baneshwor, Kathmandu
+              </p>
+
+              {/* Why Recommended */}
+              <div className="mb-4 p-2 bg-blue-50 rounded-lg border border-blue-100">
+                <p className="text-xs text-blue-700 font-medium mb-1">Why this matches:</p>
+                <p className="text-xs text-gray-600">✓ Within your budget • ✓ Preferred location • ✓ 2 bedrooms</p>
+              </div>
+
+              {/* Features Row */}
+              <div className="flex gap-2 mb-4 text-xs">
+                <span className="flex items-center gap-1 text-gray-600">
+                  <Bed size={12} className="text-gray-400" />
+                  2
+                </span>
+                <span className="flex items-center gap-1 text-gray-600">
+                  <Bath size={12} className="text-gray-400" />
+                  1
+                </span>
+                <span className="flex items-center gap-1 text-gray-600">
+                  <Ruler size={12} className="text-gray-400" />
+                  800 sq.ft
+                </span>
+              </div>
+
+              {/* Price and Button */}
+              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                <div>
+                  <p className="text-lg font-bold text-primary-600">Rs. 25,000</p>
+                  <p className="text-xs text-gray-400">/month</p>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-3 py-2 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  View Details
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Sample Recommendation Card 2 */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            whileHover={{ y: -4 }}
+            className="bg-white rounded-lg overflow-hidden border border-blue-200 hover:border-blue-300 transition-all duration-300 cursor-pointer group relative"
+          >
+            {/* Recommendation Badge */}
+            <div className="absolute top-3 left-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 z-10 shadow-lg">
+              <TrendingUp size={12} />
+              <span>Popular</span>
+            </div>
+
+            {/* Image Container */}
+            <div className="relative overflow-hidden h-48">
+              <img
+                src="/placeholder.svg"
+                alt="Recommended Property"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+              
+              {/* Favorite Button */}
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className="absolute top-3 right-3 p-2 bg-white/95 hover:bg-white rounded-full shadow flex items-center justify-center z-10 transition-all"
+              >
+                <Heart size={16} className="text-gray-400" />
+              </motion.button>
+
+              {/* Match Score */}
+              <div className="absolute bottom-3 right-3 bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-semibold border border-green-200">
+                88% Match
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-5">
+              <h3 className="font-semibold text-text mb-1 line-clamp-1 group-hover:text-primary-600 transition-colors text-sm">
+                Spacious Flat in Lazimpat
+              </h3>
+              <p className="text-gray-500 text-xs mb-4 flex items-center gap-1">
+                <MapPin size={14} className="text-gray-400 flex-shrink-0" />
+                Lazimpat, Kathmandu
+              </p>
+
+              {/* Why Recommended */}
+              <div className="mb-4 p-2 bg-blue-50 rounded-lg border border-blue-100">
+                <p className="text-xs text-blue-700 font-medium mb-1">Why this matches:</p>
+                <p className="text-xs text-gray-600">✓ Popular area • ✓ Great amenities • ✓ Near transit</p>
+              </div>
+
+              {/* Features Row */}
+              <div className="flex gap-2 mb-4 text-xs">
+                <span className="flex items-center gap-1 text-gray-600">
+                  <Bed size={12} className="text-gray-400" />
+                  3
+                </span>
+                <span className="flex items-center gap-1 text-gray-600">
+                  <Bath size={12} className="text-gray-400" />
+                  2
+                </span>
+                <span className="flex items-center gap-1 text-gray-600">
+                  <Ruler size={12} className="text-gray-400" />
+                  1200 sq.ft
+                </span>
+              </div>
+
+              {/* Price and Button */}
+              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                <div>
+                  <p className="text-lg font-bold text-primary-600">Rs. 35,000</p>
+                  <p className="text-xs text-gray-400">/month</p>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-3 py-2 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  View Details
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Sample Recommendation Card 3 */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 }}
+            whileHover={{ y: -4 }}
+            className="bg-white rounded-lg overflow-hidden border border-blue-200 hover:border-blue-300 transition-all duration-300 cursor-pointer group relative"
+          >
+            {/* Recommendation Badge */}
+            <div className="absolute top-3 left-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 z-10 shadow-lg">
+              <Zap size={12} />
+              <span>New</span>
+            </div>
+
+            {/* Image Container */}
+            <div className="relative overflow-hidden h-48">
+              <img
+                src="/placeholder.svg"
+                alt="Recommended Property"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+              
+              {/* Favorite Button */}
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className="absolute top-3 right-3 p-2 bg-white/95 hover:bg-white rounded-full shadow flex items-center justify-center z-10 transition-all"
+              >
+                <Heart size={16} className="text-gray-400" />
+              </motion.button>
+
+              {/* Match Score */}
+              <div className="absolute bottom-3 right-3 bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-semibold border border-green-200">
+                92% Match
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-5">
+              <h3 className="font-semibold text-text mb-1 line-clamp-1 group-hover:text-primary-600 transition-colors text-sm">
+                Cozy Room in Thamel
+              </h3>
+              <p className="text-gray-500 text-xs mb-4 flex items-center gap-1">
+                <MapPin size={14} className="text-gray-400 flex-shrink-0" />
+                Thamel, Kathmandu
+              </p>
+
+              {/* Why Recommended */}
+              <div className="mb-4 p-2 bg-blue-50 rounded-lg border border-blue-100">
+                <p className="text-xs text-blue-700 font-medium mb-1">Why this matches:</p>
+                <p className="text-xs text-gray-600">✓ Affordable • ✓ Central location • ✓ Just listed</p>
+              </div>
+
+              {/* Features Row */}
+              <div className="flex gap-2 mb-4 text-xs">
+                <span className="flex items-center gap-1 text-gray-600">
+                  <Bed size={12} className="text-gray-400" />
+                  1
+                </span>
+                <span className="flex items-center gap-1 text-gray-600">
+                  <Bath size={12} className="text-gray-400" />
+                  1
+                </span>
+                <span className="flex items-center gap-1 text-gray-600">
+                  <Ruler size={12} className="text-gray-400" />
+                  500 sq.ft
+                </span>
+              </div>
+
+              {/* Price and Button */}
+              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                <div>
+                  <p className="text-lg font-bold text-primary-600">Rs. 18,000</p>
+                  <p className="text-xs text-gray-400">/month</p>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-3 py-2 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  View Details
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </motion.div>
 
