@@ -16,7 +16,7 @@ const TenantBrowse = () => {
   const searchInputRef = useRef(null)
   const suggestionsRef = useRef(null)
   const filterDebounceTimerRef = useRef(null)
-  const [searchBarValue, setSearchBarValue] = useState('')
+  const [searchBarValue, setSearchBarValue] = useState(searchParams.get('search') || '')
   
   // Local filter states for controlled inputs
   const [localFilters, setLocalFilters] = useState({
@@ -27,7 +27,7 @@ const TenantBrowse = () => {
     location: searchParams.get('location') || '',
     propertyType: searchParams.get('type') || '',
     amenities: searchParams.get('amenities') ? searchParams.get('amenities').split(',') : [],
-    searchText: '',
+    searchText: searchParams.get('search') || '',
   })
   
   // Actual filters for API calls (debounced)
@@ -58,10 +58,32 @@ const TenantBrowse = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchListings()
+      // Track search for ML recommendations
+      if (isAuthenticated && (filters.location || filters.minPrice || filters.maxPrice || filters.bedrooms || filters.propertyType)) {
+        trackSearchForML(filters)
+      }
     }, 500)
     
     return () => clearTimeout(timer)
-  }, [filters])
+  }, [filters, isAuthenticated])
+
+  // Track search for ML when filters are applied
+  const trackSearchForML = useCallback(async (searchFilters) => {
+    try {
+      await api.post('/recommendations/ml/track-search', {
+        city: searchFilters.location || null,
+        min_rent: searchFilters.minPrice ? parseInt(searchFilters.minPrice) : null,
+        max_rent: searchFilters.maxPrice ? parseInt(searchFilters.maxPrice) : null,
+        bedrooms: searchFilters.bedrooms ? parseInt(searchFilters.bedrooms) : null,
+        bathrooms: searchFilters.bathrooms ? parseInt(searchFilters.bathrooms) : null,
+        property_type: searchFilters.propertyType || null,
+        amenities: searchFilters.amenities.length > 0 ? searchFilters.amenities : null,
+      })
+      console.log('[TenantBrowse] Search tracked for ML')
+    } catch (error) {
+      console.error('[TenantBrowse] Failed to track search:', error)
+    }
+  }, [])
 
   const fetchUserFavorites = useCallback(async () => {
     try {

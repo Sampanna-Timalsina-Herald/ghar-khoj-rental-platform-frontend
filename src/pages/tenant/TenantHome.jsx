@@ -8,7 +8,9 @@ import SearchSuggestions from '../../components/SearchSuggestions'
 
 const TenantHome = () => {
   const [featuredListings, setFeaturedListings] = useState([])
+  const [recommendations, setRecommendations] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingRecommendations, setLoadingRecommendations] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [favorites, setFavorites] = useState(new Set())
   const [loadingFav, setLoadingFav] = useState(null)
@@ -19,6 +21,9 @@ const TenantHome = () => {
     fetchFeaturedListings()
     if (user) {
       fetchUserFavorites()
+      fetchRecommendations()
+    } else {
+      setLoadingRecommendations(false)
     }
   }, [user])
 
@@ -42,6 +47,54 @@ const TenantHome = () => {
       console.error('Failed to fetch listings:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchRecommendations = async () => {
+    try {
+      setLoadingRecommendations(true)
+      // Try ML recommendations first, fallback to content-based or hybrid
+      let response = await api.get('/recommendations?algorithm=ml&limit=6')
+      
+      if (response.data.success && response.data.data && response.data.data.length > 0) {
+        setRecommendations(response.data.data)
+        console.log('[TenantHome] ML Recommendations loaded:', response.data.data.length)
+      } else {
+        // If no recommendations exist, try to generate them
+        console.log('[TenantHome] No recommendations found, generating...')
+        try {
+          await api.post('/recommendations/generate', { algorithm: 'ml', limit: 6 })
+          // Fetch again after generation
+          response = await api.get('/recommendations?algorithm=ml&limit=6')
+          if (response.data.success && response.data.data) {
+            setRecommendations(response.data.data)
+            console.log('[TenantHome] ML Recommendations generated and loaded:', response.data.data.length)
+          }
+        } catch (genError) {
+          console.error('[TenantHome] Failed to generate recommendations:', genError)
+          setRecommendations([])
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch recommendations:', error)
+      // Fallback to featured listings if recommendations fail
+      setRecommendations([])
+    } finally {
+      setLoadingRecommendations(false)
+    }
+  }
+
+  const handleRefreshRecommendations = async () => {
+    try {
+      setLoadingRecommendations(true)
+      // Build user profile first
+      await api.post('/recommendations/ml/build-profile')
+      // Generate fresh recommendations
+      await api.post('/recommendations/generate', { algorithm: 'ml', limit: 6 })
+      // Fetch the new recommendations
+      await fetchRecommendations()
+    } catch (error) {
+      console.error('[TenantHome] Failed to refresh recommendations:', error)
     }
   }
 
@@ -194,269 +247,196 @@ const TenantHome = () => {
               <p className="text-gray-500 text-sm mt-1">Personalized based on your preferences</p>
             </div>
           </div>
-          <div className="text-xs font-medium bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full">AI Powered</div>
+          <div className="flex items-center gap-3">
+            <div className="text-xs font-medium bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full">AI Powered</div>
+            {user && recommendations.length > 0 && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleRefreshRecommendations}
+                disabled={loadingRecommendations}
+                className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-xs font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
+              >
+                {loadingRecommendations ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <TrendingUp size={14} />
+                )}
+                Refresh
+              </motion.button>
+            )}
+          </div>
         </div>
 
         {/* Recommendation Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {/* Sample Recommendation Card 1 */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
-            whileHover={{ y: -4 }}
-            className="bg-white rounded-lg overflow-hidden border border-blue-200 hover:border-blue-300 transition-all duration-300 cursor-pointer group relative"
-          >
-            {/* Recommendation Badge */}
-            <div className="absolute top-3 left-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 z-10 shadow-lg">
-              <Sparkles size={12} />
-              <span>Top Match</span>
-            </div>
-
-            {/* Image Container */}
-            <div className="relative overflow-hidden h-48">
-              <img
-                src="/placeholder.svg"
-                alt="Recommended Property"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
+        {loadingRecommendations ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 size={32} className="animate-spin text-primary-600" />
+          </div>
+        ) : recommendations.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {recommendations.slice(0, 6).map((property, index) => {
+              const matchScore = property.similarity_score 
+                ? Math.round(property.similarity_score * 100) 
+                : Math.round(Math.random() * 15 + 85) // Fallback score
               
-              {/* Favorite Button */}
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                className="absolute top-3 right-3 p-2 bg-white/95 hover:bg-white rounded-full shadow flex items-center justify-center z-10 transition-all"
-              >
-                <Heart size={16} className="text-gray-400" />
-              </motion.button>
-
-              {/* Match Score */}
-              <div className="absolute bottom-3 right-3 bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-semibold border border-green-200">
-                95% Match
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="p-5">
-              <h3 className="font-semibold text-text mb-1 line-clamp-1 group-hover:text-primary-600 transition-colors text-sm">
-                Modern Apartment in Baneshwor
-              </h3>
-              <p className="text-gray-500 text-xs mb-4 flex items-center gap-1">
-                <MapPin size={14} className="text-gray-400 flex-shrink-0" />
-                Baneshwor, Kathmandu
-              </p>
-
-              {/* Why Recommended */}
-              <div className="mb-4 p-2 bg-blue-50 rounded-lg border border-blue-100">
-                <p className="text-xs text-blue-700 font-medium mb-1">Why this matches:</p>
-                <p className="text-xs text-gray-600">✓ Within your budget • ✓ Preferred location • ✓ 2 bedrooms</p>
-              </div>
-
-              {/* Features Row */}
-              <div className="flex gap-2 mb-4 text-xs">
-                <span className="flex items-center gap-1 text-gray-600">
-                  <Bed size={12} className="text-gray-400" />
-                  2
-                </span>
-                <span className="flex items-center gap-1 text-gray-600">
-                  <Bath size={12} className="text-gray-400" />
-                  1
-                </span>
-                <span className="flex items-center gap-1 text-gray-600">
-                  <Ruler size={12} className="text-gray-400" />
-                  800 sq.ft
-                </span>
-              </div>
-
-              {/* Price and Button */}
-              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                <div>
-                  <p className="text-lg font-bold text-primary-600">Rs. 25,000</p>
-                  <p className="text-xs text-gray-400">/month</p>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-3 py-2 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors"
-                >
-                  View Details
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Sample Recommendation Card 2 */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            whileHover={{ y: -4 }}
-            className="bg-white rounded-lg overflow-hidden border border-blue-200 hover:border-blue-300 transition-all duration-300 cursor-pointer group relative"
-          >
-            {/* Recommendation Badge */}
-            <div className="absolute top-3 left-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 z-10 shadow-lg">
-              <TrendingUp size={12} />
-              <span>Popular</span>
-            </div>
-
-            {/* Image Container */}
-            <div className="relative overflow-hidden h-48">
-              <img
-                src="/placeholder.svg"
-                alt="Recommended Property"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
+              const getBadgeConfig = (score) => {
+                if (score >= 90) return { gradient: 'from-blue-600 to-indigo-600', icon: <Sparkles size={12} />, text: 'Top Match' }
+                if (score >= 80) return { gradient: 'from-indigo-600 to-purple-600', icon: <TrendingUp size={12} />, text: 'Popular' }
+                return { gradient: 'from-purple-600 to-pink-600', icon: <Zap size={12} />, text: 'New' }
+              }
               
-              {/* Favorite Button */}
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                className="absolute top-3 right-3 p-2 bg-white/95 hover:bg-white rounded-full shadow flex items-center justify-center z-10 transition-all"
-              >
-                <Heart size={16} className="text-gray-400" />
-              </motion.button>
+              const badge = getBadgeConfig(matchScore)
+              const imageUrl = property.images?.[0] 
+                ? (property.images[0].startsWith('http') ? property.images[0] : `http://localhost:5000${property.images[0]}`)
+                : '/placeholder.svg'
 
-              {/* Match Score */}
-              <div className="absolute bottom-3 right-3 bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-semibold border border-green-200">
-                88% Match
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="p-5">
-              <h3 className="font-semibold text-text mb-1 line-clamp-1 group-hover:text-primary-600 transition-colors text-sm">
-                Spacious Flat in Lazimpat
-              </h3>
-              <p className="text-gray-500 text-xs mb-4 flex items-center gap-1">
-                <MapPin size={14} className="text-gray-400 flex-shrink-0" />
-                Lazimpat, Kathmandu
-              </p>
-
-              {/* Why Recommended */}
-              <div className="mb-4 p-2 bg-blue-50 rounded-lg border border-blue-100">
-                <p className="text-xs text-blue-700 font-medium mb-1">Why this matches:</p>
-                <p className="text-xs text-gray-600">✓ Popular area • ✓ Great amenities • ✓ Near transit</p>
-              </div>
-
-              {/* Features Row */}
-              <div className="flex gap-2 mb-4 text-xs">
-                <span className="flex items-center gap-1 text-gray-600">
-                  <Bed size={12} className="text-gray-400" />
-                  3
-                </span>
-                <span className="flex items-center gap-1 text-gray-600">
-                  <Bath size={12} className="text-gray-400" />
-                  2
-                </span>
-                <span className="flex items-center gap-1 text-gray-600">
-                  <Ruler size={12} className="text-gray-400" />
-                  1200 sq.ft
-                </span>
-              </div>
-
-              {/* Price and Button */}
-              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                <div>
-                  <p className="text-lg font-bold text-primary-600">Rs. 35,000</p>
-                  <p className="text-xs text-gray-400">/month</p>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-3 py-2 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors"
+              return (
+                <motion.div
+                  key={property.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.35 + (index * 0.05) }}
+                  whileHover={{ y: -4 }}
+                  onClick={() => navigate(`/tenant/listing/${property.id}`)}
+                  className="bg-white rounded-lg overflow-hidden border border-blue-200 hover:border-blue-300 transition-all duration-300 cursor-pointer group relative"
                 >
-                  View Details
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
+                  {/* Recommendation Badge */}
+                  <div className={`absolute top-3 left-3 bg-gradient-to-r ${badge.gradient} text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 z-10 shadow-lg`}>
+                    {badge.icon}
+                    <span>{badge.text}</span>
+                  </div>
 
-          {/* Sample Recommendation Card 3 */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45 }}
-            whileHover={{ y: -4 }}
-            className="bg-white rounded-lg overflow-hidden border border-blue-200 hover:border-blue-300 transition-all duration-300 cursor-pointer group relative"
-          >
-            {/* Recommendation Badge */}
-            <div className="absolute top-3 left-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 z-10 shadow-lg">
-              <Zap size={12} />
-              <span>New</span>
-            </div>
+                  {/* Image Container */}
+                  <div className="relative overflow-hidden h-48">
+                    <img
+                      src={imageUrl}
+                      alt={property.title || property.address}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    
+                    {/* Favorite Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={(e) => handleFavoriteToggle(property.id, e)}
+                      disabled={loadingFav === property.id}
+                      className="absolute top-3 right-3 p-2 bg-white/95 hover:bg-white rounded-full shadow flex items-center justify-center z-10 transition-all"
+                    >
+                      {loadingFav === property.id ? (
+                        <Loader2 size={16} className="animate-spin text-gray-400" />
+                      ) : (
+                        <Heart 
+                          size={16} 
+                          className={favorites.has(property.id) ? "text-red-500 fill-red-500" : "text-gray-400"} 
+                        />
+                      )}
+                    </motion.button>
 
-            {/* Image Container */}
-            <div className="relative overflow-hidden h-48">
-              <img
-                src="/placeholder.svg"
-                alt="Recommended Property"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              
-              {/* Favorite Button */}
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                className="absolute top-3 right-3 p-2 bg-white/95 hover:bg-white rounded-full shadow flex items-center justify-center z-10 transition-all"
-              >
-                <Heart size={16} className="text-gray-400" />
-              </motion.button>
+                    {/* Match Score */}
+                    <div className="absolute bottom-3 right-3 bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-semibold border border-green-200">
+                      {matchScore}% Match
+                    </div>
+                  </div>
 
-              {/* Match Score */}
-              <div className="absolute bottom-3 right-3 bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-semibold border border-green-200">
-                92% Match
-              </div>
-            </div>
+                  {/* Content */}
+                  <div className="p-5">
+                    <h3 className="font-semibold text-text mb-1 line-clamp-1 group-hover:text-primary-600 transition-colors text-sm">
+                      {property.title || property.address}
+                    </h3>
+                    <p className="text-gray-500 text-xs mb-4 flex items-center gap-1">
+                      <MapPin size={14} className="text-gray-400 flex-shrink-0" />
+                      {property.city}
+                    </p>
 
-            {/* Content */}
-            <div className="p-5">
-              <h3 className="font-semibold text-text mb-1 line-clamp-1 group-hover:text-primary-600 transition-colors text-sm">
-                Cozy Room in Thamel
-              </h3>
-              <p className="text-gray-500 text-xs mb-4 flex items-center gap-1">
-                <MapPin size={14} className="text-gray-400 flex-shrink-0" />
-                Thamel, Kathmandu
-              </p>
+                    {/* Why Recommended */}
+                    {property.explanation && (
+                      <div className="mb-4 p-2 bg-blue-50 rounded-lg border border-blue-100">
+                        <p className="text-xs text-blue-700 font-medium mb-1">Why this matches:</p>
+                        <p className="text-xs text-gray-600 line-clamp-2">{property.explanation}</p>
+                      </div>
+                    )}
 
-              {/* Why Recommended */}
-              <div className="mb-4 p-2 bg-blue-50 rounded-lg border border-blue-100">
-                <p className="text-xs text-blue-700 font-medium mb-1">Why this matches:</p>
-                <p className="text-xs text-gray-600">✓ Affordable • ✓ Central location • ✓ Just listed</p>
-              </div>
+                    {/* Features Row */}
+                    <div className="flex gap-2 mb-4 text-xs">
+                      {property.bedrooms && (
+                        <span className="flex items-center gap-1 text-gray-600">
+                          <Bed size={12} className="text-gray-400" />
+                          {property.bedrooms}
+                        </span>
+                      )}
+                      {property.bathrooms && (
+                        <span className="flex items-center gap-1 text-gray-600">
+                          <Bath size={12} className="text-gray-400" />
+                          {property.bathrooms}
+                        </span>
+                      )}
+                      {property.area && (
+                        <span className="flex items-center gap-1 text-gray-600">
+                          <Ruler size={12} className="text-gray-400" />
+                          {property.area} sq.ft
+                        </span>
+                      )}
+                    </div>
 
-              {/* Features Row */}
-              <div className="flex gap-2 mb-4 text-xs">
-                <span className="flex items-center gap-1 text-gray-600">
-                  <Bed size={12} className="text-gray-400" />
-                  1
-                </span>
-                <span className="flex items-center gap-1 text-gray-600">
-                  <Bath size={12} className="text-gray-400" />
-                  1
-                </span>
-                <span className="flex items-center gap-1 text-gray-600">
-                  <Ruler size={12} className="text-gray-400" />
-                  500 sq.ft
-                </span>
-              </div>
-
-              {/* Price and Button */}
-              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                <div>
-                  <p className="text-lg font-bold text-primary-600">Rs. 18,000</p>
-                  <p className="text-xs text-gray-400">/month</p>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-3 py-2 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors"
-                >
-                  View Details
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
+                    {/* Price and Button */}
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                      <div>
+                        <p className="text-lg font-bold text-primary-600">
+                          Rs. {property.rent_amount?.toLocaleString() || 'N/A'}
+                        </p>
+                        <p className="text-xs text-gray-400">/month</p>
+                      </div>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(`/tenant/listing/${property.id}`)
+                        }}
+                        className="px-3 py-2 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors"
+                      >
+                        View Details
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.div>
+              )
+            })}
+          </div>
+        ) : user ? (
+          <div className="text-center py-12 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+            <Sparkles size={48} className="mx-auto mb-4 text-blue-400" />
+            <h3 className="text-xl font-bold text-gray-800 mb-2">No Recommendations Yet</h3>
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">
+              Start browsing properties to help our AI learn your preferences and provide personalized recommendations.
+            </p>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/tenant/browse')}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+            >
+              Browse Properties
+            </motion.button>
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
+            <Shield size={48} className="mx-auto mb-4 text-gray-400" />
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Login for Personalized Recommendations</h3>
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">
+              Sign in to get AI-powered property recommendations tailored to your preferences.
+            </p>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/login')}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+            >
+              Login Now
+            </motion.button>
+          </div>
+        )}
       </motion.div>
 
       {/* Trending Properties Section */}

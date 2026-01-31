@@ -91,6 +91,19 @@ const PreferencesModal = ({ isOpen, onClose, onSave, isFirstTime = false }) => {
 
       if (response.data.success) {
         addToast('Preferences saved successfully! You\'ll receive email notifications for matching properties.', 'success', 5000);
+        
+        // Build ML user profile and generate recommendations
+        try {
+          await api.post('/recommendations/ml/build-profile');
+          console.log('[PreferencesModal] ML profile built successfully');
+          
+          // Generate initial ML recommendations
+          await api.post('/recommendations/generate', { algorithm: 'ml' });
+          console.log('[PreferencesModal] ML recommendations generated');
+        } catch (mlError) {
+          console.error('[PreferencesModal] Failed to build ML profile or generate recommendations:', mlError);
+        }
+        
         onSave?.();
         onClose();
       } else {

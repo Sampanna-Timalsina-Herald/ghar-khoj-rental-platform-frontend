@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, MapPin, Clock, X, ArrowRight } from 'lucide-react'
+import { Search, MapPin, X, ArrowRight } from 'lucide-react'
 import api from '../api/axios'
 
 const SearchSuggestions = ({ 
@@ -20,31 +20,29 @@ const SearchSuggestions = ({
   const inputRef = useRef(null)
   const debounceTimerRef = useRef(null)
 
-  // Load recent searches from localStorage (only if history is enabled)
-  useEffect(() => {
-    if (!disableHistory) {
-      const recent = localStorage.getItem('recentSearches')
-      if (recent) {
-        setRecentSearches(JSON.parse(recent))
-      }
-    }
-  }, [disableHistory])
+  // Disabled: No longer loading recent searches from localStorage
 
   // Handle selection - defined early so it can be used in handleKeyDown
-  const handleSelect = useCallback((selectedItem) => {
+  const handleSelect = useCallback(async (selectedItem) => {
     console.log('[SearchSuggestions] handleSelect called with:', selectedItem, 'type:', typeof selectedItem)
     
-    // Save search text for recent searches (only if history is enabled)
-    const searchText = typeof selectedItem === 'string' 
-      ? selectedItem 
-      : selectedItem?.title || selectedItem?.location || 'Search'
-    
-    console.log('[SearchSuggestions] Extracted search text:', searchText, 'length:', searchText.length)
-    
-    if (!disableHistory) {
-      const updated = [searchText, ...recentSearches.filter(s => s !== searchText)].slice(0, 5)
-      setRecentSearches(updated)
-      localStorage.setItem('recentSearches', JSON.stringify(updated))
+    // Track search for ML (only for text searches, not property selections)
+    if (typeof selectedItem === 'string' && selectedItem.trim().length > 0) {
+      try {
+        await api.post('/recommendations/ml/track-search', {
+          search_query: selectedItem,
+          city: null,
+          min_rent: null,
+          max_rent: null,
+          bedrooms: null,
+          bathrooms: null,
+          property_type: null,
+          amenities: null,
+        })
+        console.log('[SearchSuggestions] Search tracked for ML:', selectedItem)
+      } catch (error) {
+        console.error('[SearchSuggestions] Failed to track search:', error)
+      }
     }
 
     // Callback with full data
@@ -54,7 +52,7 @@ const SearchSuggestions = ({
     // Keep the search text in input, just close dropdown
     setIsOpen(false)
     setSelectedIndex(-1)
-  }, [disableHistory, recentSearches, onSelect])
+  }, [onSelect])
 
   // Fetch suggestions with debouncing
   useEffect(() => {
@@ -139,24 +137,35 @@ const SearchSuggestions = ({
         // Get the actual current value from the input element (most reliable)
         const currentValue = inputRef.current?.value || value
         
-        console.log('[SearchSuggestions] Enter pressed - currentValue:', currentValue, 'length:', currentValue.length)
+        console.log('[SearchSuggestions] Enter pressed - currentValue:', currentValue, 'selectedIndex:', selectedIndex)
         
-        // PRIORITY: If user typed text, always use the typed text (not dropdown selection)
-        if (currentValue.trim().length > 0) {
-          // User has typed text - use it regardless of dropdown selection
-          console.log('[SearchSuggestions] Enter with typed text:', currentValue.trim())
+        // Check if user has explicitly selected a dropdown item using arrow keys
+        const hasExplicitSelection = selectedIndex >= 0
+        
+        // If user has NOT used arrow keys (selectedIndex = -1), ALWAYS use typed text
+        if (!hasExplicitSelection && currentValue.trim().length > 0) {
+          // User typed text and pressed Enter directly - use the typed text for search
+          console.log('[SearchSuggestions] Enter with typed text (no arrow selection):', currentValue.trim())
           handleSelect(currentValue.trim())
-        } else if (selectedIndex >= 0) {
-          // User selected an item from dropdown without typing
+        } else if (hasExplicitSelection && currentValue.trim().length > 0) {
+          // User used arrow keys to select a dropdown item
           const selectedItem = selectedIndex < suggestions.length
             ? suggestions[selectedIndex]
-            : recentSearches[selectedIndex - suggestions.length]
+            : null
           
           if (selectedItem) {
-            // Pass full listing object or search text
-            console.log('[SearchSuggestions] Enter with dropdown selection:', selectedItem)
+            // Pass full listing object for navigation to detail page
+            console.log('[SearchSuggestions] Enter with explicit dropdown selection:', selectedItem)
             handleSelect(selectedItem)
+          } else {
+            // Fallback to typed text if selection is invalid
+            console.log('[SearchSuggestions] Invalid selection, using typed text:', currentValue.trim())
+            handleSelect(currentValue.trim())
           }
+        } else if (currentValue.trim().length > 0) {
+          // Fallback: Any other case with text, use the text
+          console.log('[SearchSuggestions] Enter fallback to typed text:', currentValue.trim())
+          handleSelect(currentValue.trim())
         }
         break
       case 'Escape':
@@ -165,19 +174,11 @@ const SearchSuggestions = ({
       default:
         break
     }
-  }, [suggestions, recentSearches, selectedIndex, value, handleSelect])
-
-  const clearRecentSearch = (text) => {
-    if (!disableHistory) {
-      const updated = recentSearches.filter(s => s !== text)
-      setRecentSearches(updated)
-      localStorage.setItem('recentSearches', JSON.stringify(updated))
-    }
-  }
+  }, [suggestions, selectedIndex, value, handleSelect])
 
   const displaySuggestions = value.trim().length >= 2 ? suggestions : []
-  const displayRecent = value.trim().length === 0 ? recentSearches : []
-  const showDropdown = isOpen && (displaySuggestions.length > 0 || displayRecent.length > 0 || (loading && value.trim().length >= 2))
+  const displayRecent = [] // Disabled recent searches
+  const showDropdown = isOpen && (displaySuggestions.length > 0 || (loading && value.trim().length >= 2))
 
   return (
     <div ref={containerRef} className={`relative w-full ${className}`}>
@@ -308,47 +309,7 @@ const SearchSuggestions = ({
                   </div>
                 )}
 
-                {/* Recent Searches */}
-                {displayRecent.length > 0 && (
-                  <div>
-                    {displaySuggestions.length > 0 && (
-                      <div className="border-t border-gray-200"></div>
-                    )}
-                    <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Previous Searches
-                    </div>
-                    {displayRecent.map((search, index) => {
-                      const isSelected = selectedIndex === suggestions.length + index
-                      return (
-                        <motion.div
-                          key={index}
-                          className={`px-4 py-2.5 text-left text-sm flex items-center justify-between group transition-colors ${
-                            isSelected ? 'bg-primary-50' : 'hover:bg-gray-50'
-                          }`}
-                          onMouseMove={() => setSelectedIndex(suggestions.length + index)}
-                          whileHover={{ backgroundColor: 'rgb(243, 244, 246)' }}
-                        >
-                          <button
-                            onClick={() => handleSelect(search)}
-                            className="flex-1 flex items-center gap-3 text-gray-700 text-left"
-                          >
-                            <Clock size={14} className="text-gray-400 flex-shrink-0" />
-                            <span className="truncate">{search}</span>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              clearRecentSearch(search)
-                            }}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
-                          >
-                            <X size={14} className="text-gray-500" />
-                          </button>
-                        </motion.div>
-                      )
-                    })}
-                  </div>
-                )}
+                {/* Recent Searches - Disabled */}
 
                 {displaySuggestions.length === 0 && displayRecent.length === 0 && !loading && (
                   <div className="p-6 text-center">

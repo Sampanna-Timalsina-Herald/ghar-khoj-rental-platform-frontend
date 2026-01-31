@@ -27,6 +27,15 @@ const TenantListingDetail = () => {
   const [sendingAgreement, setSendingAgreement] = useState(false)
   const [showImageGallery, setShowImageGallery] = useState(false)
   const [gallerViewMode, setGalleryViewMode] = useState('main') // 'main' or 'grid'
+  
+  // ML Engagement tracking
+  const [engagementData, setEngagementData] = useState({
+    viewStartTime: Date.now(),
+    viewedImages: false,
+    clickedContact: false,
+    addedToFavorites: false
+  })
+  
   const [agreementForm, setAgreementForm] = useState({
     start_date: '',
     end_date: '',
@@ -45,10 +54,47 @@ const TenantListingDetail = () => {
       setLoading(true)
       const response = await api.get(`/listings/${id}`)
       setListing(response.data.data || response.data)
+      
+      // Track property view for ML recommendations
+      if (isAuthenticated) {
+        trackPropertyView(id)
+      }
     } catch (err) {
       console.error('Failed to fetch listing:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const trackPropertyView = async (propertyId) => {
+    try {
+      await api.post('/recommendations/ml/track-view', {
+        property_id: propertyId,
+        duration_seconds: 0,
+        viewed_images: false,
+        clicked_contact: false,
+        added_to_favorites: false
+      })
+      console.log('[TenantListingDetail] Property view tracked for ML')
+    } catch (error) {
+      console.error('[TenantListingDetail] Failed to track property view:', error)
+    }
+  }
+
+  const updateEngagementTracking = async () => {
+    if (!isAuthenticated) return
+    
+    try {
+      const durationSeconds = Math.floor((Date.now() - engagementData.viewStartTime) / 1000)
+      await api.put(`/recommendations/ml/update-engagement/${id}`, {
+        duration_seconds: durationSeconds,
+        viewed_images: engagementData.viewedImages,
+        clicked_contact: engagementData.clickedContact,
+        added_to_favorites: engagementData.addedToFavorites
+      })
+      console.log('[TenantListingDetail] Engagement updated:', { durationSeconds, ...engagementData })
+    } catch (error) {
+      console.error('[TenantListingDetail] Failed to update engagement:', error)
     }
   }
 
@@ -62,6 +108,28 @@ const TenantListingDetail = () => {
     }
   }
 
+  // Track image viewing
+  useEffect(() => {
+    if (currentImageIndex > 0 && !engagementData.viewedImages) {
+      setEngagementData(prev => ({ ...prev, viewedImages: true }))
+      updateEngagementTracking()
+    }
+  }, [currentImageIndex])
+
+  // Update engagement every 15 seconds and on unmount
+  useEffect(() => {
+    if (!isAuthenticated) return
+    
+    const interval = setInterval(() => {
+      updateEngagementTracking()
+    }, 15000) // Update every 15 seconds
+
+    return () => {
+      clearInterval(interval)
+      updateEngagementTracking() // Final update on unmount
+    }
+  }, [engagementData, isAuthenticated])
+
   const handleFavoriteClick = async () => {
     if (!isAuthenticated) {
       navigate('/login')
@@ -73,13 +141,17 @@ const TenantListingDetail = () => {
       if (isFavorite) {
         await api.delete(`/favorites/${id}`)
         setIsFavorite(false)
+        setEngagementData(prev => ({ ...prev, addedToFavorites: false }))
       } else {
         try {
           await api.post(`/favorites/${id}`)
           setIsFavorite(true)
+          setEngagementData(prev => ({ ...prev, addedToFavorites: true }))
+          updateEngagementTracking()
         } catch (postError) {
           if (postError.response?.status === 400) {
             setIsFavorite(true)
+            setEngagementData(prev => ({ ...prev, addedToFavorites: true }))
           } else {
             throw postError
           }
@@ -405,7 +477,13 @@ const TenantListingDetail = () => {
               <motion.button
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => setShowMessaging(!showMessaging)}
+                onClick={() => {
+                  setShowMessaging(!showMessaging)
+                  if (!engagementData.clickedContact) {
+                    setEngagementData(prev => ({ ...prev, clickedContact: true }))
+                    updateEngagementTracking()
+                  }
+                }}
                 className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:shadow-lg transition-all"
               >
                 <MessageCircle size={18} />
