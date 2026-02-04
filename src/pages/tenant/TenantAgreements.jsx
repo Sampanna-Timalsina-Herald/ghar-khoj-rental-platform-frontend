@@ -103,6 +103,39 @@ const TenantAgreements = () => {
     }
   }
 
+  const handleAcceptAgreement = async (agreementId) => {
+    setApproving(true)
+    try {
+      // First, get the agreement details to find the booking
+      const agreement = agreements.find(a => a.id === agreementId)
+      if (!agreement) {
+        throw new Error('Agreement not found')
+      }
+
+      // Get the booking for this listing and tenant
+      const bookingsResponse = await api.get('/bookings/my-bookings')
+      const booking = bookingsResponse.data.data?.find(
+        b => b.listing_id === agreement.listing_id && b.status === 'approved'
+      )
+
+      if (!booking) {
+        throw new Error('No approved booking found for this agreement')
+      }
+
+      // Accept the agreement via the booking
+      const response = await api.put(`/bookings/${booking.id}/accept-agreement`)
+      addToast('✅ Agreement accepted! Your rental is now active.', 'success')
+      fetchAgreements()
+      setSelectedAgreement(null)
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to accept agreement'
+      addToast(errorMsg, 'error')
+      console.error('Accept agreement error:', error)
+    } finally {
+      setApproving(false)
+    }
+  }
+
   const handleDownloadPDF = async (agreementId) => {
     setDownloadingPDF(true)
     try {
@@ -332,8 +365,21 @@ const TenantAgreements = () => {
                     disabled={approving}
                     className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center gap-2 disabled:opacity-50"
                   >
+                    <Send size={18} />
+                    {approving ? 'Requesting...' : 'Request Approval'}
+                  </motion.button>
+                )}
+
+                {selectedAgreement.status === 'pending_approval' && (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleAcceptAgreement(selectedAgreement.id)}
+                    disabled={approving}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2 disabled:opacity-50"
+                  >
                     <ThumbsUp size={18} />
-                    {approving ? 'Requesting...' : 'Approve & Request Final Approval'}
+                    {approving ? 'Accepting...' : 'Accept Agreement'}
                   </motion.button>
                 )}
               </div>

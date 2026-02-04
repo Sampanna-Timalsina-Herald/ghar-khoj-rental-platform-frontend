@@ -10,6 +10,7 @@ import TenantFavorites from './TenantFavorites'
 import TenantConversations from './TenantConversations'
 import TenantProfile from './TenantProfile'
 import TenantAgreements from './TenantAgreements'
+import TenantListingDetail from './TenantListingDetail'
 import { useAuthStore } from '../../stores/authStore'
 import api from '../../api/axios'
 import { initSocket } from '../../services/socket'
@@ -132,6 +133,7 @@ const TenantDashboard = () => {
           <Routes>
             <Route index element={<TenantHome />} />
             <Route path="browse" element={<TenantBrowse />} />
+            <Route path="property/:id" element={<TenantListingDetail />} />
             <Route path="favorites" element={<TenantFavorites />} />
             <Route path="agreements" element={<TenantAgreements />} />
             <Route path="messages" element={<TenantConversations />} />

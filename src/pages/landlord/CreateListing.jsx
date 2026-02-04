@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
 import { Loader2, ArrowLeft, Upload, X, CheckCircle2, Home, MapPin, DollarSign, Image, Info, AlertCircle, AlertTriangle } from 'lucide-react'
 import CollegeSelect from '../../components/CollegeSelect'
+import LocationPicker from '../../components/LocationPicker'
 
 const CreateListing = () => {
   const navigate = useNavigate()
@@ -21,6 +22,8 @@ const CreateListing = () => {
     deposit_amount: '',
     furnished: 'semi',
     type: 'apartment',
+    latitude: null,
+    longitude: null,
   })
   const [images, setImages] = useState([])
   const [imagePreviews, setImagePreviews] = useState([])
@@ -521,11 +524,37 @@ const CreateListing = () => {
                 className="space-y-6"
               >
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
                   <MapPin size={20} className="text-green-600" />
                 </div>
                 <h2 className="text-lg font-bold text-slate-900">Location</h2>
+              </div>
+
+              {/* Interactive Map */}
+              <div className="mb-6">
+                <LocationPicker
+                  onLocationSelect={(location) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      address: location.formatted || location.address,
+                      city: location.city,
+                      latitude: location.lat,
+                      longitude: location.lng
+                    }));
+                    // Clear errors when location is selected
+                    setFieldErrors(prev => ({
+                      ...prev,
+                      address: '',
+                      city: ''
+                    }));
+                  }}
+                  initialLocation={
+                    formData.latitude && formData.longitude
+                      ? { lat: formData.latitude, lng: formData.longitude }
+                      : null
+                  }
+                />
               </div>
 
               <div className="space-y-4">
@@ -539,7 +568,7 @@ const CreateListing = () => {
                     value={formData.address}
                     onChange={handleChange}
                     className="w-full px-4 py-3 border border-slate-200 rounded-lg outline-none transition-all bg-slate-50 hover:bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="House number, street name"
+                    placeholder="Auto-filled from map or enter manually"
                   />
                   <AnimatePresence>
                     {fieldErrors.address && (
@@ -567,7 +596,7 @@ const CreateListing = () => {
                       value={formData.city}
                       onChange={handleChange}
                       className="w-full px-4 py-3 border border-slate-200 rounded-lg outline-none transition-all bg-slate-50 hover:bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder="e.g., Kathmandu"
+                      placeholder="Auto-filled from map"
                     />
                     <AnimatePresence>
                       {fieldErrors.city && (

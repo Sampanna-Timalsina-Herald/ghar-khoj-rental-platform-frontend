@@ -18,7 +18,7 @@ import ListProperty from "./pages/ListProperty";
 
 // Dashboards
 import AdminDashboard from "./pages/admin/Dashboard";
-import LandlordDashboard from "./pages/landlord/Dashboard";
+import LandlordLayout from "./pages/landlord/Dashboard";
 import TenantDashboard from "./pages/tenant/Dashboard";
 import TenantListingDetail from "./pages/tenant/TenantListingDetail";
 
@@ -130,7 +130,7 @@ function App() {
             />
           }
         >
-          <Route path="/landlord/*" element={<LandlordDashboard />} />
+          <Route path="/landlord/*" element={<LandlordLayout />} />
         </Route>
 
         {/* ---------------- TENANT ROUTES ---------------- */}

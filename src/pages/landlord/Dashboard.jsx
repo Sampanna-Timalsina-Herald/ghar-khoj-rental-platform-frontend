@@ -1,11 +1,12 @@
 import React from 'react'
 import { useState, useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import { Home, Plus, MessageSquare, BarChart3, User, FileText } from 'lucide-react'
+import { Home, Plus, MessageSquare, BarChart3, User, FileText, Calendar } from 'lucide-react'
 import Navbar from '../../components/Navbar'
 import Sidebar from '../../components/Sidebar'
 import LandlordHome from './LandlordHome'
 import LandlordListings from './LandlordListings'
+import LandlordBookings from './LandlordBookings'
 import CreateListing from './CreateListing'
 import EditListing from './EditListing'
 import LandlordConversations from './LandlordConversations'
@@ -15,7 +16,7 @@ import { useAuthStore } from '../../stores/authStore'
 import api from '../../api/axios'
 import { initSocket } from '../../services/socket'
 
-const LandlordDashboard = () => {
+const LandlordLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const { accessToken } = useAuthStore()
@@ -75,6 +76,11 @@ const LandlordDashboard = () => {
       icon: <Home size={20} />,
     },
     {
+      label: 'Bookings',
+      path: '/bookings',
+      icon: <Calendar size={20} />,
+    },
+    {
       label: 'Create Listing',
       path: '/listings/create',
       icon: <Plus size={20} />,
@@ -110,6 +116,7 @@ const LandlordDashboard = () => {
         <main className="flex-1 w-full overflow-hidden p-4 lg:p-8 lg:overflow-auto">
           <Routes>
             <Route index element={<LandlordHome />} />
+            <Route path="bookings" element={<LandlordBookings />} />
             <Route path="listings" element={<LandlordListings />} />
             <Route path="listings/create" element={<CreateListing />} />
             <Route path="listings/edit/:id" element={<EditListing />} />
@@ -123,4 +130,4 @@ const LandlordDashboard = () => {
   )
 }
 
-export default LandlordDashboard
+export default LandlordLayout

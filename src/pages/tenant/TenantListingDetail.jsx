@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { 
   ArrowLeft, MapPin, Bed, Bath, Ruler, Heart, MessageCircle, Loader2, 
   ChevronLeft, ChevronRight, Phone, Mail, User, Calendar, CheckCircle,
-  FileText, Send, X, Maximize2, Grid3x3, Zap, Shield, Home, Sofa
+  FileText, Send, X, Maximize2, Grid3x3, Zap, Shield, Home, Sofa, Clock, XCircle
 } from 'lucide-react'
 import api from '../../api/axios'
 import { useAuthStore } from '../../stores/authStore'
@@ -19,14 +19,15 @@ const TenantListingDetail = () => {
   const [isFavorite, setIsFavorite] = useState(false)
   const [loadingFav, setLoadingFav] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const [showContactForm, setShowContactForm] = useState(false)
-  const [showAgreementForm, setShowAgreementForm] = useState(false)
+  const [showBookingForm, setShowBookingForm] = useState(false)
   const [showMessaging, setShowMessaging] = useState(false)
   const [contactMessage, setContactMessage] = useState('')
   const [sendingContact, setSendingContact] = useState(false)
-  const [sendingAgreement, setSendingAgreement] = useState(false)
+  const [sendingBooking, setSendingBooking] = useState(false)
   const [showImageGallery, setShowImageGallery] = useState(false)
   const [gallerViewMode, setGalleryViewMode] = useState('main') // 'main' or 'grid'
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState({ type: '', title: '', message: '' })
   
   // ML Engagement tracking
   const [engagementData, setEngagementData] = useState({
@@ -36,10 +37,10 @@ const TenantListingDetail = () => {
     addedToFavorites: false
   })
   
-  const [agreementForm, setAgreementForm] = useState({
+  const [bookingForm, setBookingForm] = useState({
     start_date: '',
     end_date: '',
-    terms: ''
+    message: ''
   })
 
   useEffect(() => {
@@ -164,74 +165,60 @@ const TenantListingDetail = () => {
     }
   }
 
-  const handleSendMessage = async () => {
-    if (!contactMessage.trim()) {
-      alert('Please enter a message')
-      return
-    }
-
-    setSendingContact(true)
-    try {
-      // Send message to landlord
-      await api.post('/messages', {
-        receiver_id: listing.landlord_id,
-        listing_id: listing.id,
-        message: contactMessage,
-      })
-      alert('Message sent successfully!')
-      setContactMessage('')
-      setShowContactForm(false)
-    } catch (error) {
-      console.error('Failed to send message:', error)
-      alert('Failed to send message')
-    } finally {
-      setSendingContact(false)
-    }
+  const showToastMessage = (type, title, message) => {
+    setToastMessage({ type, title, message })
+    setShowToast(true)
+    setTimeout(() => setShowToast(false), 5000)
   }
 
-  const handleRequestAgreement = async () => {
+  const handleBookProperty = async () => {
     // Validate form fields
-    if (!agreementForm.start_date) {
-      alert('Please select a move-in date')
+    if (!bookingForm.start_date) {
+      showToastMessage('error', 'Missing Information', 'Please select a move-in date')
       return
     }
-    if (!agreementForm.end_date) {
-      alert('Please select a move-out date')
+    if (!bookingForm.end_date) {
+      showToastMessage('error', 'Missing Information', 'Please select a move-out date')
       return
     }
 
     // Validate date range
-    const startDate = new Date(agreementForm.start_date)
-    const endDate = new Date(agreementForm.end_date)
+    const startDate = new Date(bookingForm.start_date)
+    const endDate = new Date(bookingForm.end_date)
     if (endDate <= startDate) {
-      alert('Move-out date must be after move-in date')
+      showToastMessage('error', 'Invalid Dates', 'Move-out date must be after move-in date')
       return
     }
 
-    if (sendingAgreement) return
+    if (sendingBooking) return
 
-    setSendingAgreement(true)
+    setSendingBooking(true)
     try {
-      const monthlyRent = listing.rent_amount || listing.price
-      const deposit = Math.round(monthlyRent * 2) // 2 months deposit
-
-      const response = await api.post('/agreements/request-rent', {
+      const response = await api.post('/bookings', {
         listing_id: listing.id,
-        start_date: agreementForm.start_date,
-        end_date: agreementForm.end_date,
-        monthly_rent: monthlyRent,
-        deposit: deposit,
-        terms: agreementForm.terms || ''
+        start_date: bookingForm.start_date,
+        end_date: bookingForm.end_date,
+        message: bookingForm.message || ''
       })
 
-      alert('Agreement request sent successfully!')
-      setShowAgreementForm(false)
-      setAgreementForm({ start_date: '', end_date: '', terms: '' })
+      showToastMessage(
+        'success', 
+        'Booking Request Sent! 🎉', 
+        'The landlord will review your request. You\'ll be notified once they respond.'
+      )
+      setShowBookingForm(false)
+      setBookingForm({ start_date: '', end_date: '', message: '' })
+      // Refresh listing to get updated booking status
+      fetchListing()
     } catch (error) {
-      console.error('Failed to send agreement:', error)
-      alert(error.response?.data?.message || 'Failed to send agreement request')
+      console.error('Failed to send booking:', error)
+      showToastMessage(
+        'error',
+        'Booking Failed',
+        error.response?.data?.error || 'Failed to send booking request. Please try again.'
+      )
     } finally {
-      setSendingAgreement(false)
+      setSendingBooking(false)
     }
   }
 
@@ -245,6 +232,63 @@ const TenantListingDetail = () => {
     if (listing?.images?.length) {
       setCurrentImageIndex((prev) => (prev - 1 + listing.images.length) % listing.images.length)
     }
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A'
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  const getBookingStatusBadge = () => {
+    const status = listing.booking_status || 'available'
+    
+    if (status === 'rented') {
+      return (
+        <div className="bg-red-100 border-2 border-red-300 rounded-xl p-4 mb-4">
+          <div className="flex items-center gap-2 text-red-800 mb-2">
+            <Home size={18} />
+            <span className="font-bold text-sm">Currently Rented</span>
+          </div>
+          {listing.rent_end_date && (
+            <p className="text-red-700 text-xs">
+              Available after: <span className="font-semibold">{formatDate(listing.rent_end_date)}</span>
+            </p>
+          )}
+        </div>
+      )
+    }
+    
+    if (status === 'pending') {
+      return (
+        <div className="bg-yellow-100 border-2 border-yellow-300 rounded-xl p-4 mb-4">
+          <div className="flex items-center gap-2 text-yellow-800">
+            <Clock size={18} />
+            <span className="font-bold text-sm">Booking Under Review</span>
+          </div>
+          <p className="text-yellow-700 text-xs mt-1">
+            This property has a pending booking request
+          </p>
+        </div>
+      )
+    }
+    
+    return (
+      <div className="bg-green-100 border-2 border-green-300 rounded-xl p-4 mb-4">
+        <div className="flex items-center gap-2 text-green-800">
+          <CheckCircle size={18} />
+          <span className="font-bold text-sm">Available for Booking</span>
+        </div>
+      </div>
+    )
+  }
+
+  const canBook = () => {
+    const status = listing.booking_status || 'available'
+    return status === 'available'
   }
 
   const getImageUrl = (imagePath) => {
@@ -472,6 +516,9 @@ const TenantListingDetail = () => {
               </div>
             </div>
 
+            {/* Booking Status */}
+            {getBookingStatusBadge()}
+
             {/* Action Buttons */}
             <div className="space-y-2">
               <motion.button
@@ -487,18 +534,25 @@ const TenantListingDetail = () => {
                 className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:shadow-lg transition-all"
               >
                 <MessageCircle size={18} />
-                Chat
+                Chat with Landlord
               </motion.button>
 
-              <motion.button
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setShowAgreementForm(!showAgreementForm)}
-                className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:shadow-lg transition-all"
-              >
-                <FileText size={18} />
-                Agreement
-              </motion.button>
+              {canBook() ? (
+                <motion.button
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowBookingForm(!showBookingForm)}
+                  className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:shadow-lg transition-all"
+                >
+                  <Calendar size={18} />
+                  Book Now
+                </motion.button>
+              ) : (
+                <div className="w-full bg-gray-300 text-gray-600 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed">
+                  <Calendar size={18} />
+                  {listing.booking_status === 'rented' ? 'Currently Rented' : 'Booking Unavailable'}
+                </div>
+              )}
             </div>
 
             {/* Quick Info */}
@@ -671,56 +725,9 @@ const TenantListingDetail = () => {
           )}
         </AnimatePresence>
 
-        {/* Contact Form Modal */}
+        {/* Booking Form Modal */}
         <AnimatePresence>
-          {showContactForm && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            >
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full border border-gray-100"
-              >
-                <h3 className="text-3xl font-bold text-gray-900 mb-6">Send Message</h3>
-                <textarea
-                  value={contactMessage}
-                  onChange={(e) => setContactMessage(e.target.value)}
-                  placeholder="Tell the landlord about yourself and ask any questions..."
-                  className="w-full border-2 border-gray-200 rounded-xl p-4 mb-6 h-32 resize-none focus:outline-none focus:border-blue-500 transition-colors font-medium"
-                />
-                <div className="flex gap-3">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowContactForm(false)}
-                    className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-colors font-bold text-gray-700"
-                  >
-                    Cancel
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleSendMessage}
-                    disabled={sendingContact}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:shadow-lg transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {sendingContact ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                    Send
-                  </motion.button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Agreement Form Modal */}
-        <AnimatePresence>
-          {showAgreementForm && (
+          {showBookingForm && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -733,7 +740,7 @@ const TenantListingDetail = () => {
                 exit={{ opacity: 0, scale: 0.9 }}
                 className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-100"
               >
-                <h3 className="text-3xl font-bold text-gray-900 mb-6">Request Rent Agreement</h3>
+                <h3 className="text-3xl font-bold text-gray-900 mb-6">Book This Property</h3>
                 
                 {/* Property Summary */}
                 <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-xl mb-6 border border-blue-200">
@@ -747,8 +754,8 @@ const TenantListingDetail = () => {
                   <label className="block text-sm font-bold text-gray-700 mb-3">Move-in Date</label>
                   <input
                     type="date"
-                    value={agreementForm.start_date}
-                    onChange={(e) => setAgreementForm({ ...agreementForm, start_date: e.target.value })}
+                    value={bookingForm.start_date}
+                    onChange={(e) => setBookingForm({ ...bookingForm, start_date: e.target.value })}
                     min={new Date().toISOString().split('T')[0]}
                     className="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none focus:border-blue-500 transition-colors font-medium"
                   />
@@ -759,29 +766,32 @@ const TenantListingDetail = () => {
                   <label className="block text-sm font-bold text-gray-700 mb-3">Move-out Date</label>
                   <input
                     type="date"
-                    value={agreementForm.end_date}
-                    onChange={(e) => setAgreementForm({ ...agreementForm, end_date: e.target.value })}
-                    min={agreementForm.start_date || new Date().toISOString().split('T')[0]}
+                    value={bookingForm.end_date}
+                    onChange={(e) => setBookingForm({ ...bookingForm, end_date: e.target.value })}
+                    min={bookingForm.start_date || new Date().toISOString().split('T')[0]}
                     className="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none focus:border-blue-500 transition-colors font-medium"
                   />
                 </div>
 
                 {/* Duration Display */}
-                {agreementForm.start_date && agreementForm.end_date && (
+                {bookingForm.start_date && bookingForm.end_date && (
                   <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-xl mb-5 border border-green-200">
                     <p className="text-gray-700 font-medium">
-                      Duration: <span className="font-bold text-green-700 text-lg">{Math.ceil((new Date(agreementForm.end_date) - new Date(agreementForm.start_date)) / (1000 * 60 * 60 * 24))} days</span>
+                      Duration: <span className="font-bold text-green-700 text-lg">{Math.ceil((new Date(bookingForm.end_date) - new Date(bookingForm.start_date)) / (1000 * 60 * 60 * 24))} days</span>
+                    </p>
+                    <p className="text-gray-700 font-medium mt-2">
+                      Total Rent: <span className="font-bold text-green-700 text-lg">Rs. {Math.round((Math.ceil((new Date(bookingForm.end_date) - new Date(bookingForm.start_date)) / (1000 * 60 * 60 * 24)) / 30) * (listing.rent_amount || listing.price)).toLocaleString()}</span>
                     </p>
                   </div>
                 )}
 
-                {/* Additional Terms */}
+                {/* Message to Landlord */}
                 <div className="mb-6">
-                  <label className="block text-sm font-bold text-gray-700 mb-3">Additional Terms (Optional)</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-3">Message to Landlord (Optional)</label>
                   <textarea
-                    value={agreementForm.terms}
-                    onChange={(e) => setAgreementForm({ ...agreementForm, terms: e.target.value })}
-                    placeholder="Any special conditions or requirements..."
+                    value={bookingForm.message}
+                    onChange={(e) => setBookingForm({ ...bookingForm, message: e.target.value })}
+                    placeholder="Tell the landlord about yourself..."
                     className="w-full border-2 border-gray-200 rounded-xl p-3 h-24 resize-none focus:outline-none focus:border-blue-500 transition-colors font-medium text-sm"
                   />
                 </div>
@@ -790,7 +800,7 @@ const TenantListingDetail = () => {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowAgreementForm(false)}
+                    onClick={() => setShowBookingForm(false)}
                     className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-colors font-bold text-gray-700"
                   >
                     Cancel
@@ -798,12 +808,12 @@ const TenantListingDetail = () => {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={handleRequestAgreement}
-                    disabled={sendingAgreement || !agreementForm.start_date || !agreementForm.end_date}
+                    onClick={handleBookProperty}
+                    disabled={sendingBooking || !bookingForm.start_date || !bookingForm.end_date}
                     className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:shadow-lg transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-50"
                   >
-                    {sendingAgreement ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                    Send
+                    {sendingBooking ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                    Send Request
                   </motion.button>
                 </div>
               </motion.div>
@@ -846,6 +856,74 @@ const TenantListingDetail = () => {
                   />
                 </div>
               </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Modern Toast Notification */}
+        <AnimatePresence>
+          {showToast && (
+            <motion.div
+              initial={{ opacity: 0, y: -100, scale: 0.3 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -100, scale: 0.5 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              className="fixed top-6 right-6 z-[100] max-w-md"
+            >
+              <div className={`rounded-2xl shadow-2xl overflow-hidden border-2 ${
+                toastMessage.type === 'success' 
+                  ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-300' 
+                  : 'bg-gradient-to-br from-red-50 to-rose-50 border-red-300'
+              }`}>
+                <div className="p-5">
+                  <div className="flex items-start gap-4">
+                    <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
+                      toastMessage.type === 'success' 
+                        ? 'bg-green-500' 
+                        : 'bg-red-500'
+                    }`}>
+                      {toastMessage.type === 'success' ? (
+                        <CheckCircle size={28} className="text-white" />
+                      ) : (
+                        <XCircle size={28} className="text-white" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className={`text-lg font-bold mb-1 ${
+                        toastMessage.type === 'success' ? 'text-green-900' : 'text-red-900'
+                      }`}>
+                        {toastMessage.title}
+                      </h4>
+                      <p className={`text-sm leading-relaxed ${
+                        toastMessage.type === 'success' ? 'text-green-700' : 'text-red-700'
+                      }`}>
+                        {toastMessage.message}
+                      </p>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.1, rotate: 90 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setShowToast(false)}
+                      className={`flex-shrink-0 p-1 rounded-lg transition-colors ${
+                        toastMessage.type === 'success' 
+                          ? 'hover:bg-green-200 text-green-700' 
+                          : 'hover:bg-red-200 text-red-700'
+                      }`}
+                    >
+                      <X size={20} />
+                    </motion.button>
+                  </div>
+                </div>
+                {/* Progress bar */}
+                <motion.div
+                  initial={{ width: "100%" }}
+                  animate={{ width: "0%" }}
+                  transition={{ duration: 5, ease: "linear" }}
+                  className={`h-1 ${
+                    toastMessage.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                  }`}
+                />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

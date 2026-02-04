@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
-import { Plus, Edit2, Trash2, Loader2, MapPin, Bed, Bath, Eye, X, Search, Grid3X3, List } from 'lucide-react'
+import { 
+  Plus, Edit2, Trash2, Loader2, MapPin, Bed, Bath, Eye, X, Search, Grid3X3, List,
+  Home, Calendar, User, Clock, Filter, CheckCircle, XCircle, AlertCircle, DollarSign
+} from 'lucide-react'
 
 const LandlordListings = () => {
   const navigate = useNavigate()
@@ -15,6 +18,7 @@ const LandlordListings = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterCity, setFilterCity] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [filterBookingStatus, setFilterBookingStatus] = useState('') // New: for booking status filter
   const [viewMode, setViewMode] = useState('card')
 
   useEffect(() => {
@@ -23,7 +27,7 @@ const LandlordListings = () => {
 
   useEffect(() => {
     applyFilters()
-  }, [listings, searchQuery, filterCity, filterStatus])
+  }, [listings, searchQuery, filterCity, filterStatus, filterBookingStatus])
 
   const fetchListings = async () => {
     try {
@@ -67,7 +71,78 @@ const LandlordListings = () => {
       filtered = filtered.filter(listing => listing.status === filterStatus)
     }
 
+    // Filter by booking status
+    if (filterBookingStatus) {
+      filtered = filtered.filter(listing => listing.booking_status === filterBookingStatus)
+    }
+
     setFilteredListings(filtered)
+  }
+
+  const getStatusBadge = (listing) => {
+    const status = listing.booking_status || 'available'
+    
+    const badges = {
+      available: {
+        bg: 'bg-green-100',
+        text: 'text-green-700',
+        icon: CheckCircle,
+        label: 'Available'
+      },
+      rented: {
+        bg: 'bg-blue-100',
+        text: 'text-blue-700',
+        icon: Home,
+        label: 'Rented'
+      },
+      pending: {
+        bg: 'bg-yellow-100',
+        text: 'text-yellow-700',
+        icon: Clock,
+        label: 'Pending Booking'
+      }
+    }
+
+    const badge = badges[status] || badges.available
+    const Icon = badge.icon
+
+    return (
+      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${badge.bg} ${badge.text}`}>
+        <Icon size={14} />
+        {badge.label}
+      </span>
+    )
+  }
+
+  const getRemainingDays = (listing) => {
+    if (listing.booking_status !== 'rented' || !listing.days_remaining) return null
+    
+    const days = Math.floor(listing.days_remaining)
+    
+    if (days < 0) return null
+    
+    return (
+      <div className={`flex items-center gap-2 text-xs ${days <= 7 ? 'text-red-600' : 'text-gray-600'}`}>
+        <Clock size={14} />
+        <span className="font-semibold">{days} days remaining</span>
+      </div>
+    )
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A'
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  const stats = {
+    total: listings.length,
+    available: listings.filter(l => l.booking_status === 'available' || !l.booking_status).length,
+    rented: listings.filter(l => l.booking_status === 'rented').length,
+    pending: listings.filter(l => l.booking_status === 'pending').length
   }
 
   const handleDelete = async (id) => {
@@ -149,13 +224,97 @@ const LandlordListings = () => {
         </motion.div>
       )}
 
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-100 text-sm">Total Properties</p>
+              <p className="text-3xl font-bold mt-1">{stats.total}</p>
+            </div>
+            <Home size={40} className="opacity-80" />
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-green-100 text-sm">Available</p>
+              <p className="text-3xl font-bold mt-1">{stats.available}</p>
+            </div>
+            <CheckCircle size={40} className="opacity-80" />
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-100 text-sm">Rented</p>
+              <p className="text-3xl font-bold mt-1">{stats.rented}</p>
+            </div>
+            <User size={40} className="opacity-80" />
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl p-6 text-white shadow-lg"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-yellow-100 text-sm">Pending</p>
+              <p className="text-3xl font-bold mt-1">{stats.pending}</p>
+            </div>
+            <Clock size={40} className="opacity-80" />
+          </div>
+        </motion.div>
+      </div>
+
       {/* Search and Filter Section */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white rounded-xl shadow-lg p-6"
       >
-        <h2 className="text-lg font-semibold text-text mb-4">Search, Filter & View</h2>
+        <div className="flex items-center gap-3 mb-4">
+          <Filter size={20} className="text-gray-600" />
+          <h2 className="text-lg font-semibold text-text">Filters</h2>
+        </div>
+
+        {/* Booking Status Filter Buttons */}
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          {['all', 'available', 'rented', 'pending'].map((filterOption) => (
+            <button
+              key={filterOption}
+              onClick={() => setFilterBookingStatus(filterOption === 'all' ? '' : filterOption)}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                (filterOption === 'all' && !filterBookingStatus) || filterBookingStatus === filterOption
+                  ? 'bg-primary-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {filterOption.charAt(0).toUpperCase() + filterOption.slice(1)}
+            </button>
+          ))}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <div className="relative">
             <Search size={18} className="absolute left-3 top-3.5 text-gray-400" />
@@ -187,7 +346,7 @@ const LandlordListings = () => {
             <option value="rented">Rented</option>
           </select>
 
-          {(searchQuery || filterCity || filterStatus) && (
+          {(searchQuery || filterCity || filterStatus || filterBookingStatus) && (
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -195,6 +354,7 @@ const LandlordListings = () => {
                 setSearchQuery('')
                 setFilterCity('')
                 setFilterStatus('')
+                setFilterBookingStatus('')
               }}
               className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
             >
@@ -259,21 +419,7 @@ const LandlordListings = () => {
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute top-4 right-4 flex flex-col gap-2">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm ${
-                          listing.status === 'active' && listing.is_verified
-                            ? 'bg-green-500/80 text-white'
-                            : listing.status === 'active' && !listing.is_verified
-                            ? 'bg-yellow-500/80 text-white'
-                            : listing.status === 'inactive'
-                            ? 'bg-red-500/80 text-white'
-                            : 'bg-gray-500/80 text-white'
-                        }`}
-                      >
-                        {listing.status === 'active' && listing.is_verified ? 'Active' : 
-                         listing.status === 'active' && !listing.is_verified ? 'Pending Approval' :
-                         listing.status || 'Inactive'}
-                      </span>
+                      {getStatusBadge(listing)}
                     </div>
                   </div>
                 )}
@@ -340,6 +486,40 @@ const LandlordListings = () => {
                       </span>
                     )}
                   </div>
+
+                  {/* Rental Info */}
+                  {listing.booking_status === 'rented' && (
+                    <div className="bg-blue-50 rounded-lg p-3 mb-4 space-y-2 border border-blue-200">
+                      <div className="flex items-center gap-2 text-blue-900">
+                        <User size={14} />
+                        <span className="font-semibold text-sm">Tenant: {listing.tenant_name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-blue-700 text-xs">
+                        <Calendar size={12} />
+                        <span>Start: {formatDate(listing.rent_start_date)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-blue-700 text-xs">
+                        <Calendar size={12} />
+                        <span>End: {formatDate(listing.rent_end_date)}</span>
+                      </div>
+                      {getRemainingDays(listing)}
+                    </div>
+                  )}
+
+                  {listing.booking_status === 'pending' && (
+                    <div className="bg-yellow-50 rounded-lg p-3 mb-4 border border-yellow-200">
+                      <div className="flex items-center gap-2 text-yellow-900">
+                        <AlertCircle size={14} />
+                        <span className="font-semibold text-sm">Booking request pending</span>
+                      </div>
+                      <button
+                        onClick={() => navigate('/landlord/bookings')}
+                        className="text-xs text-yellow-700 hover:text-yellow-900 mt-1 underline"
+                      >
+                        Review request
+                      </button>
+                    </div>
+                  )}
 
                   <div className="flex gap-2 pt-4 border-t border-gray-200">
                     <motion.button
