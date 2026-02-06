@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
 import { 
-  Plus, Edit2, Trash2, Loader2, MapPin, Bed, Bath, Eye, X, Search, Grid3X3, List,
-  Home, Calendar, User, Clock, Filter, CheckCircle, XCircle, AlertCircle, DollarSign
+  Plus, Edit2, Trash2, Loader2, MapPin, Bed, Bath, Eye, X, Search, 
+  Home, Calendar, User, Clock, CheckCircle, AlertCircle, Filter, Grid3X3, List
 } from 'lucide-react'
 
 const LandlordListings = () => {
@@ -48,6 +48,7 @@ const LandlordListings = () => {
 
   const applyFilters = () => {
     let filtered = [...listings]
+
 
     // Filter by search query (title, description, address)
     if (searchQuery) {
@@ -179,6 +180,49 @@ const LandlordListings = () => {
     }
   }
 
+  const handleCancelRental = async (id, e) => {
+    e?.stopPropagation() // Prevent navigation if event exists
+    
+    const confirmed = window.confirm(
+      'Are you sure you want to cancel this rental? The listing will become available for new bookings.'
+    )
+    
+    if (!confirmed) return
+    
+    try {
+      setMessage({ type: '', text: '' })
+      const response = await api.put(`/listings/${id}/cancel-rental`)
+      
+      if (response.data.success) {
+        // Update the listing in state
+        setListings((prev) =>
+          prev.map((listing) =>
+            listing.id === id 
+              ? { 
+                  ...listing, 
+                  booking_status: 'available',
+                  current_tenant_id: null,
+                  tenant_name: null,
+                  rent_start_date: null,
+                  rent_end_date: null,
+                  days_remaining: null
+                } 
+              : listing
+          )
+        )
+        setMessage({ type: 'success', text: 'Rental cancelled successfully! Listing is now available.' })
+        setTimeout(() => setMessage({ type: '', text: '' }), 5000)
+      }
+    } catch (error) {
+      console.error('Failed to cancel rental:', error)
+      setMessage({ 
+        type: 'error', 
+        text: error.response?.data?.error || 'Failed to cancel rental. Please try again.' 
+      })
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -188,7 +232,7 @@ const LandlordListings = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -224,20 +268,20 @@ const LandlordListings = () => {
         </motion.div>
       )}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Smaller Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg"
+          className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 text-white shadow-md"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm">Total Properties</p>
-              <p className="text-3xl font-bold mt-1">{stats.total}</p>
+              <p className="text-blue-100 text-xs">Total Properties</p>
+              <p className="text-2xl font-bold mt-1">{stats.total}</p>
             </div>
-            <Home size={40} className="opacity-80" />
+            <Home size={32} className="opacity-80" />
           </div>
         </motion.div>
 
@@ -245,14 +289,14 @@ const LandlordListings = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg"
+          className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-4 text-white shadow-md"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm">Available</p>
-              <p className="text-3xl font-bold mt-1">{stats.available}</p>
+              <p className="text-green-100 text-xs">Available</p>
+              <p className="text-2xl font-bold mt-1">{stats.available}</p>
             </div>
-            <CheckCircle size={40} className="opacity-80" />
+            <CheckCircle size={32} className="opacity-80" />
           </div>
         </motion.div>
 
@@ -260,14 +304,14 @@ const LandlordListings = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg"
+          className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-4 text-white shadow-md"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm">Rented</p>
-              <p className="text-3xl font-bold mt-1">{stats.rented}</p>
+              <p className="text-purple-100 text-xs">Rented</p>
+              <p className="text-2xl font-bold mt-1">{stats.rented}</p>
             </div>
-            <User size={40} className="opacity-80" />
+            <User size={32} className="opacity-80" />
           </div>
         </motion.div>
 
@@ -275,14 +319,14 @@ const LandlordListings = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl p-6 text-white shadow-lg"
+          className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-4 text-white shadow-md"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-yellow-100 text-sm">Pending</p>
-              <p className="text-3xl font-bold mt-1">{stats.pending}</p>
+              <p className="text-yellow-100 text-xs">Pending</p>
+              <p className="text-2xl font-bold mt-1">{stats.pending}</p>
             </div>
-            <Clock size={40} className="opacity-80" />
+            <Clock size={32} className="opacity-80" />
           </div>
         </motion.div>
       </div>
@@ -522,24 +566,40 @@ const LandlordListings = () => {
                   )}
 
                   <div className="flex gap-2 pt-4 border-t border-gray-200">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => navigate(`/landlord/listings/edit/${listing.id}`)}
-                      className="flex-1 px-4 py-2 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors flex items-center justify-center gap-1 text-sm font-semibold"
-                    >
-                      <Edit2 size={16} />
-                      Edit
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setDeleteConfirm(listing.id)}
-                      className="flex-1 px-4 py-2 border-2 border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors flex items-center justify-center gap-1 text-sm font-semibold"
-                    >
-                      <Trash2 size={16} />
-                      Delete
-                    </motion.button>
+                    {listing.booking_status === 'rented' ? (
+                      // Show Cancel Rental button for rented listings
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={(e) => handleCancelRental(listing.id, e)}
+                        className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center gap-1 text-sm font-semibold"
+                      >
+                        <X size={16} />
+                        Cancel Rental
+                      </motion.button>
+                    ) : (
+                      // Show normal Edit and Delete buttons for non-rented listings
+                      <>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => navigate(`/landlord/listings/edit/${listing.id}`)}
+                          className="flex-1 px-4 py-2 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors flex items-center justify-center gap-1 text-sm font-semibold"
+                        >
+                          <Edit2 size={16} />
+                          Edit
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setDeleteConfirm(listing.id)}
+                          className="flex-1 px-4 py-2 border-2 border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors flex items-center justify-center gap-1 text-sm font-semibold"
+                        >
+                          <Trash2 size={16} />
+                          Delete
+                        </motion.button>
+                      </>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -649,22 +709,39 @@ const LandlordListings = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2">
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => navigate(`/landlord/listings/edit/${listing.id}`)}
-                            className="px-3 py-1 text-sm border border-primary-600 text-primary-600 rounded hover:bg-primary-50 transition-colors"
-                          >
-                            <Edit2 size={16} />
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setDeleteConfirm(listing.id)}
-                            className="px-3 py-1 text-sm border border-red-600 text-red-600 rounded hover:bg-red-50 transition-colors"
-                          >
-                            <Trash2 size={16} />
-                          </motion.button>
+                          {listing.booking_status === 'rented' ? (
+                            // Show Cancel Rental button for rented listings in table view
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={(e) => handleCancelRental(listing.id, e)}
+                              className="px-3 py-2 text-sm bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors flex items-center gap-1"
+                              title="Cancel rental and make available"
+                            >
+                              <X size={16} />
+                              Cancel Rental
+                            </motion.button>
+                          ) : (
+                            // Show Edit and Delete for non-rented listings
+                            <>
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => navigate(`/landlord/listings/edit/${listing.id}`)}
+                                className="px-3 py-1 text-sm border border-primary-600 text-primary-600 rounded hover:bg-primary-50 transition-colors"
+                              >
+                                <Edit2 size={16} />
+                              </motion.button>
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => setDeleteConfirm(listing.id)}
+                                className="px-3 py-1 text-sm border border-red-600 text-red-600 rounded hover:bg-red-50 transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </motion.button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </motion.tr>

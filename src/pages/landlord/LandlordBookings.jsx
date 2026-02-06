@@ -180,9 +180,14 @@ const LandlordBookings = () => {
                   </div>
                   {booking.listing_images && booking.listing_images.length > 0 && (
                     <img
-                      src={booking.listing_images[0]}
+                      src={
+                        booking.listing_images[0].startsWith('http')
+                          ? booking.listing_images[0]
+                          : `http://localhost:5000${booking.listing_images[0]}`
+                      }
                       alt={booking.listing_title}
                       className="w-24 h-24 object-cover rounded-lg"
+                      onError={(e) => { e.target.style.display = 'none' }}
                     />
                   )}
                 </div>

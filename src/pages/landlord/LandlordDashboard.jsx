@@ -4,7 +4,7 @@ import api from '../../api/axios';
 import { 
   Home, Calendar, User, Clock, Filter, 
   CheckCircle, XCircle, AlertCircle, Loader2,
-  Eye, MapPin, DollarSign, Bed, Bath
+  Eye, MapPin, DollarSign, Bed, Bath, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -115,6 +115,43 @@ const LandlordDashboard = () => {
     available: listings.filter(l => l.booking_status === 'available').length,
     rented: listings.filter(l => l.booking_status === 'rented').length,
     pending: listings.filter(l => l.booking_status === 'pending').length
+  };
+
+  const handleCancelRental = async (id, e) => {
+    e?.stopPropagation();
+    
+    const confirmed = window.confirm(
+      'Are you sure you want to cancel this rental? The listing will become available for new bookings.'
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      const response = await api.put(`/listings/${id}/cancel-rental`);
+      
+      if (response.data.success) {
+        // Update the listing in state
+        setListings((prev) =>
+          prev.map((listing) =>
+            listing.id === id 
+              ? { 
+                  ...listing, 
+                  booking_status: 'available',
+                  current_tenant_id: null,
+                  tenant_name: null,
+                  rent_start_date: null,
+                  rent_end_date: null,
+                  days_remaining: null
+                } 
+              : listing
+          )
+        );
+        alert('Rental cancelled successfully! Listing is now available.');
+      }
+    } catch (error) {
+      console.error('Failed to cancel rental:', error);
+      alert(error.response?.data?.error || 'Failed to cancel rental. Please try again.');
+    }
   };
 
   if (loading) {
@@ -338,15 +375,29 @@ const LandlordDashboard = () => {
 
                 {/* Actions */}
                 <div className="flex gap-2">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => navigate(`/landlord/property/${listing.id}`)}
-                    className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Eye size={16} />
-                    View Details
-                  </motion.button>
+                  {listing.booking_status === 'rented' ? (
+                    // Show Cancel Rental button for rented listings
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={(e) => handleCancelRental(listing.id, e)}
+                      className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg font-semibold hover:bg-orange-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <X size={16} />
+                      Cancel Rental
+                    </motion.button>
+                  ) : (
+                    // Show View Details button for non-rented listings
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => navigate(`/landlord/property/${listing.id}`)}
+                      className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Eye size={16} />
+                      View Details
+                    </motion.button>
+                  )}
                   
                   {listing.booking_status === 'pending' && (
                     <motion.button
