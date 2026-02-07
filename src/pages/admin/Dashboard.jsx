@@ -7,7 +7,7 @@ import AdminHome from './AdminHome'
 import AdminListings from './AdminListings'
 import AdminUsers from './AdminUsers'
 import AdminProfile from './AdminProfile'
-import AdminReports from './AdminReports'
+import AdvancedReports from './AdvancedReports'
 import AdminSettings from './AdminSettings'
 import AdminCommissionDashboard from './AdminCommissionDashboard'
 
@@ -80,7 +80,7 @@ const AdminDashboard = () => {
             <Route path="listings" element={<AdminListings />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="commissions" element={<AdminCommissionDashboard />} />
-            <Route path="reports" element={<AdminReports />} />
+            <Route path="reports" element={<AdvancedReports />} />
             <Route path="settings" element={<AdminSettings />} />
             <Route path="profile" element={<AdminProfile />} />
           </Routes>

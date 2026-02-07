@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../api/axios'
-import { Users, Home, AlertCircle, TrendingUp, ArrowUp, ArrowDown, MessageSquare, Eye, Loader2 } from 'lucide-react'
+import { Users, Home, AlertCircle, TrendingUp, ArrowUp, ArrowDown, MessageSquare, Eye, Loader2, RefreshCw } from 'lucide-react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444']
@@ -53,69 +53,60 @@ const AdminHome = () => {
     totalListings: 0,
     pendingListings: 0,
     totalConversations: 0,
+    totalBookings: 0,
+    totalRevenue: 0,
   })
   const [chartData, setChartData] = useState([])
   const [categoryData, setCategoryData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [lastUpdate, setLastUpdate] = useState(new Date())
 
   useEffect(() => {
     fetchAllData()
+    
+    // Set up real-time polling every 30 seconds
+    const interval = setInterval(() => {
+      fetchAllData()
+    }, 30000)
+
+    return () => clearInterval(interval)
   }, [])
 
   const fetchAllData = async () => {
     try {
-      // Fetch statistics
-      const statsResponse = await api.get('/admin/analytics')
-      if (statsResponse.data && statsResponse.data.data) {
+      setLoading(true)
+      
+      // Fetch all data in parallel
+      const [statsResponse, chartResponse, categoryResponse] = await Promise.all([
+        api.get('/admin/analytics'),
+        api.get('/admin/analytics/trends?months=6'),
+        api.get('/admin/analytics/categories')
+      ])
+
+      // Update statistics
+      if (statsResponse.data?.success && statsResponse.data.data) {
         setStats(statsResponse.data.data)
       }
 
-      // Fetch chart data (monthly trends)
-      const chartResponse = await api.get('/admin/analytics/trends')
-      if (chartResponse.data && chartResponse.data.data) {
+      // Update chart data (monthly trends)
+      if (chartResponse.data?.success && chartResponse.data.data) {
         setChartData(chartResponse.data.data)
-      } else {
-        // Fallback with mock data if endpoint doesn't exist
-        setChartData([
-          { month: 'Jan', users: 400, listings: 240, conversations: 180 },
-          { month: 'Feb', users: 520, listings: 290, conversations: 200 },
-          { month: 'Mar', users: 680, listings: 340, conversations: 250 },
-          { month: 'Apr', users: 780, listings: 390, conversations: 290 },
-          { month: 'May', users: 920, listings: 450, conversations: 350 },
-          { month: 'Jun', users: 1050, listings: 520, conversations: 410 },
-        ])
       }
 
-      // Fetch category data
-      const categoryResponse = await api.get('/admin/analytics/categories')
-      if (categoryResponse.data && categoryResponse.data.data) {
-        setCategoryData(categoryResponse.data.data)
-      } else {
-        // Fallback with mock data
-        setCategoryData([
-          { name: 'Apartments', value: 35 },
-          { name: 'Houses', value: 25 },
-          { name: 'Rooms', value: 25 },
-          { name: 'Other', value: 15 },
-        ])
+      // Update category data
+      if (categoryResponse.data?.success && categoryResponse.data.data) {
+        // Map the data to use percentage if available
+        setCategoryData(categoryResponse.data.data.map(cat => ({
+          name: cat.name,
+          value: cat.percentage || cat.value
+        })))
       }
+
+      setLastUpdate(new Date())
     } catch (error) {
       console.error('Failed to fetch analytics data:', error)
-      // Set fallback mock data on error
-      setChartData([
-        { month: 'Jan', users: 400, listings: 240, conversations: 180 },
-        { month: 'Feb', users: 520, listings: 290, conversations: 200 },
-        { month: 'Mar', users: 680, listings: 340, conversations: 250 },
-        { month: 'Apr', users: 780, listings: 390, conversations: 290 },
-        { month: 'May', users: 920, listings: 450, conversations: 350 },
-        { month: 'Jun', users: 1050, listings: 520, conversations: 410 },
-      ])
-      setCategoryData([
-        { name: 'Apartments', value: 35 },
-        { name: 'Houses', value: 25 },
-        { name: 'Rooms', value: 25 },
-        { name: 'Other', value: 15 },
-      ])
+      // Only show error in console - don't fallback to mock data
+      // This ensures we always show real data or nothing
     } finally {
       setLoading(false)
     }
@@ -126,46 +117,67 @@ const AdminHome = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-600 mt-2">Welcome back! Here's your platform overview.</p>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-4xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-600 mt-2">
+            Welcome back! Here's your platform overview.
+            <span className="ml-2 text-xs text-gray-500">
+              Last updated: {lastUpdate.toLocaleTimeString()}
+            </span>
+          </p>
+        </div>
+        <button
+          onClick={fetchAllData}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          Refresh
+        </button>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Users"
-          value={stats.totalUsers}
-          icon={<Users size={24} />}
-          color="bg-blue-500"
-          trend="up"
-          trendValue={12}
-        />
-        <StatCard
-          title="Total Listings"
-          value={stats.totalListings}
-          icon={<Home size={24} />}
-          color="bg-green-500"
-          trend="up"
-          trendValue={8}
-        />
-        <StatCard
-          title="Pending Approval"
-          value={stats.pendingListings}
-          icon={<AlertCircle size={24} />}
-          color="bg-amber-500"
-          trend="down"
-          trendValue={3}
-        />
-        <StatCard
-          title="Active Conversations"
-          value={stats.totalConversations}
-          icon={<MessageSquare size={24} />}
-          color="bg-purple-500"
-          trend="up"
-          trendValue={15}
-        />
-      </div>
+      {loading && chartData.length === 0 ? (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="animate-spin text-blue-500" size={48} />
+        </div>
+      ) : (
+        <>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard
+              title="Total Users"
+              value={stats.totalUsers}
+              icon={<Users size={24} />}
+              color="bg-blue-500"
+              trend="up"
+              trendValue={12}
+            />
+            <StatCard
+              title="Total Listings"
+              value={stats.totalListings}
+              icon={<Home size={24} />}
+              color="bg-green-500"
+              trend="up"
+              trendValue={8}
+            />
+            <StatCard
+              title="Pending Approval"
+              value={stats.pendingListings}
+              icon={<AlertCircle size={24} />}
+              color="bg-amber-500"
+              trend="down"
+              trendValue={3}
+            />
+            <StatCard
+              title="Active Conversations"
+              value={stats.totalConversations}
+              icon={<MessageSquare size={24} />}
+              color="bg-purple-500"
+              trend="up"
+              trendValue={15}
+            />
+          </div>
 
       {/* Quick Actions */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
@@ -262,6 +274,8 @@ const AdminHome = () => {
           </BarChart>
         </ResponsiveContainer>
       </div>
+        </>
+      )}
     </div>
   )
 }

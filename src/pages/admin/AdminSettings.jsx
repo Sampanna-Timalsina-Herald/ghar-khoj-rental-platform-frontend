@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
-import { Settings, Bell, Lock, Globe, Database, Save, X, CheckCircle } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Settings, Bell, Lock, Globe, Database, Save, X, CheckCircle, RefreshCw, AlertCircle } from 'lucide-react'
+import api from '../../api/axios'
 
 const SettingSection = ({ icon, title, description, children }) => (
   <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -49,27 +50,99 @@ const AdminSettings = () => {
     listingApprovalRequired: true,
     autoRejectionDays: 30,
     maintenanceMessage: 'Site is under maintenance. Please try again later.',
+    enableNewListingAlerts: true,
+    enableMessageNotifications: true,
   })
 
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+  const [originalSettings, setOriginalSettings] = useState({})
+
+  useEffect(() => {
+    fetchSettings()
+  }, [])
+
+  const fetchSettings = async () => {
+    try {
+      setLoading(true)
+      setError('')
+      
+      const response = await api.get('/admin/settings')
+      
+      if (response.data.success) {
+        // Backend returns simple object format: { settingKey: value }
+        // Controller already handles type conversion
+        const settingsData = response.data.data
+        setSettings(settingsData)
+        setOriginalSettings(settingsData)
+      }
+    } catch (err) {
+      console.error('Error fetching settings:', err)
+      setError('Failed to load settings. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSettingChange = (key, value) => {
     setSettings(prev => ({ ...prev, [key]: value }))
     setSaved(false)
+    setError('')
   }
 
-  const handleSave = () => {
-    console.log('Saving settings:', settings)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+  const handleSave = async () => {
+    try {
+      setSaving(true)
+      setError('')
+      
+      const response = await api.put('/admin/settings', settings)
+      
+      if (response.data.success) {
+        setSaved(true)
+        setOriginalSettings(settings)
+        setTimeout(() => setSaved(false), 3000)
+      }
+    } catch (err) {
+      console.error('Error saving settings:', err)
+      setError('Failed to save settings. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCancel = () => {
+    setSettings(originalSettings)
+    setSaved(false)
+    setError('')
+  }
+
+  const hasChanges = JSON.stringify(settings) !== JSON.stringify(originalSettings)
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-4xl font-bold text-gray-900">System Settings</h1>
-        <p className="text-gray-600 mt-2">Manage platform configuration and preferences</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-4xl font-bold text-gray-900">System Settings</h1>
+          <p className="text-gray-600 mt-2">Manage platform configuration and preferences</p>
+        </div>
+        <button
+          onClick={fetchSettings}
+          className="px-4 py-2 border border-gray-300 rounded-lg text-gray-900 hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
+        >
+          <RefreshCw size={18} />
+          Refresh
+        </button>
       </div>
 
       {/* Save Notification */}
@@ -77,6 +150,14 @@ const AdminSettings = () => {
         <div className="flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
           <CheckCircle size={20} />
           <span className="font-medium">Settings saved successfully!</span>
+        </div>
+      )}
+
+      {/* Error Notification */}
+      {error && (
+        <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <AlertCircle size={20} />
+          <span className="font-medium">{error}</span>
         </div>
       )}
 
@@ -124,14 +205,14 @@ const AdminSettings = () => {
           <ToggleSetting
             label="New Listing Alerts"
             description="Send alerts when new listings matching user preferences are posted"
-            enabled={true}
-            onChange={() => {}}
+            enabled={settings.enableNewListingAlerts}
+            onChange={(value) => handleSettingChange('enableNewListingAlerts', value)}
           />
           <ToggleSetting
             label="Message Notifications"
             description="Notify users when they receive new messages"
-            enabled={true}
-            onChange={() => {}}
+            enabled={settings.enableMessageNotifications}
+            onChange={(value) => handleSettingChange('enableMessageNotifications', value)}
           />
         </div>
       </SettingSection>
@@ -189,7 +270,7 @@ const AdminSettings = () => {
               onChange={(e) => handleSettingChange('maxListingsPerUser', parseInt(e.target.value))}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
             />
-            <p className="text-gray-600 text-sm mt-2">Maximum number of listings each user can create</p>
+            <p className="text-gray-600 text-sm mt-2">Maximum number of active listings each user can create</p>
           </div>
         </div>
       </SettingSection>
@@ -222,16 +303,30 @@ const AdminSettings = () => {
 
       {/* Save Button */}
       <div className="flex gap-4 justify-end">
-        <button className="px-6 py-3 border border-gray-300 rounded-lg text-gray-900 hover:bg-gray-50 transition-colors font-medium flex items-center gap-2">
+        <button
+          onClick={handleCancel}
+          disabled={!hasChanges}
+          className="px-6 py-3 border border-gray-300 rounded-lg text-gray-900 hover:bg-gray-50 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           <X size={20} />
           Cancel
         </button>
         <button
           onClick={handleSave}
-          className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium flex items-center gap-2"
+          disabled={saving || !hasChanges}
+          className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Save size={20} />
-          Save Settings
+          {saving ? (
+            <>
+              <RefreshCw size={20} className="animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save size={20} />
+              Save Settings
+            </>
+          )}
         </button>
       </div>
     </div>
