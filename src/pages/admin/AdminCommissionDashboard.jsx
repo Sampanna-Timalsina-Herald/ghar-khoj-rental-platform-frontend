@@ -32,23 +32,10 @@ const AdminCommissionDashboard = () => {
   });
   const [message, setMessage] = useState({ type: '', text: '' });
   const [lastUpdate, setLastUpdate] = useState(new Date());
-  const [autoRefresh, setAutoRefresh] = useState(true);
 
   useEffect(() => {
     fetchDashboardData();
-    
-    // Set up real-time polling every 30 seconds if auto-refresh is enabled
-    let interval;
-    if (autoRefresh) {
-      interval = setInterval(() => {
-        fetchDashboardData();
-      }, 30000);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [autoRefresh]);
+  }, []);
 
   const fetchDashboardData = async () => {
     try {
@@ -194,17 +181,6 @@ const AdminCommissionDashboard = () => {
           </p>
         </div>
         <div className="flex gap-3">
-          <button
-            onClick={() => setAutoRefresh(!autoRefresh)}
-            className={`px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
-              autoRefresh
-                ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <RefreshCw size={18} className={autoRefresh ? 'animate-spin' : ''} />
-            {autoRefresh ? 'Auto-Refresh ON' : 'Auto-Refresh OFF'}
-          </button>
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -213,7 +189,7 @@ const AdminCommissionDashboard = () => {
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-semibold disabled:opacity-50"
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-            Refresh Now
+            Refresh
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -223,15 +199,6 @@ const AdminCommissionDashboard = () => {
           >
             <Download size={18} />
             Export Report
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={fetchDashboardData}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-semibold"
-          >
-            <RefreshCw size={18} />
-            Refresh
           </motion.button>
         </div>
       </div>

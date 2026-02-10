@@ -10,6 +10,7 @@ import AdminProfile from './AdminProfile'
 import AdvancedReports from './AdvancedReports'
 import AdminSettings from './AdminSettings'
 import AdminCommissionDashboard from './AdminCommissionDashboard'
+import ComprehensiveAnalyticsDashboard from './ComprehensiveAnalyticsDashboard'
 
 const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -53,6 +54,11 @@ const AdminDashboard = () => {
       icon: <TrendingUp size={20} />,
     },
     {
+      label: 'Analytics',
+      path: '/analytics',
+      icon: <BarChart3 size={20} />,
+    },
+    {
       label: 'Settings',
       path: '/settings',
       icon: <SettingsIcon size={20} />,
@@ -81,6 +87,7 @@ const AdminDashboard = () => {
             <Route path="users" element={<AdminUsers />} />
             <Route path="commissions" element={<AdminCommissionDashboard />} />
             <Route path="reports" element={<AdvancedReports />} />
+            <Route path="analytics" element={<ComprehensiveAnalyticsDashboard />} />
             <Route path="settings" element={<AdminSettings />} />
             <Route path="profile" element={<AdminProfile />} />
           </Routes>
