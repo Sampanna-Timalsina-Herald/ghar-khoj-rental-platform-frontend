@@ -37,6 +37,7 @@ const ComprehensiveAnalyticsDashboard = () => {
 
   // Date range options
   const dateRangeOptions = [
+    { label: 'All Time', value: 'all' },
     { label: 'Today', value: 'today' },
     { label: 'Yesterday', value: 'yesterday' },
     { label: 'Last 7 Days', value: '7' },
@@ -57,6 +58,29 @@ const ComprehensiveAnalyticsDashboard = () => {
     { id: 'advanced', label: 'Advanced', icon: Target }
   ];
 
+  // Nepal cities list - Priority cities first
+  const nepalCities = [
+    'Kathmandu',
+    'Lalitpur',
+    'Bhaktapur'
+  ];
+
+  // Get unique cities combining database cities and static list
+  const getAvailableCities = () => {
+    const dbCities = data?.locations?.by_city?.map(c => c.city) || [];
+    const allCities = [...new Set([...nepalCities, ...dbCities])];
+    // Sort to keep priority cities (Kathmandu, Lalitpur, Bhaktapur) at top
+    return allCities.sort((a, b) => {
+      const priority = ['Kathmandu', 'Lalitpur', 'Bhaktapur'];
+      const aIndex = priority.indexOf(a);
+      const bIndex = priority.indexOf(b);
+      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
+      return a.localeCompare(b);
+    });
+  };
+
   useEffect(() => {
     fetchComprehensiveData();
   }, [dateRange, selectedCity, selectedPropertyType, selectedStatus, selectedRole, selectedPaymentStatus, customStartDate, customEndDate]);
@@ -67,7 +91,9 @@ const ComprehensiveAnalyticsDashboard = () => {
       const params = new URLSearchParams();
       
       // Date range handling
-      if (dateRange === 'custom' && customStartDate && customEndDate) {
+      if (dateRange === 'all') {
+        // Don't add any date filters - fetch all data
+      } else if (dateRange === 'custom' && customStartDate && customEndDate) {
         params.append('startDate', new Date(customStartDate).toISOString());
         params.append('endDate', new Date(customEndDate).toISOString());
       } else if (dateRange && !isNaN(dateRange)) {
@@ -1272,8 +1298,8 @@ const ComprehensiveAnalyticsDashboard = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="all">All Cities</option>
-                    {data?.locations?.by_city?.map(city => (
-                      <option key={city.city} value={city.city}>{city.city}</option>
+                    {getAvailableCities().map(city => (
+                      <option key={city} value={city}>{city}</option>
                     ))}
                   </select>
                 </div>
