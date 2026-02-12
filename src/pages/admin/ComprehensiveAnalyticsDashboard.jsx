@@ -1021,166 +1021,584 @@ const ComprehensiveAnalyticsDashboard = () => {
   };
 
   const AdvancedTab = () => {
+    const [viewMode, setViewMode] = useState('analytics'); // 'analytics' or 'properties'
+    const [currentPage, setCurrentPage] = useState(1);
+    const [propertiesPerPage] = useState(20);
+    const [allProperties, setAllProperties] = useState([]);
+    const [loadingProperties, setLoadingProperties] = useState(false);
+
+    // Fetch all properties when switching to properties view
+    useEffect(() => {
+      if (viewMode === 'properties' && allProperties.length === 0) {
+        fetchAllProperties();
+      }
+    }, [viewMode]);
+
+    const fetchAllProperties = async () => {
+      try {
+        setLoadingProperties(true);
+        const params = new URLSearchParams();
+        
+        // Apply filters
+        if (selectedCity !== 'all') params.append('city', selectedCity);
+        if (selectedPropertyType !== 'all') params.append('propertyType', selectedPropertyType);
+        if (selectedStatus !== 'all') params.append('status', selectedStatus);
+        if (dateRange === 'custom' && customStartDate && customEndDate) {
+          params.append('startDate', new Date(customStartDate).toISOString());
+          params.append('endDate', new Date(customEndDate).toISOString());
+        } else if (dateRange && !isNaN(dateRange)) {
+          const endDate = new Date();
+          const startDate = new Date();
+          startDate.setDate(startDate.getDate() - parseInt(dateRange));
+          params.append('startDate', startDate.toISOString());
+          params.append('endDate', endDate.toISOString());
+        }
+
+        const response = await api.get(`/admin/listings?${params.toString()}`);
+        if (response.data.success) {
+          setAllProperties(response.data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching properties:', error);
+      } finally {
+        setLoadingProperties(false);
+      }
+    };
+
+    // Pagination calculations
+    const indexOfLastProperty = currentPage * propertiesPerPage;
+    const indexOfFirstProperty = indexOfLastProperty - propertiesPerPage;
+    const currentProperties = allProperties.slice(indexOfFirstProperty, indexOfLastProperty);
+    const totalPages = Math.ceil(allProperties.length / propertiesPerPage);
+
     if (!data?.demand_supply && !data?.price_elasticity) return null;
 
     return (
       <div className="space-y-6">
         <SectionHeader 
           title="Advanced Analytics" 
-          subtitle="Demand-supply analysis, price elasticity, and market insights"
+          subtitle="Demand-supply analysis, price elasticity, market insights, and property details"
+          action={
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode('analytics')}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  viewMode === 'analytics'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                📊 Analytics View
+              </button>
+              <button
+                onClick={() => setViewMode('properties')}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  viewMode === 'properties'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                🏠 Properties View
+              </button>
+            </div>
+          }
         />
 
-        {/* Demand vs Supply Analysis */}
-        {data.demand_supply && data.demand_supply.length > 0 && (
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Demand vs Supply Analysis</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">City</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Property Type</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Supply</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Demand</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">D/S Ratio</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Market Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.demand_supply.slice(0, 20).map((item, index) => (
-                    <tr key={index} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4">{item.city || 'All'}</td>
-                      <td className="py-3 px-4 capitalize">{item.property_type || 'All'}</td>
-                      <td className="py-3 px-4 text-right">{item.supply}</td>
-                      <td className="py-3 px-4 text-right">{item.demand}</td>
-                      <td className="py-3 px-4 text-right font-semibold">
-                        {item.demand_supply_ratio ? parseFloat(item.demand_supply_ratio).toFixed(2) : 'N/A'}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          item.market_status === 'High Demand - Low Supply' ? 'bg-red-100 text-red-700' :
-                          item.market_status === 'Low Demand - High Supply' ? 'bg-blue-100 text-blue-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>
-                          {item.market_status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 bg-red-50 rounded-lg">
-                <div className="font-semibold text-red-700 mb-1">High Demand - Low Supply</div>
-                <div className="text-sm text-red-600">
-                  Opportunity zones - Consider increasing listings in these areas
+        {viewMode === 'analytics' ? (
+          <>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-6 border border-red-200">
+                <div className="flex items-center justify-between mb-2">
+                  <TrendingUp className="text-red-600" size={24} />
+                  <span className="text-xs font-semibold text-red-700 bg-red-200 px-2 py-1 rounded">HIGH DEMAND</span>
                 </div>
-              </div>
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <div className="font-semibold text-blue-700 mb-1">Low Demand - High Supply</div>
-                <div className="text-sm text-blue-600">
-                  Oversupply - May need marketing or price adjustments
+                <div className="text-3xl font-bold text-red-900">
+                  {data.demand_supply?.filter(d => d.market_status === 'High Demand - Low Supply').length || 0}
                 </div>
+                <div className="text-sm text-red-700 mt-1">High Demand Zones</div>
               </div>
-              <div className="p-4 bg-green-50 rounded-lg">
-                <div className="font-semibold text-green-700 mb-1">Balanced Market</div>
-                <div className="text-sm text-green-600">
-                  Healthy balance between demand and supply
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Price Elasticity */}
-        {data.price_elasticity && data.price_elasticity.length > 0 && (
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Price Elasticity Analysis</h3>
-            <p className="text-gray-600 mb-4">Average time to rent vs. price by property type and location</p>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Property Type</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">City</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Avg Price</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Median Price</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Avg Days to Rent</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Rentals</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.price_elasticity.map((item, index) => (
-                    <tr key={index} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4 capitalize">{item.type}</td>
-                      <td className="py-3 px-4">{item.city}</td>
-                      <td className="py-3 px-4 text-right">Rs. {parseFloat(item.avg_price).toFixed(0)}</td>
-                      <td className="py-3 px-4 text-right">Rs. {parseFloat(item.median_price).toFixed(0)}</td>
-                      <td className="py-3 px-4 text-right font-semibold">
-                        {parseFloat(item.avg_days_to_rent).toFixed(0)} days
-                      </td>
-                      <td className="py-3 px-4 text-right">{item.rental_count}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-4 p-4 bg-purple-50 rounded-lg">
-              <p className="text-sm text-purple-900">
-                <strong>Insight:</strong> Properties with lower prices relative to market averages 
-                tend to rent faster. A 5-10% price reduction can significantly decrease time to rent.
-              </p>
-            </div>
-          </div>
-        )}
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
+                <div className="flex items-center justify-between mb-2">
+                  <TrendingDown className="text-blue-600" size={24} />
+                  <span className="text-xs font-semibold text-blue-700 bg-blue-200 px-2 py-1 rounded">LOW DEMAND</span>
+                </div>
+                <div className="text-3xl font-bold text-blue-900">
+                  {data.demand_supply?.filter(d => d.market_status === 'Low Demand - High Supply').length || 0}
+                </div>
+                <div className="text-sm text-blue-700 mt-1">Oversupply Zones</div>
+              </div>
 
-        {/* Price Trend */}
-        {data.price_reports?.monthly_trend && data.price_reports.monthly_trend.length > 0 && (
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Average Rent Trend</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={data.price_reports.monthly_trend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="month" 
-                  tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short' })} 
-                />
-                <YAxis tickFormatter={(value) => `Rs. ${value}`} />
-                <Tooltip 
-                  labelFormatter={(value) => new Date(value).toLocaleDateString()}
-                  formatter={(value) => [`Rs. ${parseFloat(value).toFixed(0)}`, 'Avg Rent']}
-                />
-                <Legend />
-                <Line type="monotone" dataKey="avg_rent" stroke="#3B82F6" strokeWidth={2} name="Average Rent" />
-              </LineChart>
-            </ResponsiveContainer>
-            {data.price_reports.comparisons && (
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-3 bg-gray-50 rounded">
-                  <div className="text-sm text-gray-600">Last 15 Days</div>
-                  <div className="text-xl font-bold text-gray-900">
-                    Rs. {parseFloat(data.price_reports.comparisons.last_15_days).toFixed(0)}
+              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
+                <div className="flex items-center justify-between mb-2">
+                  <Activity className="text-green-600" size={24} />
+                  <span className="text-xs font-semibold text-green-700 bg-green-200 px-2 py-1 rounded">BALANCED</span>
+                </div>
+                <div className="text-3xl font-bold text-green-900">
+                  {data.demand_supply?.filter(d => d.market_status === 'Balanced Market').length || 0}
+                </div>
+                <div className="text-sm text-green-700 mt-1">Balanced Markets</div>
+              </div>
+
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
+                <div className="flex items-center justify-between mb-2">
+                  <Target className="text-purple-600" size={24} />
+                  <span className="text-xs font-semibold text-purple-700 bg-purple-200 px-2 py-1 rounded">TOTAL</span>
+                </div>
+                <div className="text-3xl font-bold text-purple-900">
+                  {data.demand_supply?.length || 0}
+                </div>
+                <div className="text-sm text-purple-700 mt-1">Market Segments</div>
+              </div>
+            </div>
+
+            {/* Demand vs Supply Chart */}
+            {data.demand_supply && data.demand_supply.length > 0 && (
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Demand vs Supply Analysis</h3>
+                    <p className="text-sm text-gray-600 mt-1">Market balance across different segments</p>
                   </div>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded">
-                  <div className="text-sm text-gray-600">Last 30 Days</div>
-                  <div className="text-xl font-bold text-gray-900">
-                    Rs. {parseFloat(data.price_reports.comparisons.last_30_days).toFixed(0)}
+
+                {/* Top insights */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="p-4 bg-red-50 rounded-lg border-l-4 border-red-500">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="text-red-600 mt-1" size={20} />
+                      <div>
+                        <div className="font-semibold text-red-900 mb-1">🔥 High Demand - Low Supply</div>
+                        <div className="text-sm text-red-700">
+                          Priority zones for new listings. High rental potential with limited competition.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="text-blue-600 mt-1" size={20} />
+                      <div>
+                        <div className="font-semibold text-blue-900 mb-1">⚠️ Low Demand - High Supply</div>
+                        <div className="text-sm text-blue-700">
+                          Oversaturated markets. Consider competitive pricing or enhanced marketing.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="text-green-600 mt-1" size={20} />
+                      <div>
+                        <div className="font-semibold text-green-900 mb-1">✅ Balanced Market</div>
+                        <div className="text-sm text-green-700">
+                          Healthy equilibrium. Maintain current strategy and monitor trends.
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded">
-                  <div className="text-sm text-gray-600">Monthly Growth</div>
-                  <div className={`text-xl font-bold ${
-                    data.price_reports.comparisons.monthly_growth_rate > 0 ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {data.price_reports.comparisons.monthly_growth_rate > 0 ? '+' : ''}
-                    {data.price_reports.comparisons.monthly_growth_rate}%
-                  </div>
+
+                {/* Visualization */}
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={data.demand_supply.slice(0, 15)}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="city" 
+                      angle={-45} 
+                      textAnchor="end" 
+                      height={100}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200">
+                              <p className="font-semibold text-gray-900 mb-2">
+                                {data.city || 'All'} - {data.property_type || 'All Types'}
+                              </p>
+                              <p className="text-sm text-blue-600">Supply: {data.supply}</p>
+                              <p className="text-sm text-green-600">Demand: {data.demand}</p>
+                              <p className="text-sm text-purple-600">D/S Ratio: {data.demand_supply_ratio?.toFixed(2) || 'N/A'}</p>
+                              <p className="text-sm text-gray-700 mt-2">
+                                <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                  data.market_status === 'High Demand - Low Supply' ? 'bg-red-100 text-red-700' :
+                                  data.market_status === 'Low Demand - High Supply' ? 'bg-blue-100 text-blue-700' :
+                                  'bg-green-100 text-green-700'
+                                }`}>
+                                  {data.market_status}
+                                </span>
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="supply" fill="#3B82F6" name="Supply" />
+                    <Bar dataKey="demand" fill="#10B981" name="Demand" />
+                  </BarChart>
+                </ResponsiveContainer>
+
+                {/* Detailed table */}
+                <div className="mt-6 overflow-x-auto">
+                  <h4 className="text-md font-semibold text-gray-900 mb-3">📋 Detailed Market Analysis</h4>
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-gray-50 border-b-2 border-gray-200">
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">City</th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Property Type</th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Supply</th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Demand</th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Searchers</th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-700">D/S Ratio</th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Market Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.demand_supply.map((item, index) => (
+                        <tr key={index} className="border-b hover:bg-gray-50 transition">
+                          <td className="py-3 px-4 font-medium">{item.city || 'All Cities'}</td>
+                          <td className="py-3 px-4 capitalize">{item.property_type || 'All Types'}</td>
+                          <td className="py-3 px-4 text-right font-semibold text-blue-600">{item.supply}</td>
+                          <td className="py-3 px-4 text-right font-semibold text-green-600">{item.demand}</td>
+                          <td className="py-3 px-4 text-right text-gray-600">{item.unique_searchers || 0}</td>
+                          <td className="py-3 px-4 text-right font-bold text-purple-600">
+                            {item.demand_supply_ratio ? parseFloat(item.demand_supply_ratio).toFixed(2) : 'N/A'}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1 ${
+                              item.market_status === 'High Demand - Low Supply' ? 'bg-red-100 text-red-700' :
+                              item.market_status === 'Low Demand - High Supply' ? 'bg-blue-100 text-blue-700' :
+                              'bg-green-100 text-green-700'
+                            }`}>
+                              {item.market_status === 'High Demand - Low Supply' ? '🔥' :
+                               item.market_status === 'Low Demand - High Supply' ? '⚠️' : '✅'}
+                              {item.market_status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
-          </div>
+
+            {/* Price Elasticity */}
+            {data.price_elasticity && data.price_elasticity.length > 0 && (
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">💰 Price Elasticity Analysis</h3>
+                  <p className="text-gray-600 mt-1">Correlation between pricing and rental velocity</p>
+                </div>
+
+                {/* Chart */}
+                <ResponsiveContainer width="100%" height={300}>
+                  <ScatterChart>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="avg_price" 
+                      name="Avg Price" 
+                      label={{ value: 'Average Price (Rs.)', position: 'bottom' }}
+                      tickFormatter={(value) => `Rs.${(value/1000).toFixed(0)}k`}
+                    />
+                    <YAxis 
+                      dataKey="avg_days_to_rent" 
+                      name="Days to Rent"
+                      label={{ value: 'Days to Rent', angle: -90, position: 'left' }}
+                    />
+                    <Tooltip 
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200">
+                              <p className="font-semibold text-gray-900 mb-2 capitalize">
+                                {data.type} - {data.city}
+                              </p>
+                              <p className="text-sm text-gray-700">Avg Price: Rs. {parseFloat(data.avg_price).toFixed(0)}</p>
+                              <p className="text-sm text-gray-700">Median Price: Rs. {parseFloat(data.median_price).toFixed(0)}</p>
+                              <p className="text-sm text-purple-600 font-semibold">Days to Rent: {parseFloat(data.avg_days_to_rent).toFixed(0)}</p>
+                              <p className="text-sm text-gray-600">Rentals: {data.rental_count}</p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Scatter data={data.price_elasticity} fill="#8B5CF6" />
+                  </ScatterChart>
+                </ResponsiveContainer>
+
+                <div className="mt-6 overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-gray-50 border-b-2 border-gray-200">
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Property Type</th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">City</th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Avg Price</th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Median Price</th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Avg Days to Rent</th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Rentals</th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Speed</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.price_elasticity.map((item, index) => {
+                        const daysToRent = parseFloat(item.avg_days_to_rent);
+                        const speed = daysToRent < 15 ? 'Fast' : daysToRent < 30 ? 'Average' : 'Slow';
+                        const speedColor = speed === 'Fast' ? 'bg-green-100 text-green-700' : 
+                                         speed === 'Average' ? 'bg-yellow-100 text-yellow-700' : 
+                                         'bg-red-100 text-red-700';
+                        return (
+                          <tr key={index} className="border-b hover:bg-gray-50 transition">
+                            <td className="py-3 px-4 capitalize font-medium">{item.type}</td>
+                            <td className="py-3 px-4">{item.city}</td>
+                            <td className="py-3 px-4 text-right">Rs. {parseFloat(item.avg_price).toFixed(0)}</td>
+                            <td className="py-3 px-4 text-right">Rs. {parseFloat(item.median_price).toFixed(0)}</td>
+                            <td className="py-3 px-4 text-right font-semibold text-purple-600">
+                              {daysToRent.toFixed(0)} days
+                            </td>
+                            <td className="py-3 px-4 text-right">{item.rental_count}</td>
+                            <td className="py-3 px-4">
+                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${speedColor}`}>
+                                {speed === 'Fast' ? '⚡' : speed === 'Average' ? '📊' : '🐌'} {speed}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mt-4 p-4 bg-purple-50 rounded-lg border-l-4 border-purple-500">
+                  <p className="text-sm text-purple-900">
+                    <strong>💡 Key Insight:</strong> Properties priced below market average (median) typically rent 2-3x faster. 
+                    A strategic 5-10% price reduction can significantly decrease vacancy period and attract quality tenants.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Price Trend */}
+            {data.price_reports?.monthly_trend && data.price_reports.monthly_trend.length > 0 && (
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">📈 Average Rent Trend</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={data.price_reports.monthly_trend}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="month" 
+                      tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short' })} 
+                    />
+                    <YAxis tickFormatter={(value) => `Rs. ${value}`} />
+                    <Tooltip 
+                      labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                      formatter={(value) => [`Rs. ${parseFloat(value).toFixed(0)}`, 'Avg Rent']}
+                    />
+                    <Legend />
+                    <Line type="monotone" dataKey="avg_rent" stroke="#3B82F6" strokeWidth={2} name="Average Rent" />
+                  </LineChart>
+                </ResponsiveContainer>
+                {data.price_reports.comparisons && (
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="text-center p-3 bg-gray-50 rounded">
+                      <div className="text-sm text-gray-600">Last 15 Days</div>
+                      <div className="text-xl font-bold text-gray-900">
+                        Rs. {parseFloat(data.price_reports.comparisons.last_15_days).toFixed(0)}
+                      </div>
+                    </div>
+                    <div className="text-center p-3 bg-gray-50 rounded">
+                      <div className="text-sm text-gray-600">Last 30 Days</div>
+                      <div className="text-xl font-bold text-gray-900">
+                        Rs. {parseFloat(data.price_reports.comparisons.last_30_days).toFixed(0)}
+                      </div>
+                    </div>
+                    <div className="text-center p-3 bg-gray-50 rounded">
+                      <div className="text-sm text-gray-600">Monthly Growth</div>
+                      <div className={`text-xl font-bold ${
+                        data.price_reports.comparisons.monthly_growth_rate > 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {data.price_reports.comparisons.monthly_growth_rate > 0 ? '+' : ''}
+                        {data.price_reports.comparisons.monthly_growth_rate}%
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Properties View */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">🏠 All Properties</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Showing {indexOfFirstProperty + 1}-{Math.min(indexOfLastProperty, allProperties.length)} of {allProperties.length} properties
+                  </p>
+                </div>
+                <button
+                  onClick={fetchAllProperties}
+                  disabled={loadingProperties}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 disabled:opacity-50"
+                >
+                  <RefreshCw size={16} className={loadingProperties ? 'animate-spin' : ''} />
+                  Refresh
+                </button>
+              </div>
+
+              {loadingProperties ? (
+                <div className="flex items-center justify-center py-20">
+                  <div className="text-center">
+                    <RefreshCw className="animate-spin mx-auto mb-4 text-blue-600" size={48} />
+                    <p className="text-gray-600">Loading properties...</p>
+                  </div>
+                </div>
+              ) : allProperties.length === 0 ? (
+                <div className="text-center py-20">
+                  <Home className="mx-auto mb-4 text-gray-400" size={48} />
+                  <p className="text-gray-600">No properties found matching the selected filters</p>
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-gray-50 border-b-2 border-gray-200">
+                          <th className="text-left py-3 px-4 font-semibold text-gray-700">ID</th>
+                          <th className="text-left py-3 px-4 font-semibold text-gray-700">Title</th>
+                          <th className="text-left py-3 px-4 font-semibold text-gray-700">Type</th>
+                          <th className="text-left py-3 px-4 font-semibold text-gray-700">Location</th>
+                          <th className="text-right py-3 px-4 font-semibold text-gray-700">Rent</th>
+                          <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
+                          <th className="text-left py-3 px-4 font-semibold text-gray-700">Landlord</th>
+                          <th className="text-right py-3 px-4 font-semibold text-gray-700">Views</th>
+                          <th className="text-left py-3 px-4 font-semibold text-gray-700">Created</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {currentProperties.map((property, index) => (
+                          <tr key={property.listing_id || index} className="border-b hover:bg-gray-50 transition">
+                            <td className="py-3 px-4 text-sm font-mono text-gray-600">#{property.listing_id}</td>
+                            <td className="py-3 px-4">
+                              <div className="max-w-xs">
+                                <div className="font-medium text-gray-900 truncate">{property.title || 'Untitled'}</div>
+                                {property.description && (
+                                  <div className="text-xs text-gray-500 truncate">{property.description.substring(0, 50)}...</div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold capitalize">
+                                {property.property_type || 'N/A'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="text-sm">
+                                <div className="font-medium text-gray-900">{property.city || 'N/A'}</div>
+                                <div className="text-xs text-gray-500">{property.area || 'N/A'}</div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-right font-semibold text-green-600">
+                              Rs. {parseFloat(property.rent_amount || 0).toLocaleString()}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                property.status === 'active' ? 'bg-green-100 text-green-700' :
+                                property.status === 'rented' ? 'bg-purple-100 text-purple-700' :
+                                'bg-gray-100 text-gray-700'
+                              }`}>
+                                {property.status || 'N/A'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="text-sm">
+                                <div className="font-medium text-gray-900">{property.landlord_name || 'Unknown'}</div>
+                                <div className="text-xs text-gray-500">{property.landlord_email || ''}</div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Eye size={14} className="text-gray-400" />
+                                <span className="text-sm font-medium">{property.total_views || 0}</span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-sm text-gray-600">
+                              {property.created_at ? new Date(property.created_at).toLocaleDateString() : 'N/A'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="mt-6 flex items-center justify-between">
+                      <div className="text-sm text-gray-600">
+                        Page {currentPage} of {totalPages}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={currentPage === 1}
+                          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          ← Previous
+                        </button>
+                        
+                        {/* Page numbers */}
+                        <div className="flex gap-1">
+                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            let pageNum;
+                            if (totalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (currentPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (currentPage >= totalPages - 2) {
+                              pageNum = totalPages - 4 + i;
+                            } else {
+                              pageNum = currentPage - 2 + i;
+                            }
+                            return (
+                              <button
+                                key={pageNum}
+                                onClick={() => setCurrentPage(pageNum)}
+                                className={`px-3 py-2 rounded-lg transition ${
+                                  currentPage === pageNum
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
+                              >
+                                {pageNum}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                          disabled={currentPage === totalPages}
+                          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Next →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </>
         )}
       </div>
     );
