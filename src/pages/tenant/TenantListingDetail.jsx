@@ -71,10 +71,12 @@ const TenantListingDetail = () => {
     try {
       await api.post('/recommendations/ml/track-view', {
         property_id: propertyId,
-        duration_seconds: 0,
-        viewed_images: false,
-        clicked_contact: false,
-        added_to_favorites: false
+        engagement: {
+          duration_seconds: 0,
+          viewed_images: false,
+          clicked_contact: false,
+          added_to_favorites: false
+        }
       })
       console.log('[TenantListingDetail] Property view tracked for ML')
     } catch (error) {

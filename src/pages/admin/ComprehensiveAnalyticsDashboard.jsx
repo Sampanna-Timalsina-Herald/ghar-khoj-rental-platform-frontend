@@ -6,10 +6,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  TrendingUp, TrendingDown, Users, Home, DollarSign, MapPin, 
+  TrendingUp, TrendingDown, Users, Home, DollarSign, 
   Calendar, Activity, Download, RefreshCw, BarChart3, PieChart as PieChartIcon,
   FileText, Eye, Filter, Search, Building2, Percent, Clock, Target,
-  AlertCircle, CheckCircle, XCircle, MapPinned, School, Award
+  AlertCircle, CheckCircle, XCircle, Award
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
@@ -54,7 +54,6 @@ const ComprehensiveAnalyticsDashboard = () => {
     { id: 'rental', label: 'Rental Activity', icon: Activity },
     { id: 'users', label: 'Users', icon: Users },
     { id: 'financial', label: 'Financial', icon: DollarSign },
-    { id: 'location', label: 'Location', icon: MapPin },
     { id: 'advanced', label: 'Advanced', icon: Target }
   ];
 
@@ -883,142 +882,7 @@ const ComprehensiveAnalyticsDashboard = () => {
     );
   };
 
-  const LocationTab = () => {
-    if (!data?.locations) return null;
 
-    return (
-      <div className="space-y-6">
-        <SectionHeader 
-          title="Location Analytics" 
-          subtitle="Geographic distribution and demand analysis"
-        />
-
-        {/* City Distribution */}
-        {data.locations.by_city && (
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Listings by City</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">City</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Listings</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Percentage</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Avg Rent</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Rented</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.locations.by_city.map((item, index) => (
-                    <tr key={index} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4 font-semibold">{item.city}</td>
-                      <td className="py-3 px-4 text-right">{item.count}</td>
-                      <td className="py-3 px-4 text-right">{item.percentage}%</td>
-                      <td className="py-3 px-4 text-right">Rs. {parseFloat(item.avg_rent).toFixed(0)}</td>
-                      <td className="py-3 px-4 text-right">{item.rented_count}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Area/Ward Distribution */}
-        {data.locations.by_area && data.locations.by_area.length > 0 && (
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Areas/Wards</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {data.locations.by_area.slice(0, 10).map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <div className="font-semibold text-gray-900">{item.area}</div>
-                    <div className="text-sm text-gray-600">{item.city}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold text-blue-600">{item.count}</div>
-                    <div className="text-xs text-gray-500">listings</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* College Proximity */}
-        {data.locations.by_college_proximity && data.locations.by_college_proximity.length > 0 && (
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              <School className="inline mr-2" size={20} />
-              Listings Near Universities/Colleges
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">College/University</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">City</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Listings</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Avg Rent</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.locations.by_college_proximity.map((item, index) => (
-                    <tr key={index} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4">{item.college_name}</td>
-                      <td className="py-3 px-4">{item.city}</td>
-                      <td className="py-3 px-4 text-right font-semibold">{item.count}</td>
-                      <td className="py-3 px-4 text-right">Rs. {parseFloat(item.avg_rent).toFixed(0)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-900">
-                <strong>Insight:</strong> Most listings are within 2km of major universities (TU, KU, etc.), 
-                making them ideal for students.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Heatmap Data */}
-        {data.heatmap?.high_demand_zones && data.heatmap.high_demand_zones.length > 0 && (
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">High Demand Zones</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Location</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Total Views</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Unique Viewers</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Rented</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Available</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.heatmap.high_demand_zones.slice(0, 20).map((item, index) => (
-                    <tr key={index} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4">
-                        <div className="font-semibold">{item.area}</div>
-                        <div className="text-sm text-gray-500">{item.city}</div>
-                      </td>
-                      <td className="py-3 px-4 text-right font-semibold text-blue-600">{item.total_views}</td>
-                      <td className="py-3 px-4 text-right">{item.unique_viewers}</td>
-                      <td className="py-3 px-4 text-right text-green-600">{item.rented_count}</td>
-                      <td className="py-3 px-4 text-right text-orange-600">{item.available_count}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
 
   const AdvancedTab = () => {
     const [viewMode, setViewMode] = useState('analytics'); // 'analytics' or 'properties'
@@ -1706,8 +1570,8 @@ const ComprehensiveAnalyticsDashboard = () => {
                 </>
               )}
 
-              {/* City Filter - For listings, location tabs */}
-              {(['overview', 'listings', 'location', 'rental'].includes(activeTab)) && (
+              {/* City Filter - For listings, rental tabs */}
+              {(['overview', 'listings', 'rental'].includes(activeTab)) && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
                   <select
@@ -1831,7 +1695,6 @@ const ComprehensiveAnalyticsDashboard = () => {
             {activeTab === 'rental' && <RentalActivityTab />}
             {activeTab === 'users' && <UsersTab />}
             {activeTab === 'financial' && <FinancialTab />}
-            {activeTab === 'location' && <LocationTab />}
             {activeTab === 'advanced' && <AdvancedTab />}
           </motion.div>
         </AnimatePresence>

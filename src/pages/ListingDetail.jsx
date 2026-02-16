@@ -22,6 +22,8 @@ const ListingDetail = () => {
     fetchListing()
     if (isAuthenticated) {
       checkIfFavorited()
+      // Track property view
+      trackPropertyView()
     }
   }, [id, isAuthenticated])
 
@@ -34,6 +36,23 @@ const ListingDetail = () => {
       console.log('[ListingDetail] Favorites loaded:', Array.from(favoriteIds))
     } catch (error) {
       console.error('Failed to check favorite status:', error)
+    }
+  }
+
+  const trackPropertyView = async () => {
+    try {
+      await api.post('/recommendations/ml/track-view', {
+        property_id: id,
+        engagement: {
+          duration_seconds: 0,
+          viewed_images: false,
+          clicked_contact: false,
+          added_to_favorites: false
+        }
+      })
+      console.log('[ListingDetail] Property view tracked')
+    } catch (error) {
+      console.error('[ListingDetail] Failed to track property view:', error)
     }
   }
 

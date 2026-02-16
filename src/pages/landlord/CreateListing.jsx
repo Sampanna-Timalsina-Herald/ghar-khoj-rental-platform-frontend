@@ -329,6 +329,13 @@ const CreateListing = () => {
     }
   }
 
+  const isLocationReady = Boolean(
+    formData.latitude &&
+    formData.longitude &&
+    formData.address.trim() &&
+    formData.city.trim()
+  )
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12">
       {/* Header */}
@@ -984,7 +991,7 @@ const CreateListing = () => {
                   onClick={handleNextStep}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  disabled={loading || success}
+                  disabled={loading || success || (activeStep === 1 && !isLocationReady)}
                   className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-sm rounded-lg hover:shadow-lg transition-all disabled:opacity-50"
                 >
                   Next

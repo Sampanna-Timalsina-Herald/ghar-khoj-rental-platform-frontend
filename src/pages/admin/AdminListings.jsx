@@ -1,24 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
-import { 
-  Home, 
-  Edit2, 
-  Trash2, 
-  Search, 
-  X, 
-  Save, 
-  Loader2,
-  CheckCircle2,
-  XCircle,
-  Check,
-  MapPin,
-  Bed,
-  Bath,
-  Eye,
-  Grid3X3,
-  List
-} from 'lucide-react'
 
 const AdminListings = () => {
   const [listings, setListings] = useState([])
@@ -33,7 +15,8 @@ const AdminListings = () => {
   const [actionLoading, setActionLoading] = useState({})
   const [message, setMessage] = useState({ type: '', text: '' })
   const [saving, setSaving] = useState(false)
-  const [viewMode, setViewMode] = useState('table') // 'table' or 'card'
+  const [currentPage, setCurrentPage] = useState(1)
+  const listingsPerPage = 15
 
   useEffect(() => {
     fetchListings()
@@ -180,6 +163,11 @@ const AdminListings = () => {
     listing.city?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const indexOfLastListing = currentPage * listingsPerPage
+  const indexOfFirstListing = indexOfLastListing - listingsPerPage
+  const currentListings = filteredListings.slice(indexOfFirstListing, indexOfLastListing)
+  const totalPages = Math.ceil(filteredListings.length / listingsPerPage)
+
   const getStatusColor = (status, isVerified) => {
     if (status === 'active' && isVerified) return 'bg-green-100 text-green-700'
     if (status === 'active' && !isVerified) return 'bg-yellow-100 text-yellow-700'
@@ -191,410 +179,158 @@ const AdminListings = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 size={32} className="animate-spin text-primary-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="flex items-center gap-3 mb-2">
-          <Home size={32} className="text-primary-600" />
-          <h1 className="text-3xl font-bold text-text">Manage Listings</h1>
-        </div>
-        <p className="text-gray-600">Review, edit, and manage all property listings</p>
-      </motion.div>
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Manage Listings</h1>
+        <p className="text-gray-600 mt-1">Review, edit, and manage all property listings</p>
+      </div>
 
+      {/* Message */}
       {message.text && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`p-4 rounded-lg flex items-center gap-3 ${
-            message.type === 'success' 
-              ? 'bg-green-50 border border-green-200 text-green-700' 
-              : 'bg-red-50 border border-red-200 text-red-700'
-          }`}
-        >
-          {message.type === 'success' ? (
-            <CheckCircle2 size={20} />
-          ) : (
-            <XCircle size={20} />
-          )}
-          <span>{message.text}</span>
-        </motion.div>
+        <div className={`p-4 rounded-lg ${
+          message.type === 'success' 
+            ? 'bg-green-50 border border-green-200 text-green-700' 
+            : 'bg-red-50 border border-red-200 text-red-700'
+        }`}>
+          {message.text}
+        </div>
       )}
 
-      {/* Search Bar & View Toggle */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="flex gap-4"
-      >
-        <div className="relative flex-1">
-          <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search listings by title, address, or city..."
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-          />
-        </div>
-        <div className="flex gap-2 bg-white rounded-lg border border-gray-300 p-1">
-          <button
-            onClick={() => setViewMode('table')}
-            className={`p-2 rounded transition-all ${viewMode === 'table' ? 'bg-primary-100 text-primary-600' : 'text-gray-600 hover:text-gray-900'}`}
-            title="Table View"
-          >
-            <List size={20} />
-          </button>
-          <button
-            onClick={() => setViewMode('card')}
-            className={`p-2 rounded transition-all ${viewMode === 'card' ? 'bg-primary-100 text-primary-600' : 'text-gray-600 hover:text-gray-900'}`}
-            title="Card View"
-          >
-            <Grid3X3 size={20} />
-          </button>
-        </div>
-      </motion.div>
+      {/* Search Bar */}
+      <div className="flex gap-4">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search listings by title, address, or city..."
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+        />
+      </div>
 
-      {/* Listings View */}
-      {viewMode === 'table' ? (
-        /* Table View */
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="bg-white rounded-xl shadow-lg overflow-hidden"
-      >
+      {/* Listings Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gradient-to-r from-primary-600 to-primary-700 text-white">
-              <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Title</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Location</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Price</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Details</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Status</th>
-                <th className="px-6 py-4 text-center text-sm font-semibold">Actions</th>
+            <thead>
+              <tr className="bg-gray-50 border-b-2 border-gray-200">
+                <th className="text-left py-3 px-4 font-semibold text-gray-700">Title</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700">Location</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700">Price</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700">Bedrooms</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
+                <th className="text-center py-3 px-4 font-semibold text-gray-700">Actions</th>
               </tr>
             </thead>
             <tbody>
-              <AnimatePresence>
-                {filteredListings.map((listing, index) => (
-                  <motion.tr
-                    key={listing.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
-                  >
-                    {editingListing?.id === listing.id ? (
-                      <>
-                        <td className="px-6 py-4">
-                          <input
-                            type="text"
-                            value={editingListing.title || ''}
-                            onChange={(e) => updateEditingListing('title', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm"
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                          <input
-                            type="text"
-                            value={editingListing.address || ''}
-                            onChange={(e) => updateEditingListing('address', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm"
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                          <input
-                            type="number"
-                            value={editingListing.rent_amount || editingListing.price || ''}
-                            onChange={(e) => updateEditingListing('rent_amount', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm"
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex gap-2">
-                            <input
-                              type="number"
-                              placeholder="Beds"
-                              value={editingListing.bedrooms || ''}
-                              onChange={(e) => updateEditingListing('bedrooms', e.target.value)}
-                              className="w-20 px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm"
-                            />
-                            <input
-                              type="number"
-                              placeholder="Baths"
-                              value={editingListing.bathrooms || ''}
-                              onChange={(e) => updateEditingListing('bathrooms', e.target.value)}
-                              className="w-20 px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm"
-                            />
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <select
-                            value={editingListing.status || 'active'}
-                            onChange={(e) => updateEditingListing('status', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+              {currentListings.map((listing) => (
+                <tr key={listing.id} className="border-b hover:bg-gray-50 transition">
+                  <td className="py-3 px-4">
+                    <div className="font-medium text-gray-900">{listing.title}</div>
+                  </td>
+                  <td className="py-3 px-4 text-gray-600">
+                    <div className="text-sm">{listing.address}</div>
+                    <div className="text-xs text-gray-500">{listing.city}</div>
+                  </td>
+                  <td className="py-3 px-4 text-gray-900 font-semibold">
+                    Rs. {Number(listing.rent_amount || 0).toLocaleString()}
+                  </td>
+                  <td className="py-3 px-4 text-gray-600">
+                    {listing.bedrooms || '-'}
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusColor(listing.status, listing.is_verified)}`}>
+                      {listing.status === 'active' && !listing.is_verified && 'Pending'}
+                      {listing.status === 'active' && listing.is_verified && 'Active'}
+                      {listing.status === 'inactive' && 'Inactive'}
+                      {listing.status === 'rented' && 'Rented'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="flex gap-2 justify-center flex-wrap">
+                      <button
+                        onClick={() => setViewingListing(listing)}
+                        className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition"
+                      >
+                        View
+                      </button>
+                      {listing.status === 'active' && !listing.is_verified && (
+                        <>
+                          <button
+                            onClick={() => handleApprove(listing.id)}
+                            disabled={actionLoading[listing.id]}
+                            className="px-3 py-1 text-sm bg-green-100 hover:bg-green-200 text-green-700 rounded transition disabled:opacity-50"
                           >
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="rented">Rented</option>
-                          </select>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex gap-2 justify-center">
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={handleSaveEdit}
-                              disabled={saving}
-                              className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50"
-                            >
-                              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                            </motion.button>
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={handleCancelEdit}
-                              className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
-                            >
-                              <X size={16} />
-                            </motion.button>
-                          </div>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="px-6 py-4">
-                          <div className="font-medium text-text">{listing.title}</div>
-                          {listing.description && (
-                            <div className="text-xs text-gray-500 mt-1 line-clamp-1">
-                              {listing.description.substring(0, 50)}...
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-1 text-sm text-gray-600">
-                            <MapPin size={14} />
-                            <span>{listing.city || listing.address || 'N/A'}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="font-semibold text-text">
-                            Rs. {(listing.rent_amount || listing.price || 0).toLocaleString()}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3 text-sm text-gray-600">
-                            <span className="flex items-center gap-1">
-                              <Bed size={14} />
-                              {listing.bedrooms || 0}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Bath size={14} />
-                              {listing.bathrooms || 0}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col gap-1">
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold w-fit ${getStatusColor(listing.status, listing.is_verified)}`}>
-                              {listing.status || 'active'}
-                            </span>
-                            {!listing.is_verified && listing.status === 'active' && (
-                              <span className="px-3 py-1 rounded-full text-xs font-semibold w-fit bg-yellow-100 text-yellow-700">
-                                Pending Verification
-                              </span>
-                            )}
-                            {listing.admin_notes && listing.admin_changes_seen && (
-                              <span className="px-3 py-1 rounded-full text-xs font-semibold w-fit bg-green-100 text-green-700">
-                                ✓ Seen
-                              </span>
-                            )}
-                            {listing.admin_notes && !listing.admin_changes_seen && (
-                              <span className="px-3 py-1 rounded-full text-xs font-semibold w-fit bg-orange-100 text-orange-700">
-                                ⏳ Pending
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex gap-2 justify-center">
-                            {listing.status === 'active' && !listing.is_verified && (
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={() => handleApprove(listing.id)}
-                                disabled={actionLoading[listing.id]}
-                                className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50"
-                                title="Approve"
-                              >
-                                {actionLoading[listing.id] ? (
-                                  <Loader2 size={16} className="animate-spin" />
-                                ) : (
-                                  <Check size={16} />
-                                )}
-                              </motion.button>
-                            )}
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => setViewingListing(listing)}
-                              className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
-                              title="View Details"
-                            >
-                              <Eye size={16} />
-                            </motion.button>
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => setDeleteConfirm(listing.id)}
-                              className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 size={16} />
-                            </motion.button>
-                          </div>
-                        </td>
-                      </>
-                    )}
-                  </motion.tr>
-                ))}
-              </AnimatePresence>
+                            {actionLoading[listing.id] ? 'Loading...' : 'Approve'}
+                          </button>
+                          <button
+                            onClick={() => setRejectModal(listing.id)}
+                            disabled={actionLoading[listing.id]}
+                            className="px-3 py-1 text-sm bg-red-100 hover:bg-red-200 text-red-700 rounded transition disabled:opacity-50"
+                          >
+                            Reject
+                          </button>
+                          <button
+                            onClick={() => setRequestChangesModal(listing.id)}
+                            disabled={actionLoading[listing.id]}
+                            className="px-3 py-1 text-sm bg-yellow-100 hover:bg-yellow-200 text-yellow-700 rounded transition disabled:opacity-50"
+                          >
+                            Request Changes
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={() => setDeleteConfirm(listing.id)}
+                        className="px-3 py-1 text-sm bg-red-100 hover:bg-red-200 text-red-700 rounded transition"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
 
-        {filteredListings.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            <Home size={48} className="mx-auto mb-4 opacity-50" />
-            <p>No listings found</p>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="px-4 py-3 bg-gray-50 border-t flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              Showing {indexOfFirstListing + 1}-{Math.min(indexOfLastListing, filteredListings.length)} of {filteredListings.length} listings
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 bg-white border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="px-3 py-1">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 bg-white border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
-      </motion.div>
-      ) : (
-        /* Card View */
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          <AnimatePresence>
-            {filteredListings.map((listing) => (
-              <motion.div
-                key={listing.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all"
-              >
-                {/* Card Image Placeholder */}
-                <div className="h-48 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white">
-                  <Home size={48} opacity={0.5} />
-                </div>
-
-                {/* Card Content */}
-                <div className="p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">{listing.title}</h3>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{listing.description}</p>
-
-                  {/* Location */}
-                  <div className="flex items-center gap-2 text-gray-600 text-sm mb-3">
-                    <MapPin size={16} />
-                    <span>{listing.city || listing.address || 'N/A'}</span>
-                  </div>
-
-                  {/* Price */}
-                  <div className="text-lg font-bold text-gray-900 mb-4">
-                    Rs. {(listing.rent_amount || listing.price || 0).toLocaleString()}
-                  </div>
-
-                  {/* Details */}
-                  <div className="flex gap-4 mb-4 text-sm text-gray-600">
-                    <span className="flex items-center gap-1">
-                      <Bed size={16} />
-                      {listing.bedrooms || 0} Beds
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Bath size={16} />
-                      {listing.bathrooms || 0} Baths
-                    </span>
-                  </div>
-
-                  {/* Status */}
-                  <div className="flex gap-2 mb-4 flex-wrap">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(listing.status, listing.is_verified)}`}>
-                      {listing.status || 'active'}
-                    </span>
-                    {!listing.is_verified && listing.status === 'active' && (
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
-                        Pending
-                      </span>
-                    )}
-                    {listing.admin_notes && listing.admin_changes_seen && (
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 flex items-center gap-1">
-                        ✓ Changes Seen
-                      </span>
-                    )}
-                    {listing.admin_notes && !listing.admin_changes_seen && (
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 flex items-center gap-1">
-                        ⏳ Awaiting Review
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2">
-                    {listing.status === 'active' && !listing.is_verified && (
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleApprove(listing.id)}
-                        disabled={actionLoading[listing.id]}
-                        className="flex-1 p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50 font-medium text-sm"
-                      >
-                        {actionLoading[listing.id] ? <Loader2 size={16} className="animate-spin mx-auto" /> : <Check size={16} className="mx-auto" />}
-                      </motion.button>
-                    )}
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setViewingListing(listing)}
-                      className="flex-1 p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors font-medium text-sm"
-                    >
-                      <Eye size={16} className="mx-auto" />
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setDeleteConfirm(listing.id)}
-                      className="flex-1 p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors font-medium text-sm"
-                    >
-                      <Trash2 size={16} className="mx-auto" />
-                    </motion.button>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
-      )}
+      </div>
 
       {filteredListings.length === 0 && (
         <div className="text-center py-12 text-gray-500">
-          <Home size={48} className="mx-auto mb-4 opacity-50" />
-          <p>No listings found</p>
+          <p className="text-lg">No listings found</p>
         </div>
       )}
 
@@ -617,12 +353,12 @@ const AdminListings = () => {
             >
               {/* Modal Header */}
               <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between z-10">
-                <h3 className="text-2xl font-bold text-text">Listing Details</h3>
+                <h3 className="text-2xl font-bold text-gray-900">Listing Details</h3>
                 <button
-                  onClick={() => setViewingListing(null)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  onClick={() => setViewingListing(null) }
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
                 >
-                  <X size={24} />
+                  Close
                 </button>
               </div>
 
@@ -648,8 +384,7 @@ const AdminListings = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-gray-600 font-medium">Location:</span>
-                      <p className="text-text flex items-center gap-2 mt-1">
-                        <MapPin size={16} className="text-primary-600" />
+                      <p className="text-gray-900 mt-1">
                         {viewingListing.city}, {viewingListing.address}
                       </p>
                     </div>
@@ -661,15 +396,13 @@ const AdminListings = () => {
                     </div>
                     <div>
                       <span className="text-gray-600 font-medium">Bedrooms:</span>
-                      <p className="text-text flex items-center gap-2 mt-1">
-                        <Bed size={16} />
+                      <p className="text-gray-900 mt-1">
                         {viewingListing.bedrooms || 0} Beds
                       </p>
                     </div>
                     <div>
                       <span className="text-gray-600 font-medium">Bathrooms:</span>
-                      <p className="text-text flex items-center gap-2 mt-1">
-                        <Bath size={16} />
+                      <p className="text-gray-900 mt-1">
                         {viewingListing.bathrooms || 0} Baths
                       </p>
                     </div>
@@ -801,47 +534,34 @@ const AdminListings = () => {
                 </motion.button>
                 {viewingListing.status === 'active' && !viewingListing.is_verified && (
                   <>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                    <button
                       onClick={() => {
                         setRejectModal(viewingListing.id)
                         setViewingListing(null)
                       }}
-                      className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                      className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
                     >
-                      <XCircle size={16} />
                       Reject
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                    </button>
+                    <button
                       onClick={() => {
                         setRequestChangesModal(viewingListing.id)
                         setViewingListing(null)
                       }}
-                      className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
+                      className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
                     >
-                      <Edit2 size={16} />
                       Request Changes
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                    </button>
+                    <button
                       onClick={() => {
                         handleApprove(viewingListing.id)
                         setViewingListing(null)
                       }}
                       disabled={actionLoading[viewingListing.id]}
-                      className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                      className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
                     >
-                      {actionLoading[viewingListing.id] ? (
-                        <Loader2 size={16} className="animate-spin" />
-                      ) : (
-                        <Check size={16} />
-                      )}
-                      Approve
-                    </motion.button>
+                      {actionLoading[viewingListing.id] ? 'Approving...' : 'Approve'}
+                    </button>
                   </>
                 )}
               </div>
@@ -894,7 +614,7 @@ const AdminListings = () => {
                   disabled={!feedbackMessage.trim() || actionLoading[requestChangesModal]}
                   className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
-                  {actionLoading[requestChangesModal] ? <Loader2 size={16} className="animate-spin" /> : null}
+                  {actionLoading[requestChangesModal] ? 'Sending...' : 'Request Changes'}
                   Send Request
                 </motion.button>
               </div>
@@ -947,7 +667,7 @@ const AdminListings = () => {
                   disabled={!feedbackMessage.trim() || actionLoading[rejectModal]}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
-                  {actionLoading[rejectModal] ? <Loader2 size={16} className="animate-spin" /> : null}
+                  {actionLoading[rejectModal] ? 'Rejecting...' : 'Reject'}
                   Reject Listing
                 </motion.button>
               </div>
@@ -993,7 +713,7 @@ const AdminListings = () => {
                   disabled={saving}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
-                  {saving ? <Loader2 size={16} className="animate-spin" /> : null}
+                  {saving ? 'Deleting...' : 'Delete'}
                   Delete Listing
                 </motion.button>
               </div>
