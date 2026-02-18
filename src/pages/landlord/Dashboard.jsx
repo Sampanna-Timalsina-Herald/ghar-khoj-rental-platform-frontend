@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState, useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import { Home, Plus, MessageSquare, BarChart3, User, FileText, Calendar, CreditCard } from 'lucide-react'
+import { Home, Plus, MessageSquare, BarChart3, User, FileText, Calendar, CreditCard, Package, TrendingUp } from 'lucide-react'
 import Navbar from '../../components/Navbar'
 import Sidebar from '../../components/Sidebar'
 import LandlordHome from './LandlordHome'
@@ -13,6 +13,8 @@ import LandlordConversations from './LandlordConversations'
 import LandlordProfile from './LandlordProfile'
 import LandlordAgreements from './LandlordAgreements'
 import LandlordBilling from './LandlordBilling'
+import SubscriptionPlans from './SubscriptionPlans'
+import SubscriptionDashboard from './SubscriptionDashboard'
 import { useAuthStore } from '../../stores/authStore'
 import api from '../../api/axios'
 import { initSocket } from '../../services/socket'
@@ -72,6 +74,11 @@ const LandlordLayout = () => {
       icon: <BarChart3 size={20} />,
     },
     {
+      label: 'My Subscription',
+      path: '/subscription',
+      icon: <Package size={20} />,
+    },
+    {
       label: 'My Listings',
       path: '/listings',
       icon: <Home size={20} />,
@@ -122,6 +129,8 @@ const LandlordLayout = () => {
         <main className="flex-1 w-full overflow-hidden p-4 lg:p-8 lg:overflow-auto">
           <Routes>
             <Route index element={<LandlordHome />} />
+            <Route path="subscription" element={<SubscriptionDashboard />} />
+            <Route path="subscription-plans" element={<SubscriptionPlans />} />
             <Route path="bookings" element={<LandlordBookings />} />
             <Route path="listings" element={<LandlordListings />} />
             <Route path="listings/create" element={<CreateListing />} />

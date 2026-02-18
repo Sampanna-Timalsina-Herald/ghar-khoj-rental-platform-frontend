@@ -261,15 +261,19 @@ const AdminUsers = () => {
               
               <div className="space-y-4">
                 {/* Profile Image */}
-                {viewingUser.profile_image && (
-                  <div className="flex justify-center mb-4">
+                <div className="flex justify-center mb-4">
+                  {viewingUser.profile_image ? (
                     <img
                       src={viewingUser.profile_image.startsWith('http') ? viewingUser.profile_image : `http://localhost:5000${viewingUser.profile_image}`}
                       alt={viewingUser.name}
                       className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
                     />
-                  </div>
-                )}
+                  ) : (
+                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-4xl border-4 border-gray-200">
+                      {viewingUser.name ? viewingUser.name.charAt(0).toUpperCase() : viewingUser.email.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">

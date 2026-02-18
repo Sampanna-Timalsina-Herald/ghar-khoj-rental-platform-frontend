@@ -1,0 +1,301 @@
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import api from '../../api/axios';
+import { 
+  Loader2, 
+  Users, 
+  DollarSign, 
+  TrendingUp, 
+  Package, 
+  Calendar,
+  Search,
+  Filter,
+  Download,
+  RefreshCw
+} from 'lucide-react';
+
+const AdminSubscriptions = () => {
+  const [stats, setStats] = useState(null);
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterPlan, setFilterPlan] = useState('all');
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [statsResponse, subsResponse] = await Promise.all([
+        api.get('/subscriptions/admin/stats'),
+        api.get('/subscriptions/admin/all')
+      ]);
+
+      setStats(statsResponse.data.data);
+      setSubscriptions(subsResponse.data.data);
+    } catch (error) {
+      console.error('Error fetching subscription data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const runMaintenance = async () => {
+    try {
+      const response = await api.post('/subscriptions/admin/maintenance');
+      if (response.data.success) {
+        alert(`Maintenance completed:\n${JSON.stringify(response.data.data, null, 2)}`);
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Error running maintenance:', error);
+      alert('Failed to run maintenance');
+    }
+  };
+
+  const filteredSubscriptions = subscriptions.filter(sub => {
+    const matchesSearch = sub.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         sub.user_email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesPlan = filterPlan === 'all' || sub.plan_name === filterPlan;
+    return matchesSearch && matchesPlan;
+  });
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Subscription Management</h1>
+            <p className="text-gray-600 mt-2">Monitor and manage all subscriptions</p>
+          </div>
+          <button
+            onClick={runMaintenance}
+            className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            <RefreshCw className="w-5 h-5 mr-2" />
+            Run Maintenance
+          </button>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid md:grid-cols-4 gap-6 mb-8">
+          <StatCard
+            icon={Users}
+            label="Total Subscribers"
+            value={stats?.totals?.total_subscribers || 0}
+            color="blue"
+          />
+          <StatCard
+            icon={TrendingUp}
+            label="Active"
+            value={stats?.totals?.active_subscribers || 0}
+            color="green"
+          />
+          <StatCard
+            icon={DollarSign}
+            label="Total Revenue"
+            value={`NPR ${(stats?.totals?.total_revenue || 0).toLocaleString()}`}
+            color="purple"
+          />
+          <StatCard
+            icon={Package}
+            label="Plans Available"
+            value={stats?.plans?.length || 0}
+            color="indigo"
+          />
+        </div>
+
+        {/* Plan Breakdown */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Plan Breakdown</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {stats?.plans?.map((plan) => (
+              <div key={plan.plan_name} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-gray-900">{plan.display_name}</h3>
+                  <span className="text-2xl">
+                    {plan.tier === 1 ? '🥉' : plan.tier === 2 ? '🥈' : '🥇'}
+                  </span>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Subscribers:</span>
+                    <span className="font-semibold text-gray-900">
+                      {plan.subscriber_count || 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Monthly Revenue:</span>
+                    <span className="font-semibold text-green-600">
+                      NPR {(plan.monthly_revenue || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Annual Revenue:</span>
+                    <span className="font-semibold text-green-600">
+                      NPR {(plan.annual_revenue || 0).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Subscriptions Table */}
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Search by name or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+              <select
+                value={filterPlan}
+                onChange={(e) => setFilterPlan(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              >
+                <option value="all">All Plans</option>
+                <option value="basic">Basic</option>
+                <option value="pro">Pro</option>
+                <option value="business">Business</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    User
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Plan
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Properties
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Billing
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    End Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Amount
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredSubscriptions.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                      No subscriptions found
+                    </td>
+                  </tr>
+                ) : (
+                  filteredSubscriptions.map((sub) => (
+                    <tr key={sub.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {sub.user_name}
+                          </div>
+                          <div className="text-sm text-gray-500">{sub.user_email}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <span className="text-lg mr-2">
+                            {sub.plan_tier === 1 ? '🥉' : sub.plan_tier === 2 ? '🥈' : '🥇'}
+                          </span>
+                          <span className="text-sm font-medium text-gray-900">
+                            {sub.plan_display_name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          sub.status === 'active' 
+                            ? 'bg-green-100 text-green-800'
+                            : sub.status === 'cancelled'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {sub.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {sub.active_listings} / {sub.max_properties}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
+                        {sub.billing_cycle}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(sub.end_date).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        NPR {(sub.amount_paid || 0).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Stat Card Component
+const StatCard = ({ icon: Icon, label, value, color }) => {
+  const colorClasses = {
+    blue: 'bg-blue-500',
+    green: 'bg-green-500',
+    purple: 'bg-purple-500',
+    indigo: 'bg-indigo-500',
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-xl shadow-lg p-6"
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-gray-600 mb-1">{label}</p>
+          <p className="text-2xl font-bold text-gray-900">{value}</p>
+        </div>
+        <div className={`${colorClasses[color]} p-3 rounded-lg`}>
+          <Icon className="w-6 h-6 text-white" />
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+export default AdminSubscriptions;

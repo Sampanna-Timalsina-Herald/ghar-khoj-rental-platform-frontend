@@ -10,6 +10,7 @@ import {
   Download, Calendar, Home, Eye, Info, CreditCard
 } from 'lucide-react';
 import api from '../../api/axios';
+import jsPDF from 'jspdf';
 
 const LandlordBillingDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -65,6 +66,229 @@ const LandlordBillingDashboard = () => {
       console.error('[BILLING] Error response:', error.response?.data);
       alert('Failed to load invoice. Please try again.');
     }
+  };
+
+  const downloadInvoicePDF = (invoice) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+
+    // Header with clean design
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(28);
+    doc.setFont('helvetica', 'bold');
+    doc.text('KHOJGHAR', margin, 22);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text('Property Rental Platform', margin, 29);
+
+    // Invoice title (right aligned)
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INVOICE', pageWidth - margin, 22, { align: 'right' });
+
+    // Top separator line
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.5);
+    doc.line(margin, 36, pageWidth - margin, 36);
+
+    // Invoice meta info (right aligned)
+    let yPos = 46;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text('Invoice Number', pageWidth - margin, yPos, { align: 'right' });
+    yPos += 4;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(0, 0, 0);
+    doc.text(invoice.invoice_number || 'N/A', pageWidth - margin, yPos, { align: 'right' });
+    
+    yPos += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(80, 80, 80);
+    doc.text('Issue Date', pageWidth - margin, yPos, { align: 'right' });
+    yPos += 4;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(0, 0, 0);
+    doc.text(formatDate(invoice.created_at), pageWidth - margin, yPos, { align: 'right' });
+
+    // Bill To section
+    yPos = 76;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('BILL TO', margin, yPos);
+    
+    yPos += 7;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(invoice.landlord_name || 'Landlord', margin, yPos);
+    yPos += 6;
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+    doc.text(invoice.landlord_email || '', margin, yPos);
+
+    // Booking Details Section
+    yPos = 104;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('BOOKING DETAILS', margin, yPos);
+    
+    yPos += 8;
+    doc.setDrawColor(230, 230, 230);
+    doc.setLineWidth(0.3);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 6;
+
+    const details = [
+      ['Property', invoice.listing_title || 'N/A'],
+      ['Location', `${invoice.address || ''}, ${invoice.city || ''}`],
+      ['Rental Period', `${formatDate(invoice.start_date)} - ${formatDate(invoice.end_date)}`],
+      ['Tenant', invoice.tenant_name || 'N/A'],
+      ['Tenant Email', invoice.tenant_email || 'N/A']
+    ];
+
+    doc.setFontSize(9);
+    details.forEach(([label, value]) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(60, 60, 60);
+      doc.text(label + ':', margin, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      doc.text(value, margin + 35, yPos);
+      yPos += 5;
+    });
+
+    // Commission Breakdown
+    yPos += 10;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('COMMISSION BREAKDOWN', margin, yPos);
+    
+    yPos += 8;
+    doc.setDrawColor(230, 230, 230);
+    doc.setLineWidth(0.3);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 2;
+
+    // Table header with subtle background
+    yPos += 8;
+    doc.setFillColor(248, 248, 248);
+    doc.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, 'F');
+    doc.setDrawColor(210, 210, 210);
+    doc.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, 'S');
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(40, 40, 40);
+    doc.text('DESCRIPTION', margin + 2, yPos);
+    doc.text('AMOUNT', pageWidth - margin - 2, yPos, { align: 'right' });
+    yPos += 8;
+
+    // Table rows
+    doc.setFont('helvetica', 'normal');
+    const monthlyRent = invoice.monthly_rent || invoice.rent_amount;
+    const rentalMonths = invoice.calculated_rental_months || 1;
+    const totalRent = invoice.total_rent_amount || invoice.rent_amount;
+
+    const rows = [
+      ['Monthly Rent', formatCurrency(monthlyRent)],
+      ['Rental Period', `${rentalMonths} month(s)`],
+      ['Total Rent Amount', formatCurrency(totalRent)],
+      ['Commission Rate', `${invoice.commission_rate}%`]
+    ];
+
+    rows.forEach(([desc, amount]) => {
+      doc.setTextColor(60, 60, 60);
+      doc.text(desc, margin + 2, yPos);
+      doc.setTextColor(0, 0, 0);
+      doc.text(amount, pageWidth - margin - 2, yPos, { align: 'right' });
+      yPos += 6;
+    });
+
+    // Separator before total
+    yPos += 3;
+    doc.setDrawColor(180, 180, 180);
+    doc.setLineWidth(0.5);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 10;
+
+    // Total section
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('TOTAL COMMISSION DUE', margin + 2, yPos);
+    doc.setFontSize(13);
+    doc.text(formatCurrency(invoice.commission_amount), pageWidth - margin - 2, yPos, { align: 'right' });
+    
+    yPos += 4;
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(1);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+
+    // Payment Information
+    yPos += 18;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('PAYMENT INFORMATION', margin, yPos);
+    
+    yPos += 8;
+    doc.setDrawColor(230, 230, 230);
+    doc.setLineWidth(0.3);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 6;
+
+    const paymentInfo = [
+      ['Status', invoice.payment_status.toUpperCase()],
+      ['Due Date', formatDate(invoice.due_date)]
+    ];
+
+    if (invoice.payment_date) {
+      paymentInfo.push(['Payment Date', formatDate(invoice.payment_date)]);
+      paymentInfo.push(['Payment Method', invoice.payment_method || 'N/A']);
+      if (invoice.payment_reference) {
+        paymentInfo.push(['Reference', invoice.payment_reference]);
+      }
+    }
+
+    doc.setFontSize(9);
+    paymentInfo.forEach(([label, value]) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(60, 60, 60);
+      doc.text(label + ':', margin, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      doc.text(value, margin + 35, yPos);
+      yPos += 5;
+    });
+
+    // Footer
+    yPos = pageHeight - 22;
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    
+    yPos += 5;
+    doc.setFontSize(8);
+    doc.setTextColor(110, 110, 110);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Thank you for using KHOJGHAR Platform', margin, yPos);
+    
+    yPos += 4;
+    doc.text('For inquiries, please contact: support@khojghar.com', margin, yPos);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - margin, yPos, { align: 'right' });
+
+    // Save PDF
+    doc.save(`Invoice-${invoice.invoice_number || 'KHOJGHAR'}.pdf`);
   };
 
   const formatCurrency = (amount) => {
@@ -343,13 +567,13 @@ const LandlordBillingDashboard = () => {
 
                     <div className="flex items-center gap-3">
                       <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                         onClick={() => fetchInvoiceDetails(transaction.id)}
-                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center justify-center gap-2"
+                        className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-1.5"
                       >
-                        <Eye size={16} />
-                        View Invoice
+                        <Eye size={14} />
+                        View
                       </motion.button>
                       {transaction.payment_status === 'pending' && (
                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2">
@@ -503,12 +727,21 @@ const LandlordBillingDashboard = () => {
               )}
             </div>
 
-            <div className="mt-8 pt-6 border-t border-gray-200">
+            <div className="mt-8 pt-6 border-t border-gray-200 flex gap-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => downloadInvoicePDF(selectedInvoice)}
+                className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold flex items-center justify-center gap-2"
+              >
+                <Download size={18} />
+                Download PDF
+              </motion.button>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setShowInvoiceModal(false)}
-                className="w-full px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-semibold"
+                className="flex-1 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-semibold"
               >
                 Close
               </motion.button>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import api from '../../api/axios'
-import { Home, Eye, MessageSquare, TrendingUp, Loader2, MapPin, Bed, Bath } from 'lucide-react'
+import { Home, Eye, MessageSquare, TrendingUp, Loader2, MapPin, Bed, Bath, Package, ArrowRight, AlertCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 const StatCard = ({ title, value, icon, color, delay }) => (
@@ -33,9 +33,12 @@ const LandlordHome = () => {
   })
   const [recentListings, setRecentListings] = useState([])
   const [loading, setLoading] = useState(true)
+  const [subscription, setSubscription] = useState(null)
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true)
 
   useEffect(() => {
     fetchDashboardData()
+    fetchSubscription()
   }, [])
 
   const fetchDashboardData = async () => {
@@ -66,6 +69,17 @@ const LandlordHome = () => {
     }
   }
 
+  const fetchSubscription = async () => {
+    try {
+      const response = await api.get('/subscriptions/my-subscription')
+      setSubscription(response.data.data)
+    } catch (error) {
+      console.error('Failed to fetch subscription:', error)
+    } finally {
+      setSubscriptionLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -76,6 +90,62 @@ const LandlordHome = () => {
 
   return (
     <div className="space-y-8">
+      {/* Subscription Status Banner */}
+      {!subscriptionLoading && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          {!subscription || !subscription.has_subscription ? (
+            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-white bg-opacity-20 p-3 rounded-lg">
+                    <Package size={32} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-1">Subscribe to Start Listing Properties</h3>
+                    <p className="text-indigo-100">Choose a plan that fits your needs. Starting from just NPR 799/month</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/landlord/subscription-plans')}
+                  className="bg-white text-indigo-600 px-6 py-3 rounded-lg font-semibold hover:bg-indigo-50 transition-colors flex items-center gap-2 whitespace-nowrap"
+                >
+                  View Plans
+                  <ArrowRight size={20} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-lg p-6 border-2 border-green-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-green-100 p-3 rounded-lg">
+                    <Package size={32} className="text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">{subscription.subscription?.plan_display_name}</h3>
+                    <p className="text-gray-600 text-sm">
+                      {subscription.usage?.properties_used} / {subscription.usage?.properties_limit} properties used • 
+                      Expires: {new Date(subscription.subscription?.end_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/landlord/subscription')}
+                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                >
+                  Manage
+                  <ArrowRight size={18} />
+                </button>
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
+
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}

@@ -1,8 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
-import { Loader2, ArrowLeft, Upload, X, CheckCircle2, Home, MapPin, DollarSign, Image, Info, AlertCircle, AlertTriangle } from 'lucide-react'
+import { Loader2, ArrowLeft, Upload, X, CheckCircle2, Home, MapPin, DollarSign, Image, Info, AlertCircle, AlertTriangle, Package } from 'lucide-react'
 import CollegeSelect from '../../components/CollegeSelect'
 import LocationPicker from '../../components/LocationPicker'
 
@@ -10,6 +10,8 @@ const CreateListing = () => {
   const navigate = useNavigate()
   const [activeStep, setActiveStep] = useState(0)
   const [dragActive, setDragActive] = useState(false)
+  const [eligibility, setEligibility] = useState(null)
+  const [checkingEligibility, setCheckingEligibility] = useState(true)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -32,6 +34,22 @@ const CreateListing = () => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+
+  // Check subscription eligibility on mount
+  useEffect(() => {
+    const checkEligibility = async () => {
+      try {
+        const response = await api.get('/subscriptions/check-eligibility')
+        setEligibility(response.data.data)
+      } catch (error) {
+        console.error('Error checking eligibility:', error)
+        setEligibility({ can_create: false, message: 'Failed to check subscription status' })
+      } finally {
+        setCheckingEligibility(false)
+      }
+    }
+    checkEligibility()
+  }, [])
 
   // Validation rules
   const validateField = (name, value) => {
@@ -338,6 +356,54 @@ const CreateListing = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12">
+      {/* Checking Eligibility */}
+      {checkingEligibility && (
+        <div className="flex justify-center items-center min-h-screen">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+        </div>
+      )}
+
+      {/* No Subscription or Limit Reached */}
+      {!checkingEligibility && eligibility && !eligibility.can_create && (
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl shadow-lg p-8 text-center"
+          >
+            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Package className="w-8 h-8 text-yellow-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Cannot Create Listing</h2>
+            <p className="text-gray-600 mb-6">{eligibility.message}</p>
+            {eligibility.current_count !== undefined && (
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <p className="text-sm text-gray-700">
+                  <span className="font-semibold">Properties Used:</span> {eligibility.current_count} / {eligibility.max_allowed}
+                </p>
+              </div>
+            )}
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => navigate('/landlord/subscription-plans')}
+                className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
+              >
+                View Plans
+              </button>
+              <button
+                onClick={() => navigate('/landlord')}
+                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Main Form - Only show if eligible */}
+      {!checkingEligibility && eligibility && eligibility.can_create && (
+        <>
       {/* Header */}
       <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -1026,6 +1092,8 @@ const CreateListing = () => {
           <div className="h-16" />
         </form>
       </div>
+        </>
+      )}
     </div>
   )
 }

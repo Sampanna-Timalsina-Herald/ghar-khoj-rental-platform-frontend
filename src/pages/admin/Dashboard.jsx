@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import { Users, Home, AlertCircle, BarChart3, User as UserIcon, TrendingUp, Settings as SettingsIcon, DollarSign } from 'lucide-react'
+import { Users, Home, AlertCircle, BarChart3, User as UserIcon, TrendingUp, Settings as SettingsIcon, DollarSign, Package } from 'lucide-react'
 import Navbar from '../../components/Navbar'
 import Sidebar from '../../components/Sidebar'
 import AdminHome from './AdminHome'
@@ -11,6 +11,7 @@ import AdvancedReports from './AdvancedReports'
 import AdminSettings from './AdminSettings'
 import AdminCommissionDashboard from './AdminCommissionDashboard'
 import ComprehensiveAnalyticsDashboard from './ComprehensiveAnalyticsDashboard'
+import AdminSubscriptions from './AdminSubscriptions'
 
 const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -47,6 +48,11 @@ const AdminDashboard = () => {
       label: 'Commissions',
       path: '/commissions',
       icon: <DollarSign size={20} />,
+    },
+    {
+      label: 'Subscriptions',
+      path: '/subscriptions',
+      icon: <Package size={20} />,
     },
     {
       label: 'Reports',
@@ -86,6 +92,7 @@ const AdminDashboard = () => {
             <Route path="listings" element={<AdminListings />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="commissions" element={<AdminCommissionDashboard />} />
+            <Route path="subscriptions" element={<AdminSubscriptions />} />
             <Route path="reports" element={<AdvancedReports />} />
             <Route path="analytics" element={<ComprehensiveAnalyticsDashboard />} />
             <Route path="settings" element={<AdminSettings />} />
