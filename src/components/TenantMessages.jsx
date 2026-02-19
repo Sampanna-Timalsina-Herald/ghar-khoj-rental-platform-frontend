@@ -4,9 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import api from '../api/axios'
 import socketService, { initSocket } from '../services/socket'
 import { useAuthStore } from '../stores/authStore'
+import { useToast } from '../context/ToastContext'
 
 const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
   const { user, accessToken } = useAuthStore()
+  const { addToast } = useToast()
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
@@ -126,7 +128,7 @@ const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
       // Remove optimistic message on error
       setMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id))
       setNewMessage(messageContent) // Restore message text
-      alert('Failed to send message')
+      addToast('Failed to send message', 'error')
     } finally {
       setSending(false)
     }

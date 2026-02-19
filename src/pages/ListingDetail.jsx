@@ -5,12 +5,14 @@ import { ArrowLeft, MapPin, Bed, Bath, Ruler, Heart, MessageCircle, Loader2, Che
 import api from '../api/axios'
 import SmartNav from '../components/SmartNav'
 import { useAuthStore } from '../stores/authStore'
+import { useToast } from '../context/ToastContext'
 
 const ListingDetail = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
   const { isAuthenticated, role } = useAuthStore()
+  const { addToast } = useToast()
   const [listing, setListing] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -124,7 +126,7 @@ const ListingDetail = () => {
       console.error('Error response:', error.response)
       console.error('Error message:', error.message)
       console.error('Error data:', error.response?.data)
-      alert(`Failed to update favorite: ${error.response?.data?.error || error.message}`)
+      addToast(`Failed to update favorite: ${error.response?.data?.error || error.message}`, 'error')
     } finally {
       setLoadingFavorite(false)
     }

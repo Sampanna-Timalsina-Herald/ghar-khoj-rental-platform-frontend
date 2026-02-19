@@ -11,6 +11,9 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import jsPDF from 'jspdf';
+import PaymentGatewayModal from '../../components/PaymentGatewayModal';
+import { useAuthStore } from '../../stores/authStore';
+import { useToast } from '../../context/ToastContext';
 
 const LandlordBillingDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -20,6 +23,10 @@ const LandlordBillingDashboard = () => {
   const [activeTab, setActiveTab] = useState('pending'); // pending, paid, all
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const { addToast } = useToast();
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const { user } = useAuthStore();
 
   useEffect(() => {
     fetchDashboardData();
@@ -59,12 +66,24 @@ const LandlordBillingDashboard = () => {
         setShowInvoiceModal(true);
       } else {
         console.error('[BILLING] Failed to fetch invoice:', response.data.error);
-        alert('Failed to load invoice: ' + response.data.error);
+        addToast('Failed to load invoice: ' + response.data.error, 'error');
       }
     } catch (error) {
       console.error('[BILLING] Error fetching invoice:', error);
-      console.error('[BILLING] Error response:', error.response?.data);
-      alert('Failed to load invoice. Please try again.');
+    
+
+  const handlePayNow = (transaction) => {
+    setSelectedTransaction(transaction);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSuccess = () => {
+    setShowPaymentModal(false);
+    setSelectedTransaction(null);
+    // Refresh dashboard data after payment
+    fetchDashboardData();
+  };  console.error('[BILLING] Error response:', error.response?.data);
+      addToast('Failed to load invoice. Please try again.', 'error');
     }
   };
 
@@ -575,6 +594,17 @@ const LandlordBillingDashboard = () => {
                         <Eye size={14} />
                         View
                       </motion.button>
+                      {(transaction.payment_status === 'pending' || transaction.payment_status === 'overdue') && (
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handlePayNow(transaction)}
+                          className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium flex items-center gap-1.5"
+                        >
+                          <CreditCard size={14} />
+                          Pay Now
+                        </motion.button>
+                      )}
                       {transaction.payment_status === 'pending' && (
                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2">
                           <p className="text-xs text-yellow-800 font-medium">
@@ -748,6 +778,29 @@ const LandlordBillingDashboard = () => {
             </div>
           </motion.div>
         </div>
+      )}
+
+      {/* Payment Gateway Modal */}
+      {showPaymentModal && selectedTransaction && (
+        <PaymentGatewayModal
+          isOpen={showPaymentModal}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedTransaction(null);
+          }}
+          paymentData={{
+            payment_type: 'commission',
+            reference_id: selectedTransaction.id,
+            amount: Math.round(selectedTransaction.commission_amount), // Amount should already be in NPR
+            customer_info: {
+              name: user?.name || 'Landlord',
+              email: user?.email || 'landlord@example.com',
+              phone: user?.phone || '9800000000'
+            },
+            purchase_order_name: `Commission Payment - ${selectedTransaction.listing_title} (${selectedTransaction.invoice_number})`
+          }}
+          onSuccess={handlePaymentSuccess}
+        />
       )}
     </div>
   );

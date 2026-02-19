@@ -205,7 +205,7 @@ const TenantListingDetail = () => {
 
       showToastMessage(
         'success', 
-        'Booking Request Sent! 🎉', 
+        'Booking Request Sent Successfully', 
         'The landlord will review your request. You\'ll be notified once they respond.'
       )
       setShowBookingForm(false)

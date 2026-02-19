@@ -18,6 +18,7 @@ import {
   PolarAngleAxis, PolarRadiusAxis, ScatterChart, Scatter
 } from 'recharts';
 import api from '../../api/axios';
+import { useToast } from '../../context/ToastContext';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'];
 
@@ -34,6 +35,7 @@ const ComprehensiveAnalyticsDashboard = () => {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [lastUpdate, setLastUpdate] = useState(new Date());
+  const { addToast } = useToast();
 
   // Date range options
   const dateRangeOptions = [
@@ -186,7 +188,7 @@ const ComprehensiveAnalyticsDashboard = () => {
       }
     } catch (error) {
       console.error('Error exporting report:', error);
-      alert('Failed to export report. Please try again.');
+      addToast('Failed to export report. Please try again.', 'error');
     }
   };
 

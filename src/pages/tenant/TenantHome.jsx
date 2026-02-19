@@ -5,6 +5,7 @@ import api from '../../api/axios'
 import { Search, Heart, MapPin, Bed, Bath, Ruler, Loader2, Eye, TrendingUp, ArrowRight, Zap, Shield, Clock, Sparkles } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import SearchSuggestions from '../../components/SearchSuggestions'
+import { useToast } from '../../context/ToastContext'
 
 const TenantHome = () => {
   const [featuredListings, setFeaturedListings] = useState([])
@@ -16,6 +17,7 @@ const TenantHome = () => {
   const [loadingFav, setLoadingFav] = useState(null)
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const { addToast } = useToast()
 
   useEffect(() => {
     fetchFeaturedListings()
@@ -102,7 +104,7 @@ const TenantHome = () => {
     e.stopPropagation()
     
     if (!user) {
-      alert('Please log in to add favorites')
+      addToast('Please log in to add favorites', 'warning')
       navigate('/login')
       return
     }
@@ -138,7 +140,7 @@ const TenantHome = () => {
       console.error('Error response:', error.response)
       console.error('Error message:', error.message)
       console.error('Error data:', error.response?.data)
-      alert(`Failed to update favorite: ${error.response?.data?.error || error.message}`)
+      addToast(`Failed to update favorite: ${error.response?.data?.error || error.message}`, 'error')
     } finally {
       setLoadingFav(null)
     }

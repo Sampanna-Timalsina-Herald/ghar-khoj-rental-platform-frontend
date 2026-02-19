@@ -3,6 +3,10 @@ import { motion } from 'framer-motion';
 import api from '../../api/axios';
 import { Check, X, Loader2, CreditCard, Calendar, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import PaymentGatewayModal from '../../components/PaymentGatewayModal';
+import UpgradeConfirmationModal from '../../components/UpgradeConfirmationModal';
+import { useAuthStore } from '../../stores/authStore';
+import { useToast } from '../../context/ToastContext';
 
 const SubscriptionPlans = () => {
   const [plans, setPlans] = useState([]);
@@ -10,11 +14,15 @@ const SubscriptionPlans = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [billingCycle, setBillingCycle] = useState('annual'); // 'monthly' or 'annual'
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [processing, setProcessing] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [currentSubscription, setCurrentSubscription] = useState(null);
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const { addToast } = useToast();
 
   useEffect(() => {
     fetchPlans();
+    fetchCurrentSubscription();
   }, []);
 
   const fetchPlans = async () => {
@@ -28,42 +36,72 @@ const SubscriptionPlans = () => {
     }
   };
 
+  const fetchCurrentSubscription = async () => {
+    try {
+      const response = await api.get('/subscriptions/my-subscription');
+      if (response.data.success && response.data.data.has_subscription) {
+        const subscription = response.data.data.subscription;
+        setCurrentSubscription(subscription);
+        // Sync billing cycle display with user's actual subscription
+        if (subscription.billing_cycle) {
+          setBillingCycle(subscription.billing_cycle);
+        }
+      }
+    } catch (error) {
+      console.log('No active subscription');
+    }
+  };
+
   const handleSelectPlan = (plan) => {
+    // Check if user has an active subscription
+    if (currentSubscription) {
+      const currentTier = currentSubscription.plan_tier;
+      const newTier = plan.tier;
+      
+      // Prevent downgrade
+      if (newTier < currentTier) {
+        addToast(`You cannot downgrade from ${currentSubscription.plan_display_name} (Tier ${currentTier}) to ${plan.display_name} (Tier ${newTier}). Please cancel your current subscription first if you wish to downgrade.`, 'error', 5000);
+        return;
+      }
+      
+      // Check if this is an upgrade
+      if (newTier > currentTier) {
+        // Show upgrade confirmation modal
+        setSelectedPlan(plan);
+        setShowUpgradeModal(true);
+        return;
+      }
+    }
+    
+    // Direct to payment (new subscription or same tier)
     setSelectedPlan(plan);
     setShowPaymentModal(true);
   };
 
-  const handleSubscribe = async (paymentData) => {
-    setProcessing(true);
-    try {
-      const response = await api.post('/subscriptions/subscribe', {
-        plan_id: selectedPlan.id,
-        billing_cycle: billingCycle,
-        payment_method: paymentData.payment_method,
-        payment_reference: paymentData.payment_reference,
-        auto_renew: paymentData.auto_renew || false
-      });
+  const handleUpgradeConfirm = () => {
+    // User confirmed upgrade, close upgrade modal and show payment modal
+    setShowUpgradeModal(false);
+    setShowPaymentModal(true);
+  };
 
-      if (response.data.success) {
-        alert('Subscription activated successfully!');
-        navigate('/landlord/subscription-dashboard');
-      }
-    } catch (error) {
-      console.error('Error subscribing:', error);
-      alert(error.response?.data?.error || 'Failed to activate subscription');
-    } finally {
-      setProcessing(false);
-      setShowPaymentModal(false);
-    }
+  const handlePaymentSuccess = () => {
+    // Payment verification will be handled by the PaymentVerify page
+    // This is just a placeholder for future enhancements
+    setShowPaymentModal(false);
   };
 
   const getPlanIcon = (tier) => {
-    switch(tier) {
-      case 1: return '🥉';
-      case 2: return '🥈';
-      case 3: return '🥇';
-      default: return '📦';
-    }
+    const tierConfig = {
+      1: { label: 'BASIC', color: 'bg-amber-100 text-amber-700 border-amber-300' },
+      2: { label: 'PRO', color: 'bg-blue-100 text-blue-700 border-blue-300' },
+      3: { label: 'BUSINESS', color: 'bg-purple-100 text-purple-700 border-purple-300' }
+    };
+    const config = tierConfig[tier] || { label: 'PLAN', color: 'bg-gray-100 text-gray-700 border-gray-300' };
+    return (
+      <div className={`inline-flex items-center justify-center px-4 py-2 rounded-lg font-bold text-sm border-2 ${config.color}`}>
+        {config.label}
+      </div>
+    );
   };
 
   const getPrice = (plan) => {
@@ -107,6 +145,33 @@ const SubscriptionPlans = () => {
           </motion.p>
         </div>
 
+        {/* Active Subscription Notice */}
+        {currentSubscription && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-3xl mx-auto mb-8 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg"
+          >
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-blue-800">
+                  <strong>You have an active subscription:</strong> {currentSubscription.plan_display_name}
+                  <br />
+                  <span className="text-xs">
+                    Expires on {new Date(currentSubscription.end_date).toLocaleDateString()}. 
+                    You cannot purchase the same plan again while it's active. To upgrade, select a different plan.
+                  </span>
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Billing Cycle Toggle */}
         <div className="flex justify-center items-center gap-4 mb-8">
           <span className={`text-sm font-medium ${billingCycle === 'monthly' ? 'text-gray-900' : 'text-gray-500'}`}>
@@ -138,6 +203,7 @@ const SubscriptionPlans = () => {
           {plans.map((plan, index) => {
             const savings = getSavings(plan);
             const isPro = plan.tier === 2;
+            const isCurrentPlan = currentSubscription && currentSubscription.plan_id === plan.id;
 
             return (
               <motion.div
@@ -147,18 +213,23 @@ const SubscriptionPlans = () => {
                 transition={{ delay: index * 0.1 }}
                 className={`relative bg-white rounded-2xl shadow-lg overflow-hidden ${
                   isPro ? 'ring-2 ring-indigo-600 scale-105' : ''
-                }`}
+                } ${isCurrentPlan ? 'ring-2 ring-green-500' : ''}`}
               >
-                {isPro && (
+                {isPro && !isCurrentPlan && (
                   <div className="absolute top-0 right-0 bg-indigo-600 text-white px-4 py-1 text-xs font-semibold rounded-bl-lg">
                     POPULAR
+                  </div>
+                )}
+                {isCurrentPlan && (
+                  <div className="absolute top-0 right-0 bg-green-600 text-white px-4 py-1 text-xs font-semibold rounded-bl-lg">
+                    CURRENT PLAN
                   </div>
                 )}
 
                 <div className="p-8">
                   {/* Plan Header */}
                   <div className="text-center mb-6">
-                    <div className="text-5xl mb-2">{getPlanIcon(plan.tier)}</div>
+                    <div className="mb-3 flex justify-center">{getPlanIcon(plan.tier)}</div>
                     <h3 className="text-2xl font-bold text-gray-900">{plan.display_name.replace(/🥉|🥈|🥇/g, '').trim()}</h3>
                     <p className="text-sm text-gray-500 mt-2">{plan.description}</p>
                   </div>
@@ -230,13 +301,16 @@ const SubscriptionPlans = () => {
                   {/* CTA Button */}
                   <button
                     onClick={() => handleSelectPlan(plan)}
+                    disabled={isCurrentPlan}
                     className={`w-full py-3 px-6 rounded-lg font-semibold transition-all ${
-                      isPro
+                      isCurrentPlan
+                        ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                        : isPro
                         ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg hover:shadow-xl'
                         : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
                     }`}
                   >
-                    Get Started
+                    {isCurrentPlan ? 'Current Plan' : 'Get Started'}
                   </button>
                 </div>
               </motion.div>
@@ -244,128 +318,43 @@ const SubscriptionPlans = () => {
           })}
         </div>
 
-        {/* Payment Modal */}
-        {showPaymentModal && selectedPlan && (
-          <PaymentModal
-            plan={selectedPlan}
+        {/* Upgrade Confirmation Modal */}
+        {showUpgradeModal && selectedPlan && currentSubscription && (
+          <UpgradeConfirmationModal
+            isOpen={showUpgradeModal}
+            onClose={() => {
+              setShowUpgradeModal(false);
+              setSelectedPlan(null);
+            }}
+            onConfirm={handleUpgradeConfirm}
+            currentPlan={currentSubscription}
+            newPlan={selectedPlan}
             billingCycle={billingCycle}
-            price={getPrice(selectedPlan)}
+          />
+        )}
+
+        {/* Payment Gateway Modal */}
+        {showPaymentModal && selectedPlan && (
+          <PaymentGatewayModal
+            isOpen={showPaymentModal}
             onClose={() => setShowPaymentModal(false)}
-            onSubmit={handleSubscribe}
-            processing={processing}
+            paymentData={{
+              payment_type: 'subscription',
+              reference_id: selectedPlan.id,
+              amount: Math.round(getPrice(selectedPlan)), // Amount should already be in NPR
+              billing_cycle: billingCycle, // Add billing cycle
+              auto_renew: false, // Default to false, can be made configurable
+              customer_info: {
+                name: user?.name || 'User',
+                email: user?.email || 'user@example.com',
+                phone: user?.phone || '9800000000'
+              },
+              purchase_order_name: `${selectedPlan.display_name} - ${billingCycle === 'annual' ? 'Annual' : 'Monthly'} Subscription`
+            }}
+            onSuccess={handlePaymentSuccess}
           />
         )}
       </div>
-    </div>
-  );
-};
-
-// Payment Modal Component
-const PaymentModal = ({ plan, billingCycle, price, onClose, onSubmit, processing }) => {
-  const [paymentData, setPaymentData] = useState({
-    payment_method: 'bank_transfer',
-    payment_reference: '',
-    auto_renew: false
-  });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!paymentData.payment_reference.trim()) {
-      alert('Please enter payment reference');
-      return;
-    }
-    onSubmit(paymentData);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8"
-      >
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Complete Payment</h2>
-        
-        <div className="mb-6 p-4 bg-indigo-50 rounded-lg">
-          <p className="text-sm text-gray-600">Plan: <strong>{plan.display_name}</strong></p>
-          <p className="text-sm text-gray-600">Billing: <strong>{billingCycle}</strong></p>
-          <p className="text-2xl font-bold text-indigo-600 mt-2">NPR {price.toLocaleString()}</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Payment Method
-            </label>
-            <select
-              value={paymentData.payment_method}
-              onChange={(e) => setPaymentData({ ...paymentData, payment_method: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            >
-              <option value="bank_transfer">Bank Transfer</option>
-              <option value="online">Online Payment</option>
-              <option value="cash">Cash</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Payment Reference / Transaction ID
-            </label>
-            <input
-              type="text"
-              value={paymentData.payment_reference}
-              onChange={(e) => setPaymentData({ ...paymentData, payment_reference: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="Enter transaction ID"
-              required
-            />
-          </div>
-
-          {plan.auto_renew_enabled && (
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="auto_renew"
-                checked={paymentData.auto_renew}
-                onChange={(e) => setPaymentData({ ...paymentData, auto_renew: e.target.checked })}
-                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-              />
-              <label htmlFor="auto_renew" className="ml-2 text-sm text-gray-700">
-                Enable auto-renewal
-              </label>
-            </div>
-          )}
-
-          <div className="flex gap-3 mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={processing}
-              className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={processing}
-              className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center justify-center"
-            >
-              {processing ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <CreditCard className="w-5 h-5 mr-2" />
-                  Confirm Payment
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </motion.div>
     </div>
   );
 };

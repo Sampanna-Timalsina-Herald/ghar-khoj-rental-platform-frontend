@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../api/axios';
 import { 
   Loader2, 
@@ -11,8 +11,11 @@ import {
   Search,
   Filter,
   Download,
-  RefreshCw
+  RefreshCw,
+  X,
+  AlertTriangle
 } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
 
 const AdminSubscriptions = () => {
   const [stats, setStats] = useState(null);
@@ -20,6 +23,10 @@ const AdminSubscriptions = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPlan, setFilterPlan] = useState('all');
+  const [cancelModal, setCancelModal] = useState(null);
+  const { addToast } = useToast();
+  const [cancelReason, setCancelReason] = useState('');
+  const [canceling, setCanceling] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -46,15 +53,36 @@ const AdminSubscriptions = () => {
     try {
       const response = await api.post('/subscriptions/admin/maintenance');
       if (response.data.success) {
-        alert(`Maintenance completed:\n${JSON.stringify(response.data.data, null, 2)}`);
+        addToast('Maintenance completed successfully', 'success');
         fetchData();
       }
     } catch (error) {
       console.error('Error running maintenance:', error);
-      alert('Failed to run maintenance');
+      addToast('Failed to run maintenance', 'error');
     }
   };
-
+  const handleCancelSubscription = async () => {
+    if (!cancelModal) return;
+    
+    setCanceling(true);
+    try {
+      const response = await api.put(`/subscriptions/admin/cancel/${cancelModal.id}`, {
+        reason: cancelReason || 'Cancelled by admin'
+      });
+      
+      if (response.data.success) {
+        addToast('Subscription cancelled successfully', 'success');
+        fetchData();
+        setCancelModal(null);
+        setCancelReason('');
+      }
+    } catch (error) {
+      console.error('Error cancelling subscription:', error);
+      addToast(error.response?.data?.error || 'Failed to cancel subscription', 'error');
+    } finally {
+      setCanceling(false);
+    }
+  };
   const filteredSubscriptions = subscriptions.filter(sub => {
     const matchesSearch = sub.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          sub.user_email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -124,8 +152,12 @@ const AdminSubscriptions = () => {
               <div key={plan.plan_name} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-gray-900">{plan.display_name}</h3>
-                  <span className="text-2xl">
-                    {plan.tier === 1 ? '🥉' : plan.tier === 2 ? '🥈' : '🥇'}
+                  <span className={`px-3 py-1 rounded-md text-xs font-bold ${
+                    plan.tier === 1 ? 'bg-amber-100 text-amber-700' :
+                    plan.tier === 2 ? 'bg-blue-100 text-blue-700' : 
+                    'bg-purple-100 text-purple-700'
+                  }`}>
+                    TIER {plan.tier}
                   </span>
                 </div>
                 <div className="space-y-2 text-sm">
@@ -205,12 +237,15 @@ const AdminSubscriptions = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Amount
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredSubscriptions.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
                       No subscriptions found
                     </td>
                   </tr>
@@ -226,9 +261,13 @@ const AdminSubscriptions = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <span className="text-lg mr-2">
-                            {sub.plan_tier === 1 ? '🥉' : sub.plan_tier === 2 ? '🥈' : '🥇'}
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded text-xs font-bold ${
+                            sub.plan_tier === 1 ? 'bg-amber-100 text-amber-700' :
+                            sub.plan_tier === 2 ? 'bg-blue-100 text-blue-700' : 
+                            'bg-purple-100 text-purple-700'
+                          }`}>
+                            T{sub.plan_tier}
                           </span>
                           <span className="text-sm font-medium text-gray-900">
                             {sub.plan_display_name}
@@ -258,6 +297,16 @@ const AdminSubscriptions = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         NPR {(sub.amount_paid || 0).toLocaleString()}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {sub.status === 'active' && (
+                          <button
+                            onClick={() => setCancelModal(sub)}
+                            className="text-red-600 hover:text-red-800 font-medium"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))
                 )}
@@ -265,6 +314,79 @@ const AdminSubscriptions = () => {
             </table>
           </div>
         </div>
+
+        {/* Cancel Confirmation Modal */}
+        <AnimatePresence>
+          {cancelModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black bg-opacity-50"
+                onClick={() => !canceling && setCancelModal(null)}
+              />
+              
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+              >
+                <button
+                  onClick={() => !canceling && setCancelModal(null)}
+                  disabled={canceling}
+                  className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                    <AlertTriangle className="w-6 h-6 text-red-600" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900">Cancel Subscription</h3>
+                </div>
+
+                <p className="text-gray-600 mb-4">
+                  Are you sure you want to cancel this subscription for <strong>{cancelModal.user_name}</strong>?
+                  This action cannot be undone.
+                </p>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Reason (optional):
+                  </label>
+                  <textarea
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    disabled={canceling}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    rows="3"
+                    placeholder="Enter reason for cancellation..."
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setCancelModal(null)}
+                    disabled={canceling}
+                    className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 transition-colors disabled:opacity-50"
+                  >
+                    No, Keep It
+                  </button>
+                  <button
+                    onClick={handleCancelSubscription}
+                    disabled={canceling}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                  >
+                    {canceling ? 'Cancelling...' : 'Yes, Cancel'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
