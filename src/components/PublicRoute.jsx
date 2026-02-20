@@ -13,7 +13,10 @@ const PublicRoute = ({ isAuthenticated, role }) => {
   const location = useLocation();
   
   // Allow authenticated users to view listing details
-  if (isAuthenticated && location.pathname.startsWith('/listing/')) {
+  if (
+    isAuthenticated &&
+    (location.pathname.startsWith('/listing/') || location.pathname.startsWith('/payment/verify'))
+  ) {
     return <Outlet />;
   }
   

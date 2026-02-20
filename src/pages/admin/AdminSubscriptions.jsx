@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../api/axios';
+import { useNavigate } from 'react-router-dom';
 import { 
   Loader2, 
   Users, 
@@ -18,6 +19,7 @@ import {
 import { useToast } from '../../context/ToastContext';
 
 const AdminSubscriptions = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -107,13 +109,22 @@ const AdminSubscriptions = () => {
             <h1 className="text-3xl font-bold text-gray-900">Subscription Management</h1>
             <p className="text-gray-600 mt-2">Monitor and manage all subscriptions</p>
           </div>
-          <button
-            onClick={runMaintenance}
-            className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            <RefreshCw className="w-5 h-5 mr-2" />
-            Run Maintenance
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/admin/subscriptions/history')}
+              className="flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              <Calendar className="w-5 h-5 mr-2" />
+              View History
+            </button>
+            <button
+              onClick={runMaintenance}
+              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              <RefreshCw className="w-5 h-5 mr-2" />
+              Run Maintenance
+            </button>
+          </div>
         </div>
 
         {/* Stats Cards */}

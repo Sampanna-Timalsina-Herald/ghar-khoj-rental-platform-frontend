@@ -43,18 +43,26 @@ const PaymentVerify = () => {
       // Call verification API
       const response = await verifyPayment(params);
 
-      if (response.success && response.data.payment.status === 'completed') {
+      const payment = response?.data?.payment || response?.data;
+
+      if (!payment || !payment.status) {
+        setStatus('error');
+        setMessage('Payment verification response is invalid. Please contact support.');
+        return;
+      }
+
+      if (response.success && payment.status === 'completed') {
         setStatus('success');
         setMessage('Payment successful!');
-        setPaymentDetails(response.data.payment);
-      } else if (response.data.payment.status === 'failed') {
+        setPaymentDetails(payment);
+      } else if (payment.status === 'failed') {
         setStatus('failed');
         setMessage('Payment failed. Please try again.');
-        setPaymentDetails(response.data.payment);
+        setPaymentDetails(payment);
       } else {
         setStatus('failed');
         setMessage('Payment could not be completed.');
-        setPaymentDetails(response.data.payment);
+        setPaymentDetails(payment);
       }
     } catch (err) {
       console.error('Verification error:', err);

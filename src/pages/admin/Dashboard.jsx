@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import { Users, Home, AlertCircle, BarChart3, User as UserIcon, TrendingUp, Settings as SettingsIcon, DollarSign, Package } from 'lucide-react'
+import { Users, Home, AlertCircle, BarChart3, User as UserIcon, TrendingUp, Settings as SettingsIcon, DollarSign, Package, Calendar } from 'lucide-react'
 import Navbar from '../../components/Navbar'
 import Sidebar from '../../components/Sidebar'
 import AdminHome from './AdminHome'
@@ -12,6 +12,7 @@ import AdminSettings from './AdminSettings'
 import AdminCommissionDashboard from './AdminCommissionDashboard'
 import ComprehensiveAnalyticsDashboard from './ComprehensiveAnalyticsDashboard'
 import AdminSubscriptions from './AdminSubscriptions'
+import AdminSubscriptionHistory from './AdminSubscriptionHistory'
 
 const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -93,6 +94,7 @@ const AdminDashboard = () => {
             <Route path="users" element={<AdminUsers />} />
             <Route path="commissions" element={<AdminCommissionDashboard />} />
             <Route path="subscriptions" element={<AdminSubscriptions />} />
+            <Route path="subscriptions/history" element={<AdminSubscriptionHistory />} />
             <Route path="reports" element={<AdvancedReports />} />
             <Route path="analytics" element={<ComprehensiveAnalyticsDashboard />} />
             <Route path="settings" element={<AdminSettings />} />
