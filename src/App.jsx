@@ -16,6 +16,7 @@ import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import ListProperty from "./pages/ListProperty";
 import PaymentVerify from "./pages/PaymentVerify";
+import PaymentSuccess from "./pages/PaymentSuccess";
 
 // Dashboards
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -103,6 +104,7 @@ function App() {
           <Route path="/search" element={<Search />} />
           <Route path="/listing/:id" element={<ListingDetail />} />
           <Route path="/payment/verify" element={<PaymentVerify />} />
+          <Route path="/payment/success" element={<PaymentSuccess />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />

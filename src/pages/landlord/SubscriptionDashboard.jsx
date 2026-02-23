@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../context/ToastContext';
+import ReceiptDownloadButton from '../../components/ReceiptDownloadButton';
 
 const SubscriptionDashboard = () => {
   const [subscription, setSubscription] = useState(null);
@@ -329,11 +330,26 @@ const SubscriptionDashboard = () => {
                         <p className="text-xs text-gray-500 mt-1">
                           {new Date(item.start_date).toLocaleDateString()} - {new Date(item.end_date).toLocaleDateString()}
                         </p>
+                        {item.payment_reference && (
+                          <p className="text-xs text-gray-400 mt-1 font-mono">
+                            Txn: {item.transaction_uuid || item.payment_reference}
+                          </p>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-900">
-                          NPR {item.amount_paid?.toLocaleString()}
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="font-semibold text-gray-900">
+                            NPR {item.amount_paid?.toLocaleString()}
+                          </p>
+                        </div>
+                        {(item.transaction_uuid || item.payment_reference) && (
+                          <ReceiptDownloadButton
+                            transactionUuid={item.transaction_uuid || item.payment_reference}
+                            hasReceipt={!!item.receipt_url}
+                            variant="secondary"
+                            size="sm"
+                          />
+                        )}
                       </div>
                     </div>
                   ))}

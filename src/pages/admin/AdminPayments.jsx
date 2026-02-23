@@ -14,6 +14,7 @@ import {
   Calendar,
   Download
 } from 'lucide-react';
+import ReceiptDownloadButton from '../../components/ReceiptDownloadButton';
 
 const AdminPayments = () => {
   const [payments, setPayments] = useState([]);
@@ -220,12 +221,15 @@ const AdminPayments = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Receipt
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredPayments.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
                       No payments found
                     </td>
                   </tr>
@@ -271,6 +275,18 @@ const AdminPayments = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {new Date(payment.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {payment.status === 'completed' ? (
+                          <ReceiptDownloadButton
+                            transactionUuid={payment.transaction_uuid}
+                            hasReceipt={!!payment.receipt_url}
+                            variant="icon"
+                            size="sm"
+                          />
+                        ) : (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
                       </td>
                     </tr>
                   ))

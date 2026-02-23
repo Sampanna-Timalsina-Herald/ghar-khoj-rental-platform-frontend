@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, Calendar } from 'lucide-react';
+import { Loader2, Calendar, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import { useToast } from '../../context/ToastContext';
+import ReceiptDownloadButton from '../../components/ReceiptDownloadButton';
 
 const AdminSubscriptionHistory = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
+  const [deletingId, setDeletingId] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -29,6 +32,32 @@ const AdminSubscriptionHistory = () => {
   useEffect(() => {
     fetchHistory();
   }, []);
+
+  const handleDelete = async (subscriptionId, userName) => {
+    setConfirmDelete({ id: subscriptionId, userName });
+  };
+
+  const confirmDeleteAction = async () => {
+    const subscriptionId = confirmDelete.id;
+    setDeletingId(subscriptionId);
+    setConfirmDelete(null);
+
+    try {
+      await api.delete(`/subscriptions/admin/${subscriptionId}`);
+      addToast('Subscription deleted successfully', 'success');
+      // Remove from local state
+      setRows(rows.filter(row => row.id !== subscriptionId));
+    } catch (error) {
+      console.error('Error deleting subscription:', error);
+      addToast(error.response?.data?.error || 'Failed to delete subscription', 'error');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setConfirmDelete(null);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -64,12 +93,14 @@ const AdminSubscriptionHistory = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Latest Action</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receipt</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {rows.length === 0 ? (
                     <tr>
-                      <td colSpan="8" className="px-6 py-10 text-center text-gray-500">No subscription history found</td>
+                      <td colSpan="10" className="px-6 py-10 text-center text-gray-500">No subscription history found</td>
                     </tr>
                   ) : (
                     rows.map((row) => (
@@ -107,6 +138,36 @@ const AdminSubscriptionHistory = () => {
                             </div>
                           )}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {(row.transaction_uuid || row.payment_reference) ? (
+                            <ReceiptDownloadButton
+                              transactionUuid={row.transaction_uuid || row.payment_reference}
+                              hasReceipt={!!row.receipt_url}
+                              variant="icon"
+                              size="sm"
+                            />
+                          ) : (
+                            <span className="text-xs text-gray-400">N/A</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => handleDelete(row.id, row.user_name)}
+                            disabled={deletingId === row.id}
+                            className={`p-2 rounded-md transition-colors ${
+                              deletingId === row.id
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'hover:bg-red-50 text-red-600 hover:text-red-700'
+                            }`}
+                            title="Delete subscription"
+                          >
+                            {deletingId === row.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        </td>
                       </tr>
                     ))
                   )}
@@ -115,6 +176,48 @@ const AdminSubscriptionHistory = () => {
             </div>
           )}
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {confirmDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-red-100 rounded-full">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Delete Subscription</h3>
+                  <p className="text-sm text-gray-600">This action cannot be undone</p>
+                </div>
+              </div>
+              
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-gray-700">
+                  Are you sure you want to delete the subscription for{' '}
+                  <span className="font-semibold text-gray-900">{confirmDelete.userName}</span>?
+                </p>
+                <p className="text-xs text-gray-600 mt-2">
+                  ⚠️ This will permanently delete the subscription and all its history.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={cancelDelete}
+                  className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteAction}
+                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -75,17 +75,23 @@ const PaymentVerify = () => {
   };
 
   const handleRedirect = () => {
-    if (paymentDetails) {
-      // Redirect based on payment type
-      if (paymentDetails.payment_type === 'subscription') {
-        navigate('/landlord/subscription-dashboard');
-      } else if (paymentDetails.payment_type === 'commission') {
-        navigate('/landlord/billing');
+    if (paymentDetails && status === 'success') {
+      // Redirect to success page with payment details
+      const params = new URLSearchParams({
+        payment_type: paymentDetails.payment_type,
+        amount: paymentDetails.amount,
+        transaction_id: paymentDetails.transaction_uuid || paymentDetails.gateway_transaction_id || 'N/A',
+        gateway: paymentDetails.gateway,
+        reference_id: paymentDetails.reference_id || ''
+      });
+      navigate(`/payment/success?${params.toString()}`);
+    } else {
+      // On failure or error, stay on verify page or go home
+      if (status === 'failed' || status === 'error') {
+        // User can retry from here
       } else {
         navigate('/');
       }
-    } else {
-      navigate('/');
     }
   };
 
@@ -206,10 +212,10 @@ const PaymentVerify = () => {
               className="text-center mb-6"
             >
               <p className="text-gray-600 mb-2">
-                Your payment has been processed successfully!
+                Payment verified successfully!
               </p>
               <p className="text-sm text-gray-500">
-                Redirecting in <span className="font-bold text-indigo-600">{countdown}</span> seconds...
+                Redirecting to success page in <span className="font-bold text-green-600">{countdown}</span> seconds...
               </p>
             </motion.div>
           )}
