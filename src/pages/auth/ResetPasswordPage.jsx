@@ -18,16 +18,22 @@ const ResetPasswordPage = () => {
   const [type, setType] = useState(""); // "error" | "success"
   const [loading, setLoading] = useState(false);
 
-  // Clear form & messages on page load
+  // Validate token on page load
   useEffect(() => {
-    setPassword("");
-    setConfirmPassword("");
-    setMessage("");
-    setType("");
-  }, []);
+    if (!token) {
+      setType("error");
+      setMessage("Invalid or missing reset token. Please request a new password reset link.");
+    }
+  }, [token]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!token) {
+      setType("error");
+      setMessage("Invalid or missing reset token");
+      return;
+    }
 
     if (password !== confirmPassword) {
       setType("error");
@@ -50,7 +56,7 @@ const ResetPasswordPage = () => {
       setTimeout(() => navigate("/login"), 1500);
     } catch (error) {
       setType("error");
-      setMessage(error.response?.data?.message || "Failed to reset password");
+      setMessage(error.response?.data?.error || error.response?.data?.message || "Failed to reset password");
     } finally {
       setLoading(false);
     }
@@ -75,7 +81,20 @@ const ResetPasswordPage = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {!token ? (
+          <div className="text-center">
+            <p className="text-gray-600 mb-4">
+              You need a valid reset link to access this page.
+            </p>
+            <button
+              onClick={() => navigate("/login")}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Go to Login
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
           {/* New Password */}
           <div className="relative">
             <label className="block text-sm font-medium mb-1">New Password</label>
@@ -126,6 +145,7 @@ const ResetPasswordPage = () => {
             {loading ? "Resetting..." : "Reset Password"}
           </button>
         </form>
+        )}
       </div>
     </div>
   );
