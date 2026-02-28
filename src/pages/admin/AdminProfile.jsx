@@ -319,176 +319,204 @@ const AdminProfile = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
         onSubmit={handleSubmit}
-        className="bg-white rounded-xl shadow-lg p-6 md:p-8 space-y-6"
+        className="bg-white rounded-2xl shadow-xl overflow-hidden"
       >
-        <div className="flex items-center gap-6 pb-6 border-b border-gray-200">
-          <div className="relative">
-            <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden">
-              {formData.profileImage ? (
-                <img
-                  src={formData.profileImage}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
+        {/* Modern Profile Header with Gradient */}
+        <div className="relative bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 px-6 md:px-8 pt-8 pb-24">
+          <div className="absolute inset-0 bg-black opacity-5"></div>
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="relative group">
+                <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-white/95 backdrop-blur-sm flex items-center justify-center overflow-hidden shadow-2xl ring-4 ring-white/30 transition-transform group-hover:scale-105">
+                  {formData.profileImage ? (
+                    <img
+                      src={formData.profileImage}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Shield size={48} className="text-purple-600" />
+                  )}
+                </div>
+                {isEditMode && (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingImage}
+                    className="absolute -bottom-2 -right-2 p-3 bg-white text-purple-600 rounded-xl shadow-xl hover:shadow-2xl hover:scale-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed border-2 border-purple-100"
+                    title="Upload profile image"
+                  >
+                    {uploadingImage ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : (
+                      <Camera size={18} />
+                    )}
+                  </button>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploadingImage}
+                  className="hidden"
                 />
+              </div>
+              <div className="text-white">
+                <h3 className="text-2xl md:text-3xl font-bold drop-shadow-lg">{formData.name || 'Your Name'}</h3>
+                <p className="text-white/90 mt-1 text-sm md:text-base">{formData.email}</p>
+                <span className="inline-flex items-center mt-3 px-4 py-1.5 bg-white/20 backdrop-blur-md text-white rounded-full text-xs font-semibold border border-white/30">
+                  <Shield size={14} className="mr-1.5" />
+                  Admin Account
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions Card */}
+        <div className="relative px-6 md:px-8 -mt-16 mb-8">
+          <div className="bg-white rounded-2xl shadow-xl p-4 border border-gray-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {!isEditMode ? (
+                <>
+                  <motion.button
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="button"
+                    onClick={() => setIsEditMode(true)}
+                    className="group relative overflow-hidden px-6 py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-700 to-purple-800 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="relative flex items-center justify-center gap-2">
+                      <User size={20} />
+                      <span>Edit Profile</span>
+                    </div>
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="button"
+                    onClick={() => setShowPasswordModal(true)}
+                    className="group relative overflow-hidden px-6 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="relative flex items-center justify-center gap-2">
+                      <Lock size={20} />
+                      <span>Change Password</span>
+                    </div>
+                  </motion.button>
+                </>
               ) : (
-                <User size={40} className="text-primary-600" />
+                <>
+                  <motion.button
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="px-6 py-4 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                  >
+                    <XCircle size={20} />
+                    <span>Cancel</span>
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                    disabled={saving}
+                    className="px-6 py-4 bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 size={20} className="animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save size={20} />
+                        <span>Save Changes</span>
+                      </>
+                    )}
+                  </motion.button>
+                </>
               )}
             </div>
-            {isEditMode && (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingImage}
-                className="absolute bottom-0 right-0 p-2 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Upload profile image"
-              >
-                {uploadingImage ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Camera size={16} />
-                )}
-              </button>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              disabled={uploadingImage}
-              className="hidden"
-            />
-          </div>
-          <div>
-            <h3 className="text-xl font-semibold text-text">{formData.name || 'Your Name'}</h3>
-            <p className="text-gray-600">{formData.email}</p>
-            <span className="inline-block mt-2 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold">
-              Admin
-            </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-semibold text-text mb-2">
-              <User size={16} className="inline mr-2" />
-              Full Name
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              disabled={!isEditMode}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed"
-              placeholder="Enter your full name"
-            />
-          </div>
+        {/* Form Fields - Personal Information */}
+        <div className="px-6 md:px-8 pb-8">
+          <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <div className="w-2 h-6 bg-purple-600 rounded-full"></div>
+            Personal Information
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <User size={16} className="text-purple-600" />
+                Full Name
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                disabled={!isEditMode}
+                className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none transition-all disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed hover:border-gray-300"
+                placeholder="Enter your full name"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-text mb-2">
-              <Mail size={16} className="inline mr-2" />
-              Email Address
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              disabled
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
-            />
-            <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
-          </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <Mail size={16} className="text-purple-600" />
+                Email Address
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                disabled
+                className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed"
+              />
+              <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                <Lock size={12} />
+                Email cannot be changed
+              </p>
+            </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-text mb-2">
-              <Phone size={16} className="inline mr-2" />
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              disabled={!isEditMode}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed"
-              placeholder="+977 9999999999"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <Phone size={16} className="text-purple-600" />
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                disabled={!isEditMode}
+                className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none transition-all disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed hover:border-gray-300"
+                placeholder="+977 9999999999"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-text mb-2">
-              <MapPin size={16} className="inline mr-2" />
-              City
-            </label>
-            <input
-              type="text"
-              name="city"
-              value={formData.city}
-              onChange={handleChange}
-              disabled={!isEditMode}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed"
-              placeholder="Enter your city"
-            />
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <MapPin size={16} className="text-purple-600" />
+                City
+              </label>
+              <input
+                type="text"
+                name="city"
+                value={formData.city}
+                onChange={handleChange}
+                disabled={!isEditMode}
+                className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none transition-all disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed hover:border-gray-300"
+                placeholder="Enter your city"
+              />
+            </div>
           </div>
-        </div>
-
-        <div className="pt-6 border-t border-gray-200 flex flex-col md:flex-row gap-3">
-          {!isEditMode ? (
-            <>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={() => setIsEditMode(true)}
-                className="flex-1 px-8 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
-              >
-                <User size={20} />
-                Edit Profile
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={() => setShowPasswordModal(true)}
-                className="flex-1 px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-              >
-                <Lock size={20} />
-                Change Password
-              </motion.button>
-            </>
-          ) : (
-            <>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={handleCancelEdit}
-                className="flex-1 px-8 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors flex items-center justify-center gap-2"
-              >
-                <XCircle size={20} />
-                Cancel
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="submit"
-                disabled={saving}
-                className="flex-1 px-8 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 size={20} className="animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save size={20} />
-                    Save Changes
-                  </>
-                )}
-              </motion.button>
-            </>
-          )}
         </div>
       </motion.form>
 
