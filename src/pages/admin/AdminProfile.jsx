@@ -72,12 +72,20 @@ const AdminProfile = () => {
       
       if (response.data.success) {
         const userData = response.data.user
+        let profileImageUrl = userData.profileImage || userData.profile_image || ''
+        
+        // If profile image is a relative path (starts with /uploads), prepend API base URL
+        if (profileImageUrl && profileImageUrl.startsWith('/uploads')) {
+          const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+          profileImageUrl = API_URL.replace('/api', '') + profileImageUrl
+        }
+        
         setFormData({
           name: userData.name || '',
           email: userData.email || '',
           phone: userData.phone || '',
           city: userData.city || '',
-          profileImage: userData.profileImage || userData.profile_image || '',
+          profileImage: profileImageUrl,
         })
       }
     } catch (error) {
@@ -170,11 +178,19 @@ const AdminProfile = () => {
           })
 
           if (response.data.success) {
+            let imageUrl = response.data.profileImage
+            
+            // If profile image is a relative path, prepend API base URL
+            if (imageUrl && imageUrl.startsWith('/uploads')) {
+              const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+              imageUrl = API_URL.replace('/api', '') + imageUrl
+            }
+            
             setFormData(prev => ({
               ...prev,
-              profileImage: response.data.profileImage,
+              profileImage: imageUrl,
             }))
-            useAuthStore.setState({ user: { ...user, profileImage: response.data.profileImage } })
+            useAuthStore.setState({ user: { ...user, profileImage: imageUrl } })
             setMessage({ type: 'success', text: '✅ Profile image uploaded successfully!' })
             setTimeout(() => setMessage({ type: '', text: '' }), 3000)
           }
@@ -385,11 +401,11 @@ const AdminProfile = () => {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={() => setIsEditMode(true)}
-                    className="group relative overflow-hidden px-6 py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+                    className="group relative overflow-hidden px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-purple-700 to-purple-800 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="relative flex items-center justify-center gap-2">
-                      <User size={20} />
+                    <div className="relative flex items-center justify-center gap-1.5">
+                      <User size={16} />
                       <span>Edit Profile</span>
                     </div>
                   </motion.button>
@@ -398,11 +414,11 @@ const AdminProfile = () => {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={() => setShowPasswordModal(true)}
-                    className="group relative overflow-hidden px-6 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+                    className="group relative overflow-hidden px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="relative flex items-center justify-center gap-2">
-                      <Lock size={20} />
+                    <div className="relative flex items-center justify-center gap-1.5">
+                      <Lock size={16} />
                       <span>Change Password</span>
                     </div>
                   </motion.button>
@@ -414,9 +430,9 @@ const AdminProfile = () => {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={handleCancelEdit}
-                    className="px-6 py-4 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                    className="px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-all flex items-center justify-center gap-1.5"
                   >
-                    <XCircle size={20} />
+                    <XCircle size={16} />
                     <span>Cancel</span>
                   </motion.button>
                   <motion.button
@@ -424,16 +440,16 @@ const AdminProfile = () => {
                     whileTap={{ scale: 0.98 }}
                     type="submit"
                     disabled={saving}
-                    className="px-6 py-4 bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="px-4 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                   >
                     {saving ? (
                       <>
-                        <Loader2 size={20} className="animate-spin" />
+                        <Loader2 size={16} className="animate-spin" />
                         <span>Saving...</span>
                       </>
                     ) : (
                       <>
-                        <Save size={20} />
+                        <Save size={16} />
                         <span>Save Changes</span>
                       </>
                     )}

@@ -20,13 +20,17 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
  const getImageUrl = (profileImage) => {
   if (!profileImage) return null
-  // Check if it's already a URL (starts with / or http)
-  if (profileImage.startsWith('/') || profileImage.startsWith('http')) {
+  // If it's already a full URL, return as is
+  if (profileImage.startsWith('http://') || profileImage.startsWith('https://')) {
     return profileImage
   }
   // If it's still base64 data, return it as is
   if (profileImage.startsWith('data:')) {
     return profileImage
+  }
+  // If it starts with /uploads, prepend API base URL
+  if (profileImage.startsWith('/uploads')) {
+    return `http://localhost:5000${profileImage}`
   }
   // Otherwise assume it's a path that needs /api prepended
   return profileImage

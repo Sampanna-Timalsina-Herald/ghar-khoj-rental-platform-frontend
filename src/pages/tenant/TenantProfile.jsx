@@ -63,13 +63,21 @@ const TenantProfile = () => {
       const response = await api.get('/auth/me')
       if (response.data.success) {
         const userData = response.data.user
+        let profileImageUrl = userData.profileImage || userData.profile_image || ''
+        
+        // If profile image is a relative path (starts with /uploads), prepend API base URL
+        if (profileImageUrl && profileImageUrl.startsWith('/uploads')) {
+          const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+          profileImageUrl = API_URL.replace('/api', '') + profileImageUrl
+        }
+        
         setFormData({
           name: userData.name || '',
           email: userData.email || '',
           phone: userData.phone || '',
           city: userData.city || '',
           college: userData.college || '',
-          profileImage: userData.profileImage || userData.profile_image || '',
+          profileImage: profileImageUrl,
         })
       }
     } catch (error) {
@@ -162,11 +170,19 @@ const TenantProfile = () => {
           })
 
           if (response.data.success) {
+            let imageUrl = response.data.profileImage
+            
+            // If profile image is a relative path, prepend API base URL
+            if (imageUrl && imageUrl.startsWith('/uploads')) {
+              const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+              imageUrl = API_URL.replace('/api', '') + imageUrl
+            }
+            
             setFormData(prev => ({
               ...prev,
-              profileImage: response.data.profileImage,
+              profileImage: imageUrl,
             }))
-            useAuthStore.setState({ user: { ...user, profileImage: response.data.profileImage } })
+            useAuthStore.setState({ user: { ...user, profileImage: imageUrl } })
             setMessage({ type: 'success', text: '✅ Profile image uploaded successfully!' })
             setTimeout(() => setMessage({ type: '', text: '' }), 3000)
           }
@@ -382,7 +398,7 @@ const TenantProfile = () => {
         {/* Quick Actions Card - Now positioned overlapping the header */}
         <div className="relative px-6 md:px-8 -mt-16 mb-8">
           <div className="bg-white rounded-2xl shadow-xl p-4 border border-gray-100">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex flex-wrap gap-3 justify-center">
               {!isEditMode ? (
                 <>
                   <motion.button
@@ -390,11 +406,11 @@ const TenantProfile = () => {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={() => setIsEditMode(true)}
-                    className="group relative overflow-hidden px-6 py-4 bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+                    className="group relative overflow-hidden px-5 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all min-w-[140px]"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-primary-600 to-primary-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="relative flex items-center justify-center gap-2">
-                      <User size={20} />
+                    <div className="relative flex items-center justify-center gap-1.5">
+                      <User size={16} />
                       <span>Edit Profile</span>
                     </div>
                   </motion.button>
@@ -403,11 +419,11 @@ const TenantProfile = () => {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={() => setShowPasswordModal(true)}
-                    className="group relative overflow-hidden px-6 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+                    className="group relative overflow-hidden px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all min-w-[160px]"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="relative flex items-center justify-center gap-2">
-                      <Lock size={20} />
+                    <div className="relative flex items-center justify-center gap-1.5">
+                      <Lock size={16} />
                       <span>Change Password</span>
                     </div>
                   </motion.button>
@@ -419,9 +435,9 @@ const TenantProfile = () => {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={handleCancelEdit}
-                    className="px-6 py-4 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                    className="px-5 py-2.5 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-all flex items-center justify-center gap-1.5 min-w-[100px]"
                   >
-                    <XCircle size={20} />
+                    <XCircle size={16} />
                     <span>Cancel</span>
                   </motion.button>
                   <motion.button
@@ -429,16 +445,16 @@ const TenantProfile = () => {
                     whileTap={{ scale: 0.98 }}
                     type="submit"
                     disabled={saving}
-                    className="px-6 py-4 bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 min-w-[140px]"
                   >
                     {saving ? (
                       <>
-                        <Loader2 size={20} className="animate-spin" />
+                        <Loader2 size={16} className="animate-spin" />
                         <span>Saving...</span>
                       </>
                     ) : (
                       <>
-                        <Save size={20} />
+                        <Save size={16} />
                         <span>Save Changes</span>
                       </>
                     )}
