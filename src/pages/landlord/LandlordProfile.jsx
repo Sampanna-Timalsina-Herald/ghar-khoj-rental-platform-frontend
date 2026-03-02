@@ -361,7 +361,7 @@ const LandlordProfile = () => {
         {/* Quick Actions Card */}
         <div className="relative px-6 md:px-8 -mt-16 mb-8">
           <div className="bg-white rounded-2xl shadow-xl p-4 border border-gray-100">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex flex-wrap gap-3 justify-center">
               {!isEditMode ? (
                 <>
                   <motion.button
@@ -369,7 +369,7 @@ const LandlordProfile = () => {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={() => setIsEditMode(true)}
-                    className="group relative overflow-hidden px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all"
+                    className="group relative overflow-hidden px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all min-w-[140px]"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-emerald-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     <div className="relative flex items-center justify-center gap-1.5">
@@ -382,7 +382,7 @@ const LandlordProfile = () => {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={() => setShowPasswordModal(true)}
-                    className="group relative overflow-hidden px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all"
+                    className="group relative overflow-hidden px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all min-w-[160px]"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     <div className="relative flex items-center justify-center gap-1.5">
@@ -398,7 +398,7 @@ const LandlordProfile = () => {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={handleCancelEdit}
-                    className="px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-all flex items-center justify-center gap-1.5"
+                    className="px-5 py-2.5 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-all flex items-center justify-center gap-1.5 min-w-[100px]"
                   >
                     <XCircle size={16} />
                     <span>Cancel</span>
@@ -408,7 +408,7 @@ const LandlordProfile = () => {
                     whileTap={{ scale: 0.98 }}
                     type="submit"
                     disabled={saving}
-                    className="px-4 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                    className="px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 min-w-[140px]"
                   >
                     {saving ? (
                       <>
