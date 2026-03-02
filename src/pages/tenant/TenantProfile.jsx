@@ -2,18 +2,22 @@ import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import api from '../../api/axios'
 import { useAuthStore } from '../../stores/authStore'
+import { useLocationStore } from '../../stores/locationStore'
 import { User, Mail, Phone, MapPin, GraduationCap, Camera, Save, Loader2, CheckCircle2, XCircle, Lock, Eye, EyeOff, Users, Settings } from 'lucide-react'
 import CollegeSelect from '../../components/CollegeSelect'
 import PreferencesModal from '../../components/PreferencesModal'
+import LocationSetupModal from '../../components/LocationSetupModal'
 
 const TenantProfile = () => {
   const { user } = useAuthStore()
+  const { locations, primaryLocation, fetchLocations, setPrimary, deleteLocation } = useLocationStore()
   const fileInputRef = useRef(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [showPreferencesModal, setShowPreferencesModal] = useState(false)
+  const [showLocationModal, setShowLocationModal] = useState(false)
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false)
   const [preferences, setPreferences] = useState(null)
   const [message, setMessage] = useState({ type: '', text: '' })
@@ -41,6 +45,7 @@ const TenantProfile = () => {
     if (isAuthenticated) {
       fetchProfile()
       fetchPreferences()
+      fetchLocations()
     } else {
       setLoading(false)
       setMessage({ type: 'error', text: 'Please log in to view your profile.' })
@@ -107,6 +112,26 @@ const TenantProfile = () => {
       }
     } catch (error) {
       console.error('Failed to fetch preferences:', error)
+    }
+  }
+
+  const handleSetPrimaryLocation = async (locationId) => {
+    try {
+      await setPrimary(locationId)
+      setMessage({ type: 'success', text: 'Primary location updated.' })
+    } catch (error) {
+      console.error('Failed to set primary location:', error)
+      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to set primary location' })
+    }
+  }
+
+  const handleDeleteLocation = async (locationId) => {
+    try {
+      await deleteLocation(locationId)
+      setMessage({ type: 'success', text: 'Location removed.' })
+    } catch (error) {
+      console.error('Failed to delete location:', error)
+      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to delete location' })
     }
   }
 
@@ -553,6 +578,109 @@ const TenantProfile = () => {
         </div>
       </motion.form>
 
+      {/* Location Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="bg-white rounded-xl shadow-lg p-6 md:p-8 mb-6"
+      >
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <MapPin size={24} className="text-blue-600" />
+            <div>
+              <h2 className="text-2xl font-bold text-text">Saved Locations</h2>
+              <p className="text-gray-600 text-sm">Used for distance, maps, and location-aware recommendations.</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowLocationModal(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
+            >
+              {locations.length > 0 ? 'Add Another' : 'Add Location'}
+            </motion.button>
+          </div>
+        </div>
+
+        {primaryLocation ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+            <div className="lg:col-span-2 p-4 rounded-xl border border-blue-200 bg-blue-50">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-white rounded-full border border-blue-200">
+                  <MapPin className="text-blue-600" size={18} />
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-blue-700 font-semibold mb-1">Primary location</p>
+                  <h3 className="text-lg font-semibold text-blue-900">{primaryLocation.label || 'Primary'}</h3>
+                  <p className="text-sm text-blue-800">{primaryLocation.fullAddress || primaryLocation.city}</p>
+                  <p className="text-xs text-blue-700 mt-1">{primaryLocation.latitude.toFixed(5)}, {primaryLocation.longitude.toFixed(5)} • {primaryLocation.radiusKm || primaryLocation.radius_km || 20} km radius</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-700">
+              <p className="font-semibold mb-1">How it is used</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Filters recommendations within your radius</li>
+                <li>Shows distance on property maps</li>
+                <li>Can be changed anytime</li>
+              </ul>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-6 text-gray-600">
+            <p>No location saved yet. Add one to unlock location-based suggestions.</p>
+          </div>
+        )}
+
+        {locations.length > 0 && (
+          <div className="overflow-x-auto border border-gray-100 rounded-xl">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50 text-gray-600 uppercase text-xs tracking-wide">
+                <tr>
+                  <th className="text-left px-4 py-3">Label</th>
+                  <th className="text-left px-4 py-3">Address</th>
+                  <th className="text-left px-4 py-3">Radius</th>
+                  <th className="text-left px-4 py-3">Primary</th>
+                  <th className="text-right px-4 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {locations.map((loc) => (
+                  <tr key={loc.id} className="border-t border-gray-100">
+                    <td className="px-4 py-3 font-semibold text-gray-800">{loc.label || 'Location'}</td>
+                    <td className="px-4 py-3 text-gray-600">
+                      <p className="truncate max-w-xs">{loc.fullAddress || loc.city}</p>
+                      <p className="text-xs text-gray-500">{loc.latitude.toFixed(4)}, {loc.longitude.toFixed(4)}</p>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{loc.radiusKm || loc.radius_km || 20} km</td>
+                    <td className="px-4 py-3 text-gray-600">{loc.isPrimary ? 'Yes' : 'No'}</td>
+                    <td className="px-4 py-3 text-right space-x-2">
+                      {!loc.isPrimary && (
+                        <button
+                          onClick={() => handleSetPrimaryLocation(loc.id)}
+                          className="px-3 py-1 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200"
+                        >
+                          Make primary
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDeleteLocation(loc.id)}
+                        className="px-3 py-1 rounded-lg bg-red-100 text-red-700 hover:bg-red-200"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </motion.div>
+
       {/* Preferences Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -654,6 +782,18 @@ const TenantProfile = () => {
           </div>
         )}
       </motion.div>
+
+      {/* Location Setup Modal */}
+      <LocationSetupModal
+        isOpen={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+        force={false}
+        onCompleted={() => {
+          fetchLocations()
+          setShowLocationModal(false)
+          setMessage({ type: 'success', text: '✅ Location saved successfully!' })
+        }}
+      />
 
       {/* Preferences Modal */}
       <PreferencesModal

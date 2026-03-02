@@ -97,6 +97,24 @@ const LocationPicker = ({ onLocationSelect, initialLocation }) => {
     mapInstanceRef.current.setView([lat, lng], 15);
   };
 
+  // Sync external initialLocation updates (e.g., auto-detected geolocation)
+  useEffect(() => {
+    if (!initialLocation) return;
+    const lat = initialLocation.lat ?? initialLocation.latitude;
+    const lng = initialLocation.lng ?? initialLocation.longitude;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    addMarker(lat, lng);
+    setSelectedLocation({ ...initialLocation, lat, lng });
+    onLocationSelect?.({
+      lat,
+      lng,
+      address: initialLocation.address || initialLocation.formatted,
+      city: initialLocation.city,
+      formatted: initialLocation.formatted || initialLocation.address,
+    });
+  }, [initialLocation]);
+
   const reverseGeocode = async (lat, lng) => {
     try {
       setSearching(true);

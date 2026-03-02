@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { 
   ArrowLeft, MapPin, Bed, Bath, Ruler, Heart, MessageCircle, Loader2, 
   ChevronLeft, ChevronRight, Phone, Mail, User, Calendar, CheckCircle,
-  FileText, Send, X, Maximize2, Grid3x3, Zap, Shield, Home, Sofa, Clock, XCircle
+  FileText, Send, X, Maximize2, Grid3x3, Zap, Shield, Home, Sofa, Clock, XCircle, Navigation
 } from 'lucide-react'
 import api from '../../api/axios'
 import { useAuthStore } from '../../stores/authStore'
@@ -320,6 +320,12 @@ const TenantListingDetail = () => {
     )
   }
 
+  const fullAddress = listing.full_address || listing.fullAddress || listing.address || listing.city || ''
+  const mapQuery = listing.latitude && listing.longitude
+    ? `${listing.latitude},${listing.longitude}`
+    : fullAddress
+  const mapUrl = mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : null
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
       {/* Premium Header */}
@@ -469,6 +475,28 @@ const TenantListingDetail = () => {
                 <MapPin size={20} className="text-blue-500 flex-shrink-0" />
                 {listing.city || listing.address}
               </p>
+              {fullAddress && (
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl flex flex-wrap items-center gap-3">
+                  <div className="flex items-start gap-2 text-gray-800">
+                    <MapPin size={18} className="text-blue-600 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-semibold text-blue-800 uppercase tracking-wide">Full Address</p>
+                      <p className="font-medium leading-relaxed">{fullAddress}</p>
+                    </div>
+                  </div>
+                  {mapUrl && (
+                    <a
+                      href={mapUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="ml-auto inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 shadow-sm"
+                    >
+                      <Navigation size={16} />
+                      View on Map
+                    </a>
+                  )}
+                </div>
+              )}
               {listing.is_verified && (
                 <div className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-2 rounded-lg border border-green-200 mt-3 w-fit">
                   <CheckCircle size={16} />

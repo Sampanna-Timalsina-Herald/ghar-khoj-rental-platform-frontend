@@ -52,6 +52,7 @@
 // }))
 
 import { create } from 'zustand';
+import { useLocationStore } from './locationStore';
 
 export const useAuthStore = create((set, get) => ({
   user: null,
@@ -87,6 +88,14 @@ export const useAuthStore = create((set, get) => ({
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     localStorage.removeItem('user');
+
+    // Reset any location gating state
+    try {
+      const resetStatus = useLocationStore.getState().resetStatus;
+      resetStatus?.();
+    } catch (error) {
+      console.warn('[AuthStore] Failed to reset location store on logout', error);
+    }
 
     set({
       user: null,

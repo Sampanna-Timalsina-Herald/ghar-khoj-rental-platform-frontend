@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, MapPin, Bed, Bath, Ruler, Heart, MessageCircle, Loader2, ChevronLeft, ChevronRight, Share2, Flag } from 'lucide-react'
+import { ArrowLeft, MapPin, Bed, Bath, Ruler, Heart, MessageCircle, Loader2, ChevronLeft, ChevronRight, Share2, Flag, Navigation } from 'lucide-react'
 import api from '../api/axios'
 import SmartNav from '../components/SmartNav'
 import { useAuthStore } from '../stores/authStore'
@@ -169,6 +169,11 @@ const ListingDetail = () => {
   }
 
   const images = listing.images && listing.images.length > 0 ? listing.images : ['/placeholder.svg']
+  const fullAddress = listing.full_address || listing.fullAddress || listing.address || listing.city || ''
+  const mapQuery = listing.latitude && listing.longitude
+    ? `${listing.latitude},${listing.longitude}`
+    : fullAddress
+  const mapUrl = mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : null
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -246,6 +251,28 @@ const ListingDetail = () => {
                   <MapPin size={20} className="mr-2 text-blue-600" />
                   {listing.address}, {listing.city}
                 </div>
+                {fullAddress && (
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl flex flex-wrap items-center gap-3">
+                    <div className="flex items-start gap-2 text-gray-800">
+                      <MapPin size={18} className="text-blue-600 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-semibold text-blue-800 uppercase tracking-wide">Full Address</p>
+                        <p className="font-medium leading-relaxed">{fullAddress}</p>
+                      </div>
+                    </div>
+                    {mapUrl && (
+                      <a
+                        href={mapUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="ml-auto inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 shadow-sm"
+                      >
+                        <Navigation size={16} />
+                        View on Map
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
               <motion.button
                 whileHover={{ scale: 1.1 }}
