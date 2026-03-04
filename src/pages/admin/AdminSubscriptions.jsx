@@ -17,6 +17,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import ReceiptDownloadButton from '../../components/ReceiptDownloadButton';
 
 const AdminSubscriptions = () => {
   const navigate = useNavigate();
@@ -249,6 +250,9 @@ const AdminSubscriptions = () => {
                     Amount
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Receipt
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -256,7 +260,7 @@ const AdminSubscriptions = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredSubscriptions.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan="9" className="px-6 py-8 text-center text-gray-500">
                       No subscriptions found
                     </td>
                   </tr>
@@ -307,6 +311,18 @@ const AdminSubscriptions = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         NPR {(sub.amount_paid || 0).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {(sub.transaction_uuid || sub.payment_reference) ? (
+                          <ReceiptDownloadButton
+                            transactionUuid={sub.transaction_uuid || sub.payment_reference}
+                            hasReceipt={!!sub.receipt_url}
+                            variant="secondary"
+                            size="sm"
+                          />
+                        ) : (
+                          <span className="text-xs text-gray-400">N/A</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {sub.status === 'active' && (
