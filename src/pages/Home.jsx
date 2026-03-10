@@ -148,9 +148,9 @@ const ListingCard = ({ data, onBookClick }) => {
 
   return (
     <motion.div 
-      whileHover={{ y: -12, boxShadow: "0 25px 50px rgba(59, 130, 246, 0.25)" }}
+      whileHover={{ y: -12, boxShadow: "0 25px 50px rgba(2, 132, 199, 0.25)" }}
       whileTap={{ scale: 0.98 }}
-      className="bg-white rounded-2xl shadow-lg overflow-hidden group cursor-pointer border border-gray-100 hover:border-blue-400 transition-all duration-300"
+      className="bg-white rounded-2xl shadow-lg overflow-hidden group cursor-pointer border border-gray-100 hover:border-primary-400 transition-all duration-300"
       style={{ perspective: 1000 }}
     >
       <motion.div 
@@ -171,7 +171,7 @@ const ListingCard = ({ data, onBookClick }) => {
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         
         {/* Badge */}
-        <div className="absolute top-4 right-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+        <div className="absolute top-4 right-4 bg-gradient-to-r from-primary-500 to-primary-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
           Featured
         </div>
 
@@ -195,9 +195,9 @@ const ListingCard = ({ data, onBookClick }) => {
       </motion.div>
 
       <div className="p-5">
-        <h3 className="text-lg font-bold text-gray-900 line-clamp-1 group-hover:text-blue-600 transition-colors">{data.title}</h3>
+        <h3 className="text-lg font-bold text-gray-900 line-clamp-1 group-hover:text-primary-600 transition-colors">{data.title}</h3>
         <div className="flex items-center text-gray-500 text-sm mt-2">
-          <MapPin size={16} className="mr-1 text-blue-600 flex-shrink-0" />
+          <MapPin size={16} className="mr-1 text-primary-600 flex-shrink-0" />
           <span className="line-clamp-1">{data.address}, {data.city}</span>
         </div>
 
@@ -209,14 +209,14 @@ const ListingCard = ({ data, onBookClick }) => {
 
         <div className="mt-4 flex justify-between items-center gap-3">
           <div>
-            <span className="text-2xl font-extrabold text-blue-600">Rs. {data.rent_amount?.toLocaleString()}</span>
+            <span className="text-2xl font-extrabold text-primary-600">Rs. {data.rent_amount?.toLocaleString()}</span>
             <span className="text-gray-500 text-xs ml-2"> / mo</span>
           </div>
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleViewClick}
-            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:shadow-lg transition-all text-sm"
+            className="px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg font-semibold hover:shadow-lg transition-all text-sm"
           >
             View
           </motion.button>
@@ -288,7 +288,7 @@ const AdvancedSearch = ({ onSearch, loading }) => {
             value={searchParams.location}
             onChange={handleInputChange}
             placeholder="Search Area (e.g., Baneshwor, Thamel...)"
-            className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none"
           />
         </div>
         
@@ -296,7 +296,7 @@ const AdvancedSearch = ({ onSearch, loading }) => {
           name="propertyType"
           value={searchParams.propertyType}
           onChange={handleInputChange}
-          className="w-full md:w-48 py-3 px-4 border border-gray-200 rounded-xl text-gray-600 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          className="w-full md:w-48 py-3 px-4 border border-gray-200 rounded-xl text-gray-600 outline-none focus:ring-2 focus:ring-primary-500 bg-white"
         >
           <option value="">Property Type</option>
           <option value="flat">Flat / Apartment</option>
@@ -307,7 +307,7 @@ const AdvancedSearch = ({ onSearch, loading }) => {
         <button 
           type="button"
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 py-3 px-4 border border-gray-200 rounded-xl text-gray-600 hover:bg-blue-50 transition"
+          className="flex items-center gap-2 py-3 px-4 border border-gray-200 rounded-xl text-gray-600 hover:bg-primary-50 transition"
         >
           <Search size={18}/> {showFilters ? 'Hide Filters' : 'More Filters'}
         </button>
@@ -338,7 +338,7 @@ const AdvancedSearch = ({ onSearch, loading }) => {
                 value={searchParams.minPrice}
                 onChange={handleInputChange}
                 placeholder="Min (Rs.)" 
-                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" 
               />
               <input 
                 type="number" 
@@ -346,7 +346,7 @@ const AdvancedSearch = ({ onSearch, loading }) => {
                 value={searchParams.maxPrice}
                 onChange={handleInputChange}
                 placeholder="Max (Rs.)" 
-                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" 
               />
             </div>
           </div>
@@ -357,7 +357,7 @@ const AdvancedSearch = ({ onSearch, loading }) => {
               name="bedrooms"
               value={searchParams.bedrooms}
               onChange={handleInputChange}
-              className="w-full p-2 border rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full p-2 border rounded-lg bg-white focus:ring-2 focus:ring-primary-500 outline-none"
             >
               <option value="">Any</option>
               <option value="1">1+</option>
@@ -373,7 +373,7 @@ const AdvancedSearch = ({ onSearch, loading }) => {
               name="bathrooms"
               value={searchParams.bathrooms}
               onChange={handleInputChange}
-              className="w-full p-2 border rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full p-2 border rounded-lg bg-white focus:ring-2 focus:ring-primary-500 outline-none"
             >
               <option value="">Any</option>
               <option value="1">1+</option>
@@ -386,12 +386,12 @@ const AdvancedSearch = ({ onSearch, loading }) => {
             <h4 className="font-semibold text-gray-700 mb-3">Key Amenities</h4>
             <div className="grid grid-cols-2 gap-2">
               {AMENITY_OPTIONS.slice(0, 4).map((amenity) => (
-                <label key={amenity} className="flex items-center gap-2 text-gray-600 text-sm cursor-pointer hover:text-blue-600">
+                <label key={amenity} className="flex items-center gap-2 text-gray-600 text-sm cursor-pointer hover:text-primary-600">
                   <input 
                     type="checkbox"
                     checked={searchParams.amenities.includes(amenity)}
                     onChange={() => handleAmenityChange(amenity)}
-                    className="rounded text-blue-600 focus:ring-blue-500" 
+                    className="rounded text-primary-600 focus:ring-primary-500" 
                   />
                   {amenity}
                 </label>
@@ -412,21 +412,21 @@ const StepCard = ({ icon: Icon, title, description, delay }) => (
     whileHover={{ 
       scale: 1.05, 
       y: -12,
-      boxShadow: "0 25px 50px rgba(59, 130, 246, 0.2)"
+      boxShadow: "0 25px 50px rgba(2, 132, 199, 0.2)"
     }}
     transition={{ duration: 0.6, delay: delay }}
     viewport={{ once: true }}
-    className="bg-white p-8 rounded-2xl shadow-xl border-t-4 border-blue-600/50 flex flex-col items-center text-center hover:border-yellow-400 transition-colors"
+    className="bg-white p-8 rounded-2xl shadow-xl border-t-4 border-primary-600/50 flex flex-col items-center text-center hover:border-yellow-400 transition-colors"
   >
     <motion.div 
-      className="p-4 bg-blue-100 rounded-full mb-4"
+      className="p-4 bg-primary-100 rounded-full mb-4"
       whileHover={{ 
-        background: "linear-gradient(135deg, #3b82f6 0%, #facc15 100%)",
+        background: "linear-gradient(135deg, #0284c7 0%, #facc15 100%)",
         scale: 1.1
       }}
       transition={{ duration: 0.3 }}
     >
-      <Icon size={36} className="text-blue-600" />
+      <Icon size={36} className="text-primary-600" />
     </motion.div>
     <h3 className="text-xl font-bold text-gray-900 mb-3">{title}</h3>
     <p className="text-gray-600">{description}</p>
@@ -484,9 +484,9 @@ const Home = () => {
       <SmartNav />
 
       {/* Modern Split Hero Section (Focused on Kathmandu Valley) */}
-      <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden bg-blue-50/50">
+      <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden bg-primary-50/50">
          {/* Background Accent Shapes */}
-         <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[50rem] h-[50rem] bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
+         <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[50rem] h-[50rem] bg-primary-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
          <div className="absolute bottom-0 left-0 translate-y-1/4 -translate-x-1/4 w-[50rem] h-[50rem] bg-yellow-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
 
         <div className="max-w-7xl mx-auto px-6 relative z-10">
@@ -501,7 +501,7 @@ const Home = () => {
             >
               <motion.span 
                  variants={itemVariants}
-                 className="inline-block py-1 px-3 rounded-full bg-blue-100 text-blue-600 text-sm font-semibold mb-4"
+                 className="inline-block py-1 px-3 rounded-full bg-primary-100 text-primary-600 text-sm font-semibold mb-4"
               >
                  Your Trusted Home Search Partner
               </motion.span>
@@ -509,7 +509,7 @@ const Home = () => {
                  variants={itemVariants}
                  className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight"
               >
-                Find Your Perfect <span className="text-blue-600">Ghar</span> in <br/> Kathmandu Valley.
+                Find Your Perfect <span className="text-primary-600">Ghar</span> in <br/> Kathmandu Valley.
               </motion.h1>
               <motion.p 
                  variants={itemVariants}
@@ -522,7 +522,7 @@ const Home = () => {
                  className="mt-8 flex gap-4"
               >
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Link to="/search" className="px-8 py-3 bg-blue-600 text-white rounded-full font-bold text-lg hover:bg-blue-700 transition shadow-lg shadow-blue-600/30">
+                  <Link to="/search" className="px-8 py-3 bg-primary-600 text-white rounded-full font-bold text-lg hover:bg-primary-700 transition shadow-lg shadow-primary-600/30">
                     Start Your Search
                   </Link>
                 </motion.div>
@@ -543,7 +543,7 @@ const Home = () => {
             >
                <motion.div 
                   animate={floatingVariants}
-                  className="aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl shadow-blue-300/50 relative z-10"
+                  className="aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl shadow-primary-300/50 relative z-10"
                >
                 <img 
                   src={modernInterior} 
@@ -555,7 +555,7 @@ const Home = () => {
                {/* Background accent shape with rotation */}
                <motion.div 
                   animate={rotateVariants}
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[110%] border-2 border-dashed border-blue-200 rounded-3xl -z-10"
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[110%] border-2 border-dashed border-primary-200 rounded-3xl -z-10"
                ></motion.div>
             </motion.div>
           </div>
@@ -658,7 +658,7 @@ const Home = () => {
              <p className="text-gray-600 mt-2">Verified properties in prime areas of Kathmandu, Lalitpur, and Bhaktapur.</p>
            </div>
            <motion.div whileHover={{ gap: "12px" }}>
-             <Link to="/search" className="hidden md:flex items-center gap-1 text-blue-600 font-semibold hover:text-blue-700 transition-all">
+             <Link to="/search" className="hidden md:flex items-center gap-1 text-primary-600 font-semibold hover:text-primary-700 transition-all">
                View All Listings <ChevronRight size={20}/>
              </Link>
            </motion.div>
@@ -672,7 +672,7 @@ const Home = () => {
 
         {loading ? (
           <div className="flex justify-center items-center py-16">
-            <Loader size={40} className="animate-spin text-blue-600" />
+            <Loader size={40} className="animate-spin text-primary-600" />
           </div>
         ) : featuredListings.length === 0 ? (
           <div className="text-center py-16">
@@ -702,7 +702,7 @@ const Home = () => {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
             viewport={{ once: true }}
-            className="bg-blue-600 rounded-3xl p-10 md:p-16 text-white shadow-2xl flex flex-col md:flex-row justify-between items-center"
+            className="bg-primary-600 rounded-3xl p-10 md:p-16 text-white shadow-2xl flex flex-col md:flex-row justify-between items-center"
          >
            <div>
              <div className="flex items-center gap-3 mb-2">
