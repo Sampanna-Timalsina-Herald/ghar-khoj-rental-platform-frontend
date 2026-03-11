@@ -9,7 +9,7 @@ import {
   DollarSign, TrendingUp, Clock, AlertCircle, CheckCircle,
   Download, Filter, Calendar, User, FileText, Search,
   CreditCard, BarChart3, PieChart, ArrowUpRight, ArrowDownRight,
-  Eye, Edit, RefreshCw
+  Eye, Edit, RefreshCw, ToggleLeft, ToggleRight, Power
 } from 'lucide-react';
 import api from '../../api/axios';
 
@@ -32,6 +32,8 @@ const AdminCommissionDashboard = () => {
   });
   const [message, setMessage] = useState({ type: '', text: '' });
   const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [commissionEnabled, setCommissionEnabled] = useState(true);
+  const [togglingCommission, setTogglingCommission] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -45,6 +47,7 @@ const AdminCommissionDashboard = () => {
         setSummary(response.data.data.summary);
         setTransactions(response.data.data.recentTransactions);
         setMonthlyTrends(response.data.data.monthlyTrends);
+        setCommissionEnabled(response.data.data.commission_enabled !== false);
         setLastUpdate(new Date());
       }
     } catch (error) {
@@ -128,6 +131,23 @@ const AdminCommissionDashboard = () => {
     setTimeout(() => setMessage({ type: '', text: '' }), 4000);
   };
 
+  const handleToggleCommission = async () => {
+    try {
+      setTogglingCommission(true);
+      const newState = !commissionEnabled;
+      const response = await api.put('/admin/commissions/toggle', { enabled: newState });
+      if (response.data.success) {
+        setCommissionEnabled(newState);
+        showMessage('success', `Commission system ${newState ? 'enabled' : 'disabled'} successfully`);
+      }
+    } catch (error) {
+      console.error('Error toggling commission:', error);
+      showMessage('error', 'Failed to toggle commission status');
+    } finally {
+      setTogglingCommission(false);
+    }
+  };
+
   const formatCurrency = (amount) => {
     return `NPR ${parseFloat(amount || 0).toLocaleString()}`;
   };
@@ -181,6 +201,22 @@ const AdminCommissionDashboard = () => {
           </p>
         </div>
         <div className="flex gap-3">
+          {/* Commission Toggle */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleToggleCommission}
+            disabled={togglingCommission}
+            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 font-semibold disabled:opacity-50 border ${
+              commissionEnabled
+                ? 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100'
+                : 'bg-red-50 border-red-300 text-red-700 hover:bg-red-100'
+            }`}
+            title={commissionEnabled ? 'Click to disable commission' : 'Click to enable commission'}
+          >
+            {commissionEnabled ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
+            {togglingCommission ? 'Updating...' : commissionEnabled ? 'Commission ON' : 'Commission OFF'}
+          </motion.button>
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -215,6 +251,32 @@ const AdminCommissionDashboard = () => {
           }`}
         >
           {message.text}
+        </motion.div>
+      )}
+
+      {/* Commission Disabled Banner */}
+      {!commissionEnabled && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-lg border border-amber-300 bg-amber-50 flex items-center gap-3"
+        >
+          <Power size={20} className="text-amber-600 flex-shrink-0" />
+          <div>
+            <p className="font-semibold text-amber-800">Commission System is Disabled</p>
+            <p className="text-sm text-amber-700">
+              Landlords are not being charged commission on new rentals. Existing pending commissions remain unaffected.
+            </p>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleToggleCommission}
+            disabled={togglingCommission}
+            className="ml-auto px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-semibold text-sm disabled:opacity-50 whitespace-nowrap"
+          >
+            Enable Commission
+          </motion.button>
         </motion.div>
       )}
 
