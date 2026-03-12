@@ -4,12 +4,10 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import {
-  DollarSign, TrendingUp, Clock, AlertCircle, CheckCircle,
-  Download, Filter, Calendar, User, FileText, Search,
-  CreditCard, BarChart3, PieChart, ArrowUpRight, ArrowDownRight,
-  Eye, Edit, RefreshCw, ToggleLeft, ToggleRight, Power
+  DollarSign, Clock, AlertCircle, CheckCircle,
+  Download, FileText, Search,
+  CreditCard, Eye, RefreshCw, Power, ChevronDown
 } from 'lucide-react';
 import api from '../../api/axios';
 
@@ -34,6 +32,7 @@ const AdminCommissionDashboard = () => {
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [commissionEnabled, setCommissionEnabled] = useState(true);
   const [togglingCommission, setTogglingCommission] = useState(false);
+  const [showReportMenu, setShowReportMenu] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -95,30 +94,25 @@ const AdminCommissionDashboard = () => {
     }
   };
 
-  const downloadReport = async (format = 'json') => {
+  const downloadReport = async (type) => {
     try {
+      setShowReportMenu(false);
       const params = new URLSearchParams();
-      if (filters.payment_status) params.append('payment_status', filters.payment_status);
       if (filters.from_date) params.append('from_date', filters.from_date);
       if (filters.to_date) params.append('to_date', filters.to_date);
-      params.append('format', format);
 
-      const response = await api.get(`/admin/commissions/report?${params.toString()}`, {
-        responseType: format === 'csv' ? 'blob' : 'json'
+      const response = await api.get(`/admin/reports/${type}?${params.toString()}`, {
+        responseType: 'blob'
       });
 
-      if (format === 'csv') {
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `commission-report-${Date.now()}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-      } else {
-        console.log('Report data:', response.data);
-      }
-
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${type}-income-report-${Date.now()}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
       showMessage('success', 'Report downloaded successfully');
     } catch (error) {
       console.error('Error downloading report:', error);
@@ -188,62 +182,88 @@ const AdminCommissionDashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Commission Management</h1>
-          <p className="text-gray-600 mt-1">
-            Track and manage platform revenue
-            <span className="ml-2 text-xs text-gray-500">
-              Last updated: {lastUpdate.toLocaleTimeString()}
-            </span>
-          </p>
+          <p className="text-gray-600 mt-2">Track and manage platform revenue</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
           {/* Commission Toggle */}
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleToggleCommission}
-            disabled={togglingCommission}
-            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 font-semibold disabled:opacity-50 border ${
-              commissionEnabled
-                ? 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100'
-                : 'bg-red-50 border-red-300 text-red-700 hover:bg-red-100'
-            }`}
-            title={commissionEnabled ? 'Click to disable commission' : 'Click to enable commission'}
-          >
-            {commissionEnabled ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
-            {togglingCommission ? 'Updating...' : commissionEnabled ? 'Commission ON' : 'Commission OFF'}
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <div className="flex items-center gap-3">
+            <span className={`text-sm font-semibold ${commissionEnabled ? 'text-green-700' : 'text-red-700'}`}>
+              {togglingCommission ? 'Updating...' : commissionEnabled ? 'Commission ON' : 'Commission OFF'}
+            </span>
+            <button
+              onClick={handleToggleCommission}
+              disabled={togglingCommission}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+                commissionEnabled ? 'bg-green-500' : 'bg-red-400'
+              }`}
+              title={commissionEnabled ? 'Click to disable commission' : 'Click to enable commission'}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                  commissionEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          <button
             onClick={fetchDashboardData}
             disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-semibold disabled:opacity-50"
+            className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
           >
-            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw className={`w-5 h-5 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => downloadReport('csv')}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 font-semibold"
-          >
-            <Download size={18} />
-            Export Report
-          </motion.button>
+          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowReportMenu(!showReportMenu)}
+              className="flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              <FileText className="w-5 h-5 mr-2" />
+              Income Reports
+              <ChevronDown className="w-4 h-4 ml-1" />
+            </button>
+            {showReportMenu && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowReportMenu(false)} />
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+                <button
+                  onClick={() => downloadReport('commission')}
+                  className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 rounded-t-lg"
+                >
+                  <Download className="w-4 h-4" />
+                  Commission Report
+                </button>
+                <button
+                  onClick={() => downloadReport('subscription')}
+                  className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Subscription Report
+                </button>
+                <div className="border-t border-gray-100" />
+                <button
+                  onClick={() => downloadReport('combined')}
+                  className="w-full text-left px-4 py-3 text-sm font-medium text-indigo-700 hover:bg-indigo-50 flex items-center gap-2 rounded-b-lg"
+                >
+                  <Download className="w-4 h-4" />
+                  Combined Report
+                </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Message */}
       {message.text && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className={`p-4 rounded-lg border ${
             message.type === 'success'
               ? 'bg-green-50 border-green-200 text-green-800'
@@ -251,16 +271,12 @@ const AdminCommissionDashboard = () => {
           }`}
         >
           {message.text}
-        </motion.div>
+        </div>
       )}
 
       {/* Commission Disabled Banner */}
       {!commissionEnabled && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-lg border border-amber-300 bg-amber-50 flex items-center gap-3"
-        >
+        <div className="p-4 rounded-lg border border-amber-300 bg-amber-50 flex items-center gap-3">
           <Power size={20} className="text-amber-600 flex-shrink-0" />
           <div>
             <p className="font-semibold text-amber-800">Commission System is Disabled</p>
@@ -268,99 +284,77 @@ const AdminCommissionDashboard = () => {
               Landlords are not being charged commission on new rentals. Existing pending commissions remain unaffected.
             </p>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <button
             onClick={handleToggleCommission}
             disabled={togglingCommission}
-            className="ml-auto px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-semibold text-sm disabled:opacity-50 whitespace-nowrap"
+            className="ml-auto px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm disabled:opacity-50 whitespace-nowrap"
           >
             Enable Commission
-          </motion.button>
-        </motion.div>
+          </button>
+        </div>
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-white/20 rounded-lg">
-              <DollarSign size={24} />
+      <div className="grid md:grid-cols-4 gap-6">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary?.total_revenue)}</p>
             </div>
-            <ArrowUpRight className="text-green-200" size={20} />
+            <div className="bg-green-500 p-3 rounded-lg">
+              <DollarSign className="w-6 h-6 text-white" />
+            </div>
           </div>
-          <h3 className="text-sm font-medium text-green-100">Total Revenue</h3>
-          <p className="text-3xl font-bold mt-2">{formatCurrency(summary?.total_revenue)}</p>
-          <p className="text-xs text-green-100 mt-2">{summary?.paid_count || 0} paid transactions</p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl shadow-lg p-6 text-white"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-white/20 rounded-lg">
-              <Clock size={24} />
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Pending Payments</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary?.pending_revenue)}</p>
+            </div>
+            <div className="bg-yellow-500 p-3 rounded-lg">
+              <Clock className="w-6 h-6 text-white" />
             </div>
           </div>
-          <h3 className="text-sm font-medium text-yellow-100">Pending Payments</h3>
-          <p className="text-3xl font-bold mt-2">{formatCurrency(summary?.pending_revenue)}</p>
-          <p className="text-xs text-yellow-100 mt-2">{summary?.pending_count || 0} pending</p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg p-6 text-white"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-white/20 rounded-lg">
-              <AlertCircle size={24} />
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Overdue Payments</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary?.overdue_revenue)}</p>
             </div>
-            <ArrowDownRight className="text-red-200" size={20} />
+            <div className="bg-red-500 p-3 rounded-lg">
+              <AlertCircle className="w-6 h-6 text-white" />
+            </div>
           </div>
-          <h3 className="text-sm font-medium text-red-100">Overdue Payments</h3>
-          <p className="text-3xl font-bold mt-2">{formatCurrency(summary?.overdue_revenue)}</p>
-          <p className="text-xs text-red-100 mt-2">{summary?.overdue_count || 0} overdue</p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-white/20 rounded-lg">
-              <FileText size={24} />
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Total Transactions</p>
+              <p className="text-2xl font-bold text-gray-900">{summary?.total_transactions || 0}</p>
+            </div>
+            <div className="bg-blue-500 p-3 rounded-lg">
+              <FileText className="w-6 h-6 text-white" />
             </div>
           </div>
-          <h3 className="text-sm font-medium text-blue-100">Total Transactions</h3>
-          <p className="text-3xl font-bold mt-2">{summary?.total_transactions || 0}</p>
-          <p className="text-xs text-blue-100 mt-2">All time</p>
-        </motion.div>
+        </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <Filter size={20} className="text-blue-600" />
-          Filter Transactions
-        </h3>
+      <div className="bg-white rounded-2xl shadow-lg p-6">
+        <h3 className="text-xl font-semibold text-gray-900 mb-6">Filter Transactions</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Payment Status</label>
             <select
               value={filters.payment_status}
               onChange={(e) => setFilters({ ...filters, payment_status: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
               <option value="">All Status</option>
               <option value="pending">Pending</option>
@@ -375,7 +369,7 @@ const AdminCommissionDashboard = () => {
               type="date"
               value={filters.from_date}
               onChange={(e) => setFilters({ ...filters, from_date: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
           <div>
@@ -384,41 +378,34 @@ const AdminCommissionDashboard = () => {
               type="date"
               value={filters.to_date}
               onChange={(e) => setFilters({ ...filters, to_date: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
         </div>
         <div className="mt-4 flex gap-3">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <button
             onClick={fetchFilteredTransactions}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center gap-2"
+            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center gap-2"
           >
             <Search size={18} />
             Apply Filters
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          </button>
+          <button
             onClick={() => {
               setFilters({ payment_status: '', from_date: '', to_date: '' });
               fetchDashboardData();
             }}
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
           >
             Clear Filters
-          </motion.button>
+          </button>
         </div>
       </div>
 
       {/* Recent Transactions */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
         <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <BarChart3 size={20} className="text-blue-600" />
-            Commission Transactions
-          </h3>
+          <h3 className="text-xl font-semibold text-gray-900">Commission Transactions</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -508,13 +495,10 @@ const AdminCommissionDashboard = () => {
 
       {/* Payment Modal */}
       {showPaymentModal && selectedTransaction && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full"
-          >
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Mark Payment as Paid</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setShowPaymentModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-6">Mark Payment as Paid</h3>
             
             <div className="space-y-4 mb-6">
               <div className="bg-gray-50 p-4 rounded-lg">
@@ -574,30 +558,27 @@ const AdminCommissionDashboard = () => {
             </div>
 
             <div className="flex gap-3">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+              <button
                 onClick={() => {
                   setShowPaymentModal(false);
                   setPaymentData({ payment_method: 'bank_transfer', payment_reference: '', notes: '' });
                 }}
-                className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 transition-colors"
               >
                 Cancel
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+              </button>
+              <button
                 onClick={() => handleMarkAsPaid(selectedTransaction.id)}
-                className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
               >
                 <CheckCircle size={18} />
                 Mark as Paid
-              </motion.button>
+              </button>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

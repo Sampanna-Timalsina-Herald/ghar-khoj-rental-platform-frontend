@@ -12,9 +12,10 @@ import {
   Search,
   Filter,
   Download,
-  RefreshCw,
+  FileText,
   X,
-  AlertTriangle
+  AlertTriangle,
+  ChevronDown
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import ReceiptDownloadButton from '../../components/ReceiptDownloadButton';
@@ -27,6 +28,7 @@ const AdminSubscriptions = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPlan, setFilterPlan] = useState('all');
   const [cancelModal, setCancelModal] = useState(null);
+  const [showReportMenu, setShowReportMenu] = useState(false);
   const { addToast } = useToast();
   const [cancelReason, setCancelReason] = useState('');
   const [canceling, setCanceling] = useState(false);
@@ -52,18 +54,25 @@ const AdminSubscriptions = () => {
     }
   };
 
-  const runMaintenance = async () => {
+  const downloadReport = async (type) => {
     try {
-      const response = await api.post('/subscriptions/admin/maintenance');
-      if (response.data.success) {
-        addToast('Maintenance completed successfully', 'success');
-        fetchData();
-      }
+      setShowReportMenu(false);
+      const response = await api.get(`/admin/reports/${type}`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${type}-income-report-${Date.now()}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      addToast('Report downloaded successfully', 'success');
     } catch (error) {
-      console.error('Error running maintenance:', error);
-      addToast('Failed to run maintenance', 'error');
+      console.error('Error downloading report:', error);
+      addToast('Failed to download report', 'error');
     }
   };
+
   const handleCancelSubscription = async () => {
     if (!cancelModal) return;
     
@@ -118,13 +127,45 @@ const AdminSubscriptions = () => {
               <Calendar className="w-5 h-5 mr-2" />
               View History
             </button>
-            <button
-              onClick={runMaintenance}
-              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-            >
-              <RefreshCw className="w-5 h-5 mr-2" />
-              Run Maintenance
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowReportMenu(!showReportMenu)}
+                className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <FileText className="w-5 h-5 mr-2" />
+                Income Reports
+                <ChevronDown className="w-4 h-4 ml-1" />
+              </button>
+              {showReportMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowReportMenu(false)} />
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+                  <button
+                    onClick={() => downloadReport('subscription')}
+                    className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 rounded-t-lg"
+                  >
+                    <Download className="w-4 h-4" />
+                    Subscription Report
+                  </button>
+                  <button
+                    onClick={() => downloadReport('commission')}
+                    className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Commission Report
+                  </button>
+                  <div className="border-t border-gray-100" />
+                  <button
+                    onClick={() => downloadReport('combined')}
+                    className="w-full text-left px-4 py-3 text-sm font-medium text-indigo-700 hover:bg-indigo-50 flex items-center gap-2 rounded-b-lg"
+                  >
+                    <Download className="w-4 h-4" />
+                    Combined Report
+                  </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
