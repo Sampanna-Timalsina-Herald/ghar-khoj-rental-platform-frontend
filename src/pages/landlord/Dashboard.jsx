@@ -7,6 +7,7 @@ import Sidebar from '../../components/Sidebar'
 import LandlordHome from './LandlordHome'
 import LandlordListings from './LandlordListings'
 import LandlordBookings from './LandlordBookings'
+import LandlordIncome from './LandlordIncome'
 import CreateListing from './CreateListing'
 import EditListing from './EditListing'
 import LandlordConversations from './LandlordConversations'
@@ -89,6 +90,11 @@ const LandlordLayout = () => {
       icon: <Calendar size={20} />,
     },
     {
+      label: 'Income & Payments',
+      path: '/income',
+      icon: <TrendingUp size={20} />,
+    },
+    {
       label: 'Create Listing',
       path: '/listings/create',
       icon: <Plus size={20} />,
@@ -132,6 +138,7 @@ const LandlordLayout = () => {
             <Route path="subscription" element={<SubscriptionDashboard />} />
             <Route path="subscription-plans" element={<SubscriptionPlans />} />
             <Route path="bookings" element={<LandlordBookings />} />
+            <Route path="income" element={<LandlordIncome />} />
             <Route path="listings" element={<LandlordListings />} />
             <Route path="listings/create" element={<CreateListing />} />
             <Route path="listings/edit/:id" element={<EditListing />} />

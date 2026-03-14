@@ -14,19 +14,23 @@ import jsPDF from 'jspdf';
 import PaymentGatewayModal from '../../components/PaymentGatewayModal';
 import { useAuthStore } from '../../stores/authStore';
 import { useToast } from '../../context/ToastContext';
+import ReceiptViewerModal from '../../components/ReceiptViewerModal';
 
 const LandlordBillingDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [policy, setPolicy] = useState(null);
-  const [activeTab, setActiveTab] = useState('pending'); // pending, paid, all
+  const [activeTab, setActiveTab] = useState('pending'); // pending, paid, all, rent-income
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const { addToast } = useToast();
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const { user } = useAuthStore();
+  const [rentPayments, setRentPayments] = useState([]);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [selectedReceipt, setSelectedReceipt] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -35,9 +39,13 @@ const LandlordBillingDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [dashboardRes, policyRes] = await Promise.all([
+      const [dashboardRes, policyRes, rentPaymentsRes] = await Promise.all([
         api.get('/landlord/commissions/dashboard'),
-        api.get('/landlord/commissions/policy')
+        api.get('/landlord/commissions/policy'),
+        api.get('/payments/landlord/my-payments').catch(err => {
+          console.warn('[BILLING] Rent payments endpoint failed:', err);
+          return { data: { data: [] } };
+        })
       ]);
 
       if (dashboardRes.data.success) {
@@ -47,6 +55,10 @@ const LandlordBillingDashboard = () => {
 
       if (policyRes.data.success) {
         setPolicy(policyRes.data.data);
+      }
+
+      if (rentPaymentsRes.data.success) {
+        setRentPayments(rentPaymentsRes.data.data || []);
       }
     } catch (error) {
       console.error('Error fetching dashboard:', error);
@@ -360,270 +372,304 @@ const LandlordBillingDashboard = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <h1 className="text-3xl font-bold text-gray-900">Billing & Commissions</h1>
-        <p className="text-gray-600 mt-1">Manage your commission payments and view invoices</p>
-      </motion.div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Billing & Commissions</h1>
+        <p className="text-sm text-gray-600 mt-1">Manage your commission payments and view invoices</p>
+      </div>
 
       {/* Commission Policy Info */}
       {policy && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-blue-50 border border-blue-200 rounded-xl p-6"
-        >
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Info size={20} className="text-blue-600" />
-            </div>
+            <Info size={18} className="text-blue-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="font-bold text-blue-900 mb-2">Commission Policy</h3>
-              <p className="text-sm text-blue-800 mb-3">{policy.description}</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div className="bg-white/50 p-3 rounded-lg">
-                  <p className="text-blue-600 font-medium">Commission Rate</p>
-                  <p className="text-blue-900 font-bold text-lg">{policy.commission_rate}%</p>
+              <h3 className="font-semibold text-blue-900 text-sm mb-1">Commission Policy</h3>
+              <p className="text-xs text-blue-800 mb-2">{policy.description}</p>
+              <div className="grid grid-cols-3 gap-3 text-xs">
+                <div className="bg-white/60 p-2 rounded">
+                  <p className="text-blue-600 font-medium">Rate</p>
+                  <p className="text-blue-900 font-bold">{policy.commission_rate}%</p>
                 </div>
-                <div className="bg-white/50 p-3 rounded-lg">
-                  <p className="text-blue-600 font-medium">Minimum Commission</p>
-                  <p className="text-blue-900 font-bold text-lg">{formatCurrency(policy.minimum_commission)}</p>
+                <div className="bg-white/60 p-2 rounded">
+                  <p className="text-blue-600 font-medium">Minimum</p>
+                  <p className="text-blue-900 font-bold">{formatCurrency(policy.minimum_commission)}</p>
                 </div>
-                <div className="bg-white/50 p-3 rounded-lg">
-                  <p className="text-blue-600 font-medium">Payment Terms</p>
-                  <p className="text-blue-900 font-semibold">{policy.payment_terms}</p>
+                <div className="bg-white/60 p-2 rounded">
+                  <p className="text-blue-600 font-medium">Terms</p>
+                  <p className="text-blue-900 font-semibold text-xs">{policy.payment_terms}</p>
                 </div>
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg p-6 text-white"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-white/20 rounded-lg">
-              <AlertCircle size={24} />
-            </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <AlertCircle size={20} className="text-red-600" />
           </div>
-          <h3 className="text-sm font-medium text-red-100">Amount Owed</h3>
-          <p className="text-3xl font-bold mt-2">
+          <p className="text-xs text-gray-600">Amount Owed</p>
+          <p className="text-xl font-bold text-gray-900 mt-1">
             {formatCurrency(parseFloat(summary?.pending_amount || 0) + parseFloat(summary?.overdue_amount || 0))}
           </p>
-          <p className="text-xs text-red-100 mt-2">
-            {(summary?.pending_count || 0) + (summary?.overdue_count || 0)} unpaid invoice(s)
+          <p className="text-xs text-gray-500 mt-1">
+            {(summary?.pending_count || 0) + (summary?.overdue_count || 0)} unpaid
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-white/20 rounded-lg">
-              <CheckCircle size={24} />
-            </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <CheckCircle size={20} className="text-green-600" />
           </div>
-          <h3 className="text-sm font-medium text-green-100">Total Paid</h3>
-          <p className="text-3xl font-bold mt-2">{formatCurrency(summary?.paid_amount)}</p>
-          <p className="text-xs text-green-100 mt-2">{summary?.paid_count || 0} paid transaction(s)</p>
-        </motion.div>
+          <p className="text-xs text-gray-600">Total Paid</p>
+          <p className="text-xl font-bold text-gray-900 mt-1">{formatCurrency(summary?.paid_amount)}</p>
+          <p className="text-xs text-gray-500 mt-1">{summary?.paid_count || 0} paid</p>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl shadow-lg p-6 text-white"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-white/20 rounded-lg">
-              <Clock size={24} />
-            </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <Clock size={20} className="text-yellow-600" />
           </div>
-          <h3 className="text-sm font-medium text-yellow-100">Pending</h3>
-          <p className="text-3xl font-bold mt-2">{formatCurrency(summary?.pending_amount)}</p>
-          <p className="text-xs text-yellow-100 mt-2">{summary?.pending_count || 0} pending</p>
-        </motion.div>
+          <p className="text-xs text-gray-600">Pending</p>
+          <p className="text-xl font-bold text-gray-900 mt-1">{formatCurrency(summary?.pending_amount)}</p>
+          <p className="text-xs text-gray-500 mt-1">{summary?.pending_count || 0} pending</p>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-white/20 rounded-lg">
-              <FileText size={24} />
-            </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <FileText size={20} className="text-blue-600" />
           </div>
-          <h3 className="text-sm font-medium text-blue-100">Total Commissions</h3>
-          <p className="text-3xl font-bold mt-2">{formatCurrency(summary?.total_commission_amount)}</p>
-          <p className="text-xs text-blue-100 mt-2">{summary?.total_commissions || 0} transaction(s)</p>
-        </motion.div>
+          <p className="text-xs text-gray-600">Total Commissions</p>
+          <p className="text-xl font-bold text-gray-900 mt-1">{formatCurrency(summary?.total_commission_amount)}</p>
+          <p className="text-xs text-gray-500 mt-1">{summary?.total_commissions || 0} total</p>
+        </div>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden mb-6">
         <div className="border-b border-gray-200">
           <div className="flex">
             <button
               onClick={() => setActiveTab('pending')}
-              className={`flex-1 px-6 py-4 text-sm font-semibold transition-colors ${
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
                 activeTab === 'pending'
                   ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              Pending Payments ({(summary?.pending_count || 0) + (summary?.overdue_count || 0)})
+              Pending ({(summary?.pending_count || 0) + (summary?.overdue_count || 0)})
             </button>
             <button
               onClick={() => setActiveTab('paid')}
-              className={`flex-1 px-6 py-4 text-sm font-semibold transition-colors ${
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
                 activeTab === 'paid'
                   ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              Payment History ({summary?.paid_count || 0})
+              Paid ({summary?.paid_count || 0})
             </button>
             <button
               onClick={() => setActiveTab('all')}
-              className={`flex-1 px-6 py-4 text-sm font-semibold transition-colors ${
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
                 activeTab === 'all'
                   ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              All Transactions ({summary?.total_commissions || 0})
+              All ({summary?.total_commissions || 0})
+            </button>
+            <button
+              onClick={() => setActiveTab('rent-income')}
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                activeTab === 'rent-income'
+                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              Rent Income ({rentPayments.length})
             </button>
           </div>
         </div>
 
         {/* Transaction List */}
-        <div className="p-6">
+        <div className="p-4">
           <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="space-y-4"
-            >
-              {getFilteredTransactions().length === 0 ? (
+            <div className="space-y-3">
+              {activeTab === 'rent-income' ? (
+                rentPayments.length === 0 ? (
+                  <div className="text-center py-12">
+                    <DollarSign size={40} className="mx-auto text-gray-300 mb-3" />
+                    <p className="text-sm text-gray-500">No rent payments received yet</p>
+                  </div>
+                ) : (
+                  rentPayments.map((payment) => (
+                    <div
+                      key={payment.id}
+                      className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors bg-white"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-gray-900">{payment.listing_title}</h3>
+                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                              Received
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-600">{payment.listing_address}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-green-600">
+                            {formatCurrency(payment.amount)}
+                          </p>
+                          <p className="text-xs text-gray-500">Rent</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-3 mb-3 text-xs">
+                        <div>
+                          <p className="text-gray-500">Tenant</p>
+                          <p className="font-medium text-gray-900">{payment.tenant_name}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500">Date</p>
+                          <p className="font-medium text-gray-900">{formatDate(payment.created_at)}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500">Gateway</p>
+                          <p className="font-medium text-gray-900">{payment.gateway?.toUpperCase()}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500">Transaction</p>
+                          <p className="font-medium text-gray-900">{payment.transaction_uuid?.substring(0, 8)}...</p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setSelectedReceipt(payment.transaction_uuid)
+                          setShowReceiptModal(true)
+                        }}
+                        className="w-full px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Eye size={14} />
+                        View Receipt
+                      </button>
+                    </div>
+                  ))
+                )
+              ) : getFilteredTransactions().length === 0 ? (
                 <div className="text-center py-12">
-                  <FileText size={48} className="mx-auto text-gray-300 mb-4" />
-                  <p className="text-gray-500">No transactions found</p>
+                  <FileText size={40} className="mx-auto text-gray-300 mb-3" />
+                  <p className="text-sm text-gray-500">No transactions found</p>
                 </div>
               ) : (
                 getFilteredTransactions().map((transaction) => (
-                  <motion.div
+                  <div
                     key={transaction.id}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow"
+                    className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors bg-white"
                   >
-                    <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-bold text-gray-900 text-lg">{transaction.listing_title}</h3>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-gray-900">{transaction.listing_title}</h3>
                           {getStatusBadge(transaction.payment_status)}
                         </div>
-                        <p className="text-sm text-gray-600">{transaction.address}, {transaction.city}</p>
+                        <p className="text-xs text-gray-600">{transaction.address}, {transaction.city}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold text-red-600">
+                        <p className="text-lg font-bold text-red-600">
                           {formatCurrency(transaction.commission_amount)}
                         </p>
                         <p className="text-xs text-gray-500">{transaction.commission_rate}% commission</p>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="grid grid-cols-4 gap-3 mb-3 text-xs">
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">Invoice Number</p>
-                        <p className="text-sm font-semibold text-gray-900">{transaction.invoice_number}</p>
+                        <p className="text-gray-500">Invoice</p>
+                        <p className="font-medium text-gray-900">{transaction.invoice_number}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">Rent Amount</p>
-                        <p className="text-sm font-semibold text-gray-900">{formatCurrency(transaction.rent_amount)}</p>
+                        <p className="text-gray-500">Rent Amount</p>
+                        <p className="font-medium text-gray-900">{formatCurrency(transaction.rent_amount)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">Due Date</p>
-                        <p className="text-sm font-semibold text-gray-900">{formatDate(transaction.due_date)}</p>
+                        <p className="text-gray-500">Due Date</p>
+                        <p className="font-medium text-gray-900">{formatDate(transaction.due_date)}</p>
                       </div>
                       {transaction.payment_date && (
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Payment Date</p>
-                          <p className="text-sm font-semibold text-green-600">{formatDate(transaction.payment_date)}</p>
+                          <p className="text-gray-500">Paid Date</p>
+                          <p className="font-medium text-green-600">{formatDate(transaction.payment_date)}</p>
                         </div>
                       )}
                     </div>
 
                     {transaction.payment_method && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                        <div className="flex items-center gap-2 text-green-800">
-                          <CreditCard size={16} />
-                          <span className="text-sm font-semibold">
-                            Payment Method: {transaction.payment_method?.replace('_', ' ').toUpperCase()}
-                          </span>
-                        </div>
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-2 mb-3 text-xs">
+                        <span className="font-medium text-green-800">
+                          {transaction.payment_method?.replace('_', ' ').toUpperCase()}
+                        </span>
                         {transaction.payment_reference && (
-                          <p className="text-xs text-green-700 mt-1">
-                            Reference: {transaction.payment_reference}
-                          </p>
+                          <span className="text-green-700 ml-2">
+                            • {transaction.payment_reference}
+                          </span>
                         )}
                       </div>
                     )}
 
-                    <div className="flex items-center gap-3">
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => fetchInvoiceDetails(transaction.id)}
-                        className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-1.5"
-                      >
-                        <Eye size={14} />
-                        View
-                      </motion.button>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {transaction.payment_status === 'paid' && transaction.payment_transaction_uuid ? (
+                        <button
+                          onClick={() => {
+                            setSelectedReceipt(transaction.payment_transaction_uuid)
+                            setShowReceiptModal(true)
+                          }}
+                          className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-1.5"
+                        >
+                          <Eye size={14} />
+                          View Receipt
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => fetchInvoiceDetails(transaction.id)}
+                          className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-1.5"
+                        >
+                          <Eye size={14} />
+                          View Invoice
+                        </button>
+                      )}
                       {(transaction.payment_status === 'pending' || transaction.payment_status === 'overdue') && (
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                        <button
                           onClick={() => handlePayNow(transaction)}
                           className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium flex items-center gap-1.5"
                         >
                           <CreditCard size={14} />
                           Pay Now
-                        </motion.button>
+                        </button>
                       )}
                       {transaction.payment_status === 'pending' && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2">
+                        <div className="bg-yellow-50 border border-yellow-200 rounded px-3 py-1">
                           <p className="text-xs text-yellow-800 font-medium">
-                            Payment due in {Math.ceil((new Date(transaction.due_date) - new Date()) / (1000 * 60 * 60 * 24))} days
+                            Due in {Math.ceil((new Date(transaction.due_date) - new Date()) / (1000 * 60 * 60 * 24))} days
                           </p>
                         </div>
                       )}
                       {transaction.payment_status === 'overdue' && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2">
+                        <div className="bg-red-50 border border-red-200 rounded px-3 py-1">
                           <p className="text-xs text-red-800 font-medium">
-                            Overdue by {Math.ceil((new Date() - new Date(transaction.due_date)) / (1000 * 60 * 60 * 24))} days
+                            Overdue {Math.ceil((new Date() - new Date(transaction.due_date)) / (1000 * 60 * 60 * 24))} days
                           </p>
                         </div>
                       )}
                     </div>
-                  </motion.div>
+                  </div>
                 ))
               )}
-            </motion.div>
+            </div>
           </AnimatePresence>
         </div>
       </div>
@@ -802,6 +848,16 @@ const LandlordBillingDashboard = () => {
           onSuccess={handlePaymentSuccess}
         />
       )}
+
+      {/* Receipt Viewer Modal */}
+      <ReceiptViewerModal
+        transactionUuid={selectedReceipt}
+        isOpen={showReceiptModal}
+        onClose={() => {
+          setShowReceiptModal(false)
+          setSelectedReceipt(null)
+        }}
+      />
     </div>
   );
 };

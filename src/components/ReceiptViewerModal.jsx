@@ -31,16 +31,21 @@ const ReceiptViewerModal = ({ transactionUuid, isOpen, onClose }) => {
       setLoading(true);
       setError(null);
 
+      console.log('[RECEIPT VIEWER] Loading receipt for transaction:', transactionUuid);
+
       const response = await api.get(`/payments/${transactionUuid}/receipt/view`, {
         responseType: 'blob'
       });
+
+      console.log('[RECEIPT VIEWER] Receipt loaded successfully');
 
       // Create blob URL for PDF
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       setPdfUrl(url);
     } catch (err) {
-      console.error('Error loading receipt:', err);
+      console.error('[RECEIPT VIEWER] Error loading receipt:', err);
+      console.error('[RECEIPT VIEWER] Error response:', err.response);
       const errorMsg = err.response?.data?.error || err.response?.statusText || 'Failed to load receipt';
       setError(errorMsg);
     } finally {

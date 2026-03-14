@@ -76,6 +76,12 @@ const PaymentVerify = () => {
 
   const handleRedirect = () => {
     if (paymentDetails && status === 'success') {
+      const rentMeta = paymentDetails.gateway_response?.metadata;
+      if (rentMeta?.purpose === 'rent' && rentMeta?.booking_id) {
+        // Redirect to rent tracker after successful rent payment
+        navigate('/tenant/rent-tracker');
+        return;
+      }
       // Redirect to success page with payment details
       const params = new URLSearchParams({
         payment_type: paymentDetails.payment_type,

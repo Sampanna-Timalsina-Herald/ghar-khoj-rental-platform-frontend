@@ -38,9 +38,20 @@ const TenantListingDetail = () => {
   })
   
   const [bookingForm, setBookingForm] = useState({
+    full_name: '',
+    permanent_address: '',
+    current_address: '',
+    phone_number: '',
+    email: '',
+    citizenship_number: '',
+    occupation: '',
+    emergency_contact_person: '',
+    emergency_contact_phone: '',
     start_date: '',
     end_date: '',
-    message: ''
+    message: '',
+    citizenship_front_image: null,
+    citizenship_back_image: null
   })
 
   useEffect(() => {
@@ -174,13 +185,29 @@ const TenantListingDetail = () => {
   }
 
   const handleBookProperty = async () => {
-    // Validate form fields
-    if (!bookingForm.start_date) {
-      showToastMessage('error', 'Missing Information', 'Please select a move-in date')
+    // Validate required tenant/legal details
+    const requiredFieldMap = {
+      full_name: 'Full name',
+      permanent_address: 'Permanent address',
+      current_address: 'Current address',
+      phone_number: 'Phone number',
+      email: 'Email',
+      citizenship_number: 'Citizenship number',
+      occupation: 'Occupation',
+      emergency_contact_person: 'Emergency contact person',
+      emergency_contact_phone: 'Emergency contact phone number',
+      start_date: 'Preferred start date',
+      end_date: 'Preferred end date'
+    }
+
+    const missingEntry = Object.entries(requiredFieldMap).find(([key]) => !bookingForm[key])
+    if (missingEntry) {
+      showToastMessage('error', 'Missing Information', `${missingEntry[1]} is required`)
       return
     }
-    if (!bookingForm.end_date) {
-      showToastMessage('error', 'Missing Information', 'Please select a move-out date')
+
+    if (!bookingForm.citizenship_front_image || !bookingForm.citizenship_back_image) {
+      showToastMessage('error', 'Missing Documents', 'Please upload both citizenship front and back images')
       return
     }
 
@@ -196,12 +223,26 @@ const TenantListingDetail = () => {
 
     setSendingBooking(true)
     try {
-      const response = await api.post('/bookings', {
-        listing_id: listing.id,
-        start_date: bookingForm.start_date,
-        end_date: bookingForm.end_date,
-        message: bookingForm.message || ''
-      })
+      const formData = new FormData()
+      formData.append('listing_id', listing.id)
+      formData.append('preferred_start_date', bookingForm.start_date)
+      formData.append('preferred_end_date', bookingForm.end_date)
+      formData.append('start_date', bookingForm.start_date)
+      formData.append('end_date', bookingForm.end_date)
+      formData.append('message', bookingForm.message || '')
+      formData.append('full_name', bookingForm.full_name)
+      formData.append('permanent_address', bookingForm.permanent_address)
+      formData.append('current_address', bookingForm.current_address)
+      formData.append('phone_number', bookingForm.phone_number)
+      formData.append('email', bookingForm.email)
+      formData.append('citizenship_number', bookingForm.citizenship_number)
+      formData.append('occupation', bookingForm.occupation)
+      formData.append('emergency_contact_person', bookingForm.emergency_contact_person)
+      formData.append('emergency_contact_phone', bookingForm.emergency_contact_phone)
+      formData.append('citizenship_front_image', bookingForm.citizenship_front_image)
+      formData.append('citizenship_back_image', bookingForm.citizenship_back_image)
+
+      await api.post('/bookings', formData)
 
       showToastMessage(
         'success', 
@@ -209,7 +250,22 @@ const TenantListingDetail = () => {
         'The landlord will review your request. You\'ll be notified once they respond.'
       )
       setShowBookingForm(false)
-      setBookingForm({ start_date: '', end_date: '', message: '' })
+      setBookingForm({
+        full_name: '',
+        permanent_address: '',
+        current_address: '',
+        phone_number: '',
+        email: '',
+        citizenship_number: '',
+        occupation: '',
+        emergency_contact_person: '',
+        emergency_contact_phone: '',
+        start_date: '',
+        end_date: '',
+        message: '',
+        citizenship_front_image: null,
+        citizenship_back_image: null
+      })
       // Refresh listing to get updated booking status
       fetchListing()
     } catch (error) {
@@ -768,9 +824,14 @@ const TenantListingDetail = () => {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-100"
+                className="bg-white rounded-2xl shadow-2xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-100"
               >
-                <h3 className="text-3xl font-bold text-gray-900 mb-6">Book This Property</h3>
+                <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
+                  <div>
+                    <h3 className="text-3xl font-bold text-gray-900">Book This Property</h3>
+                    <p className="text-sm text-gray-500">Fields marked with <span className="text-red-500">*</span> are required.</p>
+                  </div>
+                </div>
                 
                 {/* Property Summary */}
                 <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-xl mb-6 border border-blue-200">
@@ -779,9 +840,125 @@ const TenantListingDetail = () => {
                   <p className="text-gray-600 text-sm mt-3">Security Deposit: <span className="font-bold">Rs. {Math.round((listing.rent_amount || listing.price) * 2)}</span></p>
                 </div>
 
+                <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4">
+                  <p className="text-sm text-amber-900 font-semibold">
+                    Provide complete tenant details and legal documents before sending your request.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Full Name <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={bookingForm.full_name}
+                      onChange={(e) => setBookingForm({ ...bookingForm, full_name: e.target.value })}
+                      className="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none focus:border-blue-500 transition-colors font-medium"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Permanent Address <span className="text-red-500">*</span></label>
+                    <textarea
+                      value={bookingForm.permanent_address}
+                      onChange={(e) => setBookingForm({ ...bookingForm, permanent_address: e.target.value })}
+                      className="w-full border-2 border-gray-200 rounded-xl p-3 h-20 resize-none focus:outline-none focus:border-blue-500 transition-colors font-medium text-sm"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Current Address <span className="text-red-500">*</span></label>
+                    <textarea
+                      value={bookingForm.current_address}
+                      onChange={(e) => setBookingForm({ ...bookingForm, current_address: e.target.value })}
+                      className="w-full border-2 border-gray-200 rounded-xl p-3 h-20 resize-none focus:outline-none focus:border-blue-500 transition-colors font-medium text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Phone Number <span className="text-red-500">*</span></label>
+                    <input
+                      type="tel"
+                      value={bookingForm.phone_number}
+                      onChange={(e) => setBookingForm({ ...bookingForm, phone_number: e.target.value })}
+                      className="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none focus:border-blue-500 transition-colors font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Email <span className="text-red-500">*</span></label>
+                    <input
+                      type="email"
+                      value={bookingForm.email}
+                      onChange={(e) => setBookingForm({ ...bookingForm, email: e.target.value })}
+                      className="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none focus:border-blue-500 transition-colors font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Citizenship Number <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={bookingForm.citizenship_number}
+                      onChange={(e) => setBookingForm({ ...bookingForm, citizenship_number: e.target.value })}
+                      className="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none focus:border-blue-500 transition-colors font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Occupation <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={bookingForm.occupation}
+                      onChange={(e) => setBookingForm({ ...bookingForm, occupation: e.target.value })}
+                      className="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none focus:border-blue-500 transition-colors font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Emergency Contact Person <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={bookingForm.emergency_contact_person}
+                      onChange={(e) => setBookingForm({ ...bookingForm, emergency_contact_person: e.target.value })}
+                      className="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none focus:border-blue-500 transition-colors font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Emergency Contact Phone Number <span className="text-red-500">*</span></label>
+                    <input
+                      type="tel"
+                      value={bookingForm.emergency_contact_phone}
+                      onChange={(e) => setBookingForm({ ...bookingForm, emergency_contact_phone: e.target.value })}
+                      className="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none focus:border-blue-500 transition-colors font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Citizenship Front Image <span className="text-red-500">*</span></label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setBookingForm({ ...bookingForm, citizenship_front_image: e.target.files?.[0] || null })}
+                      className="w-full border-2 border-gray-200 rounded-xl p-2.5 focus:outline-none focus:border-blue-500 transition-colors font-medium text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Citizenship Back Image <span className="text-red-500">*</span></label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setBookingForm({ ...bookingForm, citizenship_back_image: e.target.files?.[0] || null })}
+                      className="w-full border-2 border-gray-200 rounded-xl p-2.5 focus:outline-none focus:border-blue-500 transition-colors font-medium text-sm"
+                    />
+                  </div>
+                </div>
+
                 {/* Move-in Date */}
                 <div className="mb-5">
-                  <label className="block text-sm font-bold text-gray-700 mb-3">Move-in Date</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-3">Preferred Start Date <span className="text-red-500">*</span></label>
                   <input
                     type="date"
                     value={bookingForm.start_date}
@@ -793,7 +970,7 @@ const TenantListingDetail = () => {
 
                 {/* Move-out Date */}
                 <div className="mb-5">
-                  <label className="block text-sm font-bold text-gray-700 mb-3">Move-out Date</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-3">Preferred End Date <span className="text-red-500">*</span></label>
                   <input
                     type="date"
                     value={bookingForm.end_date}

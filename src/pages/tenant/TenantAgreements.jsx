@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FileText, Clock, CheckCircle, AlertCircle, X, Send, ThumbsUp, Download, Trash2 } from 'lucide-react'
 import api from '../../api/axios'
 import { useToast } from '../../context/ToastContext'
 
 const TenantAgreements = () => {
+  const navigate = useNavigate()
   const { addToast } = useToast()
   const [agreements, setAgreements] = useState([])
   const [loading, setLoading] = useState(true)
@@ -44,7 +46,13 @@ const TenantAgreements = () => {
         return <FileText className="text-blue-500" size={20} />
       case 'pending_approval':
         return <AlertCircle className="text-orange-500" size={20} />
+      case 'accepted':
+        return <AlertCircle className="text-orange-500" size={20} />
+      case 'tenant_accepted':
+        return <Clock className="text-blue-500" size={20} />
       case 'approved':
+        return <CheckCircle className="text-green-500" size={20} />
+      case 'active':
         return <CheckCircle className="text-green-500" size={20} />
       case 'rejected':
         return <X className="text-red-500" size={20} />
@@ -61,7 +69,13 @@ const TenantAgreements = () => {
         return 'bg-blue-50 border-blue-200'
       case 'pending_approval':
         return 'bg-orange-50 border-orange-200'
+      case 'accepted':
+        return 'bg-orange-50 border-orange-200'
+      case 'tenant_accepted':
+        return 'bg-sky-50 border-sky-200'
       case 'approved':
+        return 'bg-green-50 border-green-200'
+      case 'active':
         return 'bg-green-50 border-green-200'
       case 'rejected':
         return 'bg-red-50 border-red-200'
@@ -77,9 +91,15 @@ const TenantAgreements = () => {
       case 'for_review':
         return 'Ready for Your Review'
       case 'pending_approval':
-        return 'Awaiting Landlord Approval'
+        return 'Ready to Accept'
+      case 'accepted':
+        return 'Ready to Accept'
+      case 'tenant_accepted':
+        return 'Waiting Landlord Verification'
       case 'approved':
         return 'Approved & Confirmed'
+      case 'active':
+        return 'Active Rental'
       case 'rejected':
         return 'Rejected'
       default:
@@ -104,35 +124,27 @@ const TenantAgreements = () => {
   }
 
   const handleAcceptAgreement = async (agreementId) => {
-    setApproving(true)
     try {
-      // First, get the agreement details to find the booking
       const agreement = agreements.find(a => a.id === agreementId)
       if (!agreement) {
         throw new Error('Agreement not found')
       }
 
-      // Get the booking for this listing and tenant
       const bookingsResponse = await api.get('/bookings/my-bookings')
       const booking = bookingsResponse.data.data?.find(
-        b => b.listing_id === agreement.listing_id && b.status === 'approved'
+        b => b.listing_id === agreement.listing_id && ['approved', 'tenant_accepted', 'active'].includes(b.status)
       )
 
       if (!booking) {
         throw new Error('No approved booking found for this agreement')
       }
 
-      // Accept the agreement via the booking
-      const response = await api.put(`/bookings/${booking.id}/accept-agreement`)
-      addToast('✅ Agreement accepted! Your rental is now active.', 'success')
-      fetchAgreements()
+      navigate(`/tenant/rent-flow/${booking.id}`)
       setSelectedAgreement(null)
     } catch (error) {
       const errorMsg = error.response?.data?.error || error.message || 'Failed to accept agreement'
       addToast(errorMsg, 'error')
       console.error('Accept agreement error:', error)
-    } finally {
-      setApproving(false)
     }
   }
 
@@ -311,7 +323,7 @@ const TenantAgreements = () => {
                 {selectedAgreement.terms && (
                   <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                     <h4 className="font-semibold text-gray-900 mb-2">Terms & Conditions</h4>
-                    <p className="text-gray-700 text-sm">{selectedAgreement.terms}</p>
+                    <p className="text-gray-700 text-sm whitespace-pre-wrap">{selectedAgreement.terms}</p>
                   </div>
                 )}
 
@@ -370,7 +382,7 @@ const TenantAgreements = () => {
                   </motion.button>
                 )}
 
-                {selectedAgreement.status === 'pending_approval' && (
+                {(selectedAgreement.status === 'pending_approval' || selectedAgreement.status === 'accepted') && (
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -379,7 +391,7 @@ const TenantAgreements = () => {
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2 disabled:opacity-50"
                   >
                     <ThumbsUp size={18} />
-                    {approving ? 'Accepting...' : 'Accept Agreement'}
+                    Accept Agreement
                   </motion.button>
                 )}
               </div>

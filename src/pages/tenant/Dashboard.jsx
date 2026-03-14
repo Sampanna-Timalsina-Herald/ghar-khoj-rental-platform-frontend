@@ -11,6 +11,8 @@ import TenantConversations from './TenantConversations'
 import TenantProfile from './TenantProfile'
 import TenantAgreements from './TenantAgreements'
 import TenantListingDetail from './TenantListingDetail'
+import TenantRentAcceptance from './TenantRentAcceptance'
+import TenantRentTracker from './TenantRentTracker'
 import { useAuthStore } from '../../stores/authStore'
 import api from '../../api/axios'
 import { initSocket } from '../../services/socket'
@@ -107,6 +109,11 @@ const TenantDashboard = () => {
       icon: <FileText size={20} />,
     },
     {
+      label: 'Rent Tracker',
+      path: '/rent-tracker',
+      icon: <FileText size={20} />,
+    },
+    {
       label: 'Messages',
       path: '/messages',
       icon: <MessageSquare size={20} />,
@@ -136,6 +143,8 @@ const TenantDashboard = () => {
             <Route path="property/:id" element={<TenantListingDetail />} />
             <Route path="favorites" element={<TenantFavorites />} />
             <Route path="agreements" element={<TenantAgreements />} />
+            <Route path="rent-flow/:bookingId" element={<TenantRentAcceptance />} />
+            <Route path="rent-tracker" element={<TenantRentTracker />} />
             <Route path="messages" element={<TenantConversations />} />
             <Route path="profile" element={<TenantProfile />} />
           </Routes>
