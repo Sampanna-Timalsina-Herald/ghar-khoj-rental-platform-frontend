@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
+import SignaturePad from '../../components/SignaturePad'
 import { 
   Calendar, CheckCircle, Eye, FileText, Loader2, XCircle, Grid3X3, List, 
-  User, MapPin, DollarSign, Clock, AlertCircle, Search, X, Plus 
+  User, MapPin, DollarSign, Clock, AlertCircle, Search, X, FileSignature 
 } from 'lucide-react'
 
 const LandlordBookings = () => {
@@ -149,7 +150,7 @@ const LandlordBookings = () => {
   }
 
   const handleVerifyStart = async (bookingId) => {
-    if (!landlordSignature.trim()) {
+    if (!landlordSignature) {
       setMessage({ type: 'error', text: 'Digital signature is required for verification' })
       return
     }
@@ -157,7 +158,7 @@ const LandlordBookings = () => {
     try {
       setActionLoading(bookingId)
       const response = await api.put(`/bookings/${bookingId}/landlord-verify-start`, {
-        landlord_signature: landlordSignature.trim()
+        landlord_signature: landlordSignature
       })
 
       if (response.data.success) {
@@ -649,21 +650,27 @@ const LandlordBookings = () => {
                 {/* Verification Section */}
                 {selectedBooking.status === 'tenant_accepted' && (
                   <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-300 rounded-xl p-5">
-                    <p className="text-sm font-bold text-indigo-900 mb-2">🎯 Action Required</p>
-                    <p className="text-sm text-indigo-800 mb-4">Tenant has completed payment and signed the agreement. Please verify and start the rental.</p>
-                    <label className="block text-xs font-semibold text-indigo-900 mb-2">Your Digital Signature (Type your full legal name)</label>
-                    <input
-                      type="text"
-                      value={landlordSignature}
-                      onChange={(e) => setLandlordSignature(e.target.value)}
-                      placeholder="e.g., Ram Kumar Shrestha"
-                      className="w-full px-4 py-3 border-2 border-indigo-300 rounded-xl text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
+                    <h3 className="text-lg font-bold text-indigo-900 mb-3 flex items-center gap-2">
+                      <FileSignature size={18} />
+                      Landlord Digital Signature & Verification
+                    </h3>
+                    <p className="text-sm text-indigo-800 mb-4">
+                      Tenant has completed payment and signed the agreement. Please draw your signature below to verify and start the rental.
+                    </p>
+                    
+                    <div className="bg-white rounded-lg p-4 mb-4">
+                      <SignaturePad
+                        onSignatureChange={setLandlordSignature}
+                        disabled={false}
+                        existingSignature={selectedBooking.landlord_signature}
+                      />
+                    </div>
+
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleVerifyStart(selectedBooking.id)}
-                      disabled={actionLoading === selectedBooking.id || !landlordSignature.trim()}
+                      disabled={actionLoading === selectedBooking.id || !landlordSignature}
                       className="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
                     >
                       {actionLoading === selectedBooking.id ? (

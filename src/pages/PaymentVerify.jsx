@@ -78,8 +78,13 @@ const PaymentVerify = () => {
     if (paymentDetails && status === 'success') {
       const rentMeta = paymentDetails.gateway_response?.metadata;
       if (rentMeta?.purpose === 'rent' && rentMeta?.booking_id) {
-        // Redirect to rent tracker after successful rent payment
-        navigate('/tenant/rent-tracker');
+        // Redirect back to rent acceptance page for first payment
+        if (rentMeta?.payment_mode === 'first') {
+          navigate(`/tenant/rent-acceptance/${rentMeta.booking_id}?payment_success=true`);
+          return;
+        }
+        // Redirect to rent tracker for monthly/full payments
+        navigate('/tenant/rent-tracker?payment_success=true');
         return;
       }
       // Redirect to success page with payment details

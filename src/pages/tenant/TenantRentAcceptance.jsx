@@ -29,6 +29,14 @@ const TenantRentAcceptance = () => {
       setBooking(bookingResponse.data?.data || null)
       setPaymentStatus(paymentResponse.data?.data || { is_paid: false })
       setError('')
+      
+      // Check if payment was just completed
+      const urlParams = new URLSearchParams(window.location.search)
+      if (urlParams.get('payment_success') === 'true' && paymentResponse.data?.data?.is_paid) {
+        setSuccessMessage('Payment completed successfully! You can now sign the agreement below.')
+        // Remove the query parameter
+        window.history.replaceState({}, '', window.location.pathname)
+      }
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to load rent acceptance details')
     } finally {
@@ -86,12 +94,17 @@ const TenantRentAcceptance = () => {
     try {
       setIsProcessing(true)
       setError('')
+      setSuccessMessage('')
+      
       await api.put(`/bookings/${bookingId}/accept-agreement`, {
         tenant_signature: tenantSignature
       })
 
-      setSuccessMessage('Agreement accepted successfully with your digital signature. Waiting for landlord verification to start rent.')
+      setSuccessMessage('✅ Agreement accepted successfully with your digital signature! The landlord will now verify and start the rent. You will be notified once the rental is active.')
       await fetchData()
+      
+      // Scroll to success message
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to accept agreement')
     } finally {
@@ -134,11 +147,29 @@ const TenantRentAcceptance = () => {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 text-sm">{error}</div>
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-red-50 border-2 border-red-300 text-red-800 rounded-xl p-5 text-sm font-medium flex items-start gap-3"
+        >
+          <Shield size={20} className="flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            {error}
+          </div>
+        </motion.div>
       )}
 
       {successMessage && (
-        <div className="bg-green-50 border border-green-200 text-green-700 rounded-lg p-4 text-sm">{successMessage}</div>
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-green-50 border-2 border-green-300 text-green-800 rounded-xl p-5 text-sm font-medium flex items-start gap-3"
+        >
+          <CheckCircle size={20} className="flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            {successMessage}
+          </div>
+        </motion.div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -222,9 +253,19 @@ const TenantRentAcceptance = () => {
             </h2>
             
             {tenantAccepted || rentStarted ? (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-green-700 text-sm">
-                <CheckCircle size={16} className="inline mr-2" />
-                Agreement already accepted with digital signature
+              <div className="bg-green-50 border-2 border-green-300 rounded-xl p-5 text-green-800 text-sm">
+                <div className="flex items-start gap-3">
+                  <CheckCircle size={20} className="flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold mb-2">Agreement Accepted ✓</p>
+                    <p className="mb-2">You have successfully accepted the agreement with your digital signature.</p>
+                    {rentStarted ? (
+                      <p className="font-semibold text-green-900">🎉 Rental is now ACTIVE! You can start moving in.</p>
+                    ) : (
+                      <p>⏳ Waiting for landlord to verify and start the rent. You will be notified once approved.</p>
+                    )}
+                  </div>
+                </div>
               </div>
             ) : (
               <>
