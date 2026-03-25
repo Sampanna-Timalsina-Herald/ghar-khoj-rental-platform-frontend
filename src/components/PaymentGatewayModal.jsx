@@ -3,6 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, CreditCard, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { processKhaltiPayment, processEsewaPayment } from '../services/paymentService';
 
+// Official payment gateway logos
+const KHALTI_LOGO = 'https://web.khalti.com/static/img/logo1.png';
+const ESEWA_LOGO = 'https://esewa.com.np/common/images/esewa_logo.png';
+
 /**
  * PaymentGatewayModal Component
  * Modal for selecting and processing payments via Khalti or eSewa
@@ -24,7 +28,8 @@ const PaymentGatewayModal = ({
       description: 'Pay with Khalti Digital Wallet',
       color: 'purple',
       bgColor: 'bg-purple-600',
-      hoverColor: 'hover:bg-purple-700'
+      hoverColor: 'hover:bg-purple-700',
+      logo: KHALTI_LOGO
     },
     {
       id: 'esewa',
@@ -32,7 +37,8 @@ const PaymentGatewayModal = ({
       description: 'Pay with eSewa Digital Wallet',
       color: 'green',
       bgColor: 'bg-green-600',
-      hoverColor: 'hover:bg-green-700'
+      hoverColor: 'hover:bg-green-700',
+      logo: ESEWA_LOGO
     }
   ];
 
@@ -136,8 +142,8 @@ const PaymentGatewayModal = ({
                   } ${processing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   <div className="flex items-center space-x-4">
-                    <div className={`${gateway.bgColor} text-white px-4 py-2 rounded-lg font-bold text-lg min-w-[100px] text-center shadow-md`}>
-                      {gateway.name}
+                    <div className="w-16 h-16 rounded-lg overflow-hidden flex items-center justify-center bg-white shadow-md p-1">
+                      <img src={gateway.logo} alt={`${gateway.name} logo`} className="w-full h-full object-contain" />
                     </div>
                     <div className="flex-1 text-left">
                       <div className="font-semibold text-gray-900">{gateway.name} Payment</div>

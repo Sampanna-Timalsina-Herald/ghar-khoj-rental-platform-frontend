@@ -5,6 +5,10 @@ import api from '../../api/axios'
 import { processEsewaPayment, processKhaltiPayment } from '../../services/paymentService'
 import ReceiptViewerModal from '../../components/ReceiptViewerModal'
 
+// Official payment gateway logos
+const KHALTI_LOGO = 'https://web.khalti.com/static/img/logo1.png'
+const ESEWA_LOGO = 'https://esewa.com.np/common/images/esewa_logo.png'
+
 const addMonths = (date, months) => {
   const next = new Date(date)
   next.setMonth(next.getMonth() + months)
@@ -606,11 +610,8 @@ const TenantRentTracker = () => {
                   className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg p-4 hover:from-purple-700 hover:to-purple-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between group"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
-                      <svg viewBox="0 0 50 50" className="w-8 h-8">
-                        <path fill="#5C2D91" d="M25 2C12.3 2 2 12.3 2 25s10.3 23 23 23 23-10.3 23-23S37.7 2 25 2zm0 42c-10.5 0-19-8.5-19-19S14.5 6 25 6s19 8.5 19 19-8.5 19-19 19z"/>
-                        <path fill="#5C2D91" d="M25 12c-7.2 0-13 5.8-13 13s5.8 13 13 13 13-5.8 13-13-5.8-13-13-13zm0 22c-5 0-9-4-9-9s4-9 9-9 9 4 9 9-4 9-9 9z"/>
-                      </svg>
+                    <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1">
+                      <img src={KHALTI_LOGO} alt="Khalti logo" className="w-full h-full object-contain" />
                     </div>
                     <div className="text-left">
                       <p className="font-bold text-lg">Khalti</p>
@@ -629,11 +630,8 @@ const TenantRentTracker = () => {
                   className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-4 hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between group"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
-                      <svg viewBox="0 0 50 50" className="w-8 h-8">
-                        <path fill="#60BB46" d="M25 2C12.3 2 2 12.3 2 25s10.3 23 23 23 23-10.3 23-23S37.7 2 25 2zm0 42c-10.5 0-19-8.5-19-19S14.5 6 25 6s19 8.5 19 19-8.5 19-19 19z"/>
-                        <text x="25" y="32" fontSize="18" fontWeight="bold" fill="#60BB46" textAnchor="middle" fontFamily="Arial">e</text>
-                      </svg>
+                    <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1">
+                      <img src={ESEWA_LOGO} alt="eSewa logo" className="w-full h-full object-contain" />
                     </div>
                     <div className="text-left">
                       <p className="font-bold text-lg">eSewa</p>

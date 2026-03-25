@@ -16,6 +16,10 @@ import {
 } from 'lucide-react';
 import ReceiptDownloadButton from '../../components/ReceiptDownloadButton';
 
+// Official payment gateway logos
+const KHALTI_LOGO = 'https://web.khalti.com/static/img/logo1.png';
+const ESEWA_LOGO = 'https://esewa.com.np/common/images/esewa_logo.png';
+
 const AdminPayments = () => {
   const [payments, setPayments] = useState([]);
   const [analytics, setAnalytics] = useState(null);
@@ -130,8 +134,14 @@ const AdminPayments = () => {
               {analytics.by_gateway.map((gateway) => (
                 <div key={gateway.gateway} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-gray-900 capitalize">{gateway.gateway}</h3>
-                    <CreditCard className="w-5 h-5 text-indigo-600" />
+                    <div className="flex items-center gap-3">
+                      <img 
+                        src={gateway.gateway === 'khalti' ? KHALTI_LOGO : ESEWA_LOGO} 
+                        alt={`${gateway.gateway} logo`} 
+                        className="w-8 h-8 rounded"
+                      />
+                      <h3 className="font-semibold text-gray-900 capitalize">{gateway.gateway}</h3>
+                    </div>
                   </div>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
@@ -260,9 +270,16 @@ const AdminPayments = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 text-xs font-medium text-indigo-700 bg-indigo-100 rounded capitalize">
-                          {payment.gateway}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <img 
+                            src={payment.gateway === 'khalti' ? KHALTI_LOGO : ESEWA_LOGO} 
+                            alt={`${payment.gateway} logo`} 
+                            className="w-6 h-6 rounded"
+                          />
+                          <span className="text-sm font-medium text-gray-900 capitalize">
+                            {payment.gateway}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                         NPR {(payment.amount || 0).toLocaleString()}
