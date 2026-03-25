@@ -15,10 +15,8 @@ import {
   Download
 } from 'lucide-react';
 import ReceiptDownloadButton from '../../components/ReceiptDownloadButton';
-
-// Official payment gateway logos
-const KHALTI_LOGO = 'https://web.khalti.com/static/img/logo1.png';
-const ESEWA_LOGO = 'https://esewa.com.np/common/images/esewa_logo.png';
+import khaltiLogo from '../../assets/khalti-logo.svg';
+import esewaLogo from '../../assets/esewa-logo.svg';
 
 const AdminPayments = () => {
   const [payments, setPayments] = useState([]);
@@ -136,7 +134,7 @@ const AdminPayments = () => {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <img 
-                        src={gateway.gateway === 'khalti' ? KHALTI_LOGO : ESEWA_LOGO} 
+                        src={gateway.gateway === 'khalti' ? khaltiLogo : esewaLogo} 
                         alt={`${gateway.gateway} logo`} 
                         className="w-8 h-8 rounded"
                       />
@@ -272,7 +270,7 @@ const AdminPayments = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <img 
-                            src={payment.gateway === 'khalti' ? KHALTI_LOGO : ESEWA_LOGO} 
+                            src={payment.gateway === 'khalti' ? khaltiLogo : esewaLogo} 
                             alt={`${payment.gateway} logo`} 
                             className="w-6 h-6 rounded"
                           />

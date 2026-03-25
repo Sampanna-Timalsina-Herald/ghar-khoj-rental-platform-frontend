@@ -5,10 +5,8 @@ import { ArrowLeft, CheckCircle, CreditCard, FileSignature, Home, Loader2, Shiel
 import api from '../../api/axios'
 import { processEsewaPayment, processKhaltiPayment } from '../../services/paymentService'
 import SignaturePad from '../../components/SignaturePad'
-
-// Official payment gateway logos
-const KHALTI_LOGO = 'https://web.khalti.com/static/img/logo1.png'
-const ESEWA_LOGO = 'https://esewa.com.np/common/images/esewa_logo.png'
+import khaltiLogo from '../../assets/khalti-logo.svg'
+import esewaLogo from '../../assets/esewa-logo.svg'
 
 const TenantRentAcceptance = () => {
   const { bookingId } = useParams()
@@ -231,7 +229,7 @@ const TenantRentAcceptance = () => {
                   disabled={isProcessing || tenantAccepted || rentStarted}
                   className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
                 >
-                  <img src={KHALTI_LOGO} alt="Khalti" className="w-5 h-5 rounded bg-white p-0.5" />
+                  <img src={khaltiLogo} alt="Khalti" className="w-5 h-5 rounded" />
                   Pay with Khalti
                 </button>
                 <button
@@ -239,7 +237,7 @@ const TenantRentAcceptance = () => {
                   disabled={isProcessing || tenantAccepted || rentStarted}
                   className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
                 >
-                  <img src={ESEWA_LOGO} alt="eSewa" className="w-5 h-5 rounded bg-white p-0.5" />
+                  <img src={esewaLogo} alt="eSewa" className="w-5 h-5 rounded" />
                   Pay with eSewa
                 </button>
                 <button

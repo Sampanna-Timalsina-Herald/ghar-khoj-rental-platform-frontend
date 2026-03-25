@@ -2,10 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CreditCard, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { processKhaltiPayment, processEsewaPayment } from '../services/paymentService';
-
-// Official payment gateway logos
-const KHALTI_LOGO = 'https://web.khalti.com/static/img/logo1.png';
-const ESEWA_LOGO = 'https://esewa.com.np/common/images/esewa_logo.png';
+import khaltiLogo from '../assets/khalti-logo.svg';
+import esewaLogo from '../assets/esewa-logo.svg';
 
 /**
  * PaymentGatewayModal Component
@@ -29,7 +27,7 @@ const PaymentGatewayModal = ({
       color: 'purple',
       bgColor: 'bg-purple-600',
       hoverColor: 'hover:bg-purple-700',
-      logo: KHALTI_LOGO
+      logo: khaltiLogo
     },
     {
       id: 'esewa',
@@ -38,7 +36,7 @@ const PaymentGatewayModal = ({
       color: 'green',
       bgColor: 'bg-green-600',
       hoverColor: 'hover:bg-green-700',
-      logo: ESEWA_LOGO
+      logo: esewaLogo
     }
   ];
 

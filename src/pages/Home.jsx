@@ -786,6 +786,8 @@ const Home = () => {
   );
 };
 
+export default Home;
+
 // // export default Home;
 // import React, { useState, useEffect, useRef, useCallback } from "react";
 // import { Link, useNavigate } from "react-router-dom";

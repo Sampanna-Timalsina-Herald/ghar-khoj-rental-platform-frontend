@@ -4,10 +4,8 @@ import { Calendar, CreditCard, Loader2, Wallet, Clock, CheckCircle, AlertCircle,
 import api from '../../api/axios'
 import { processEsewaPayment, processKhaltiPayment } from '../../services/paymentService'
 import ReceiptViewerModal from '../../components/ReceiptViewerModal'
-
-// Official payment gateway logos
-const KHALTI_LOGO = 'https://web.khalti.com/static/img/logo1.png'
-const ESEWA_LOGO = 'https://esewa.com.np/common/images/esewa_logo.png'
+import khaltiLogo from '../../assets/khalti-logo.svg'
+import esewaLogo from '../../assets/esewa-logo.svg'
 
 const addMonths = (date, months) => {
   const next = new Date(date)
@@ -611,7 +609,7 @@ const TenantRentTracker = () => {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1">
-                      <img src={KHALTI_LOGO} alt="Khalti logo" className="w-full h-full object-contain" />
+                      <img src={khaltiLogo} alt="Khalti logo" className="w-full h-full object-contain" />
                     </div>
                     <div className="text-left">
                       <p className="font-bold text-lg">Khalti</p>
@@ -631,7 +629,7 @@ const TenantRentTracker = () => {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1">
-                      <img src={ESEWA_LOGO} alt="eSewa logo" className="w-full h-full object-contain" />
+                      <img src={esewaLogo} alt="eSewa logo" className="w-full h-full object-contain" />
                     </div>
                     <div className="text-left">
                       <p className="font-bold text-lg">eSewa</p>
