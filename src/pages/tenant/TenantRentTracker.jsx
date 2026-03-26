@@ -161,6 +161,7 @@ const TenantRentTracker = () => {
         purpose: 'rent',
         booking_id: paymentDetails.booking.id,
         payment_mode: paymentDetails.mode,
+        landlord_id: paymentDetails.booking.landlord_id, // Track which landlord should receive this payment
         customer_info: {
           name: paymentDetails.booking.tenant_name || 'Tenant',
           email: paymentDetails.booking.tenant_email || 'tenant@example.com',

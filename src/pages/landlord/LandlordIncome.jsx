@@ -2,21 +2,25 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   DollarSign, TrendingUp, Calendar, Download, Filter, 
-  Search, Eye, CheckCircle, Clock, Home, User, CreditCard, Grid3X3, List, X
+  Search, Eye, CheckCircle, Clock, Home, User, CreditCard, Grid3X3, List, X, Building, MapPin
 } from 'lucide-react'
 import api from '../../api/axios'
 import ReceiptViewerModal from '../../components/ReceiptViewerModal'
+import { getEarningsByProperty } from '../../services/landlordService'
 
 const LandlordIncome = () => {
   const [loading, setLoading] = useState(true)
   const [payments, setPayments] = useState([])
   const [filteredPayments, setFilteredPayments] = useState([])
   const [bookings, setBookings] = useState([])
+  const [propertyEarnings, setPropertyEarnings] = useState([])
+  const [earningsSummary, setEarningsSummary] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterMonth, setFilterMonth] = useState('all')
   const [selectedPayment, setSelectedPayment] = useState(null)
   const [viewMode, setViewMode] = useState('card')
+  const [activeTab, setActiveTab] = useState('payments') // 'payments' or 'properties'
   const [showReceiptModal, setShowReceiptModal] = useState(false)
   const [selectedReceipt, setSelectedReceipt] = useState(null)
 
@@ -31,9 +35,13 @@ const LandlordIncome = () => {
   const fetchData = async () => {
     try {
       setLoading(true)
-      const [paymentsRes, bookingsRes] = await Promise.all([
+      const [paymentsRes, bookingsRes, earningsRes] = await Promise.all([
         api.get('/payments/landlord/my-payments'),
-        api.get('/bookings/my-bookings')
+        api.get('/bookings/my-bookings'),
+        getEarningsByProperty().catch(err => {
+          console.warn('Could not fetch earnings by property:', err.message)
+          return { success: false, data: { summary: null, properties: [] } }
+        })
       ])
 
       const paymentsData = Array.isArray(paymentsRes.data) 
@@ -46,6 +54,11 @@ const LandlordIncome = () => {
 
       setPayments(paymentsData)
       setBookings(bookingsData)
+      
+      if (earningsRes.success) {
+        setEarningsSummary(earningsRes.data.summary)
+        setPropertyEarnings(earningsRes.data.properties || [])
+      }
     } catch (error) {
       console.error('Failed to fetch income data:', error)
     } finally {
@@ -218,8 +231,100 @@ const LandlordIncome = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+      {/* Tab Navigation */}
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => setActiveTab('payments')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+            activeTab === 'payments' 
+              ? 'bg-blue-600 text-white' 
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          <CreditCard size={16} />
+          All Payments
+        </button>
+        <button
+          onClick={() => setActiveTab('properties')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+            activeTab === 'properties' 
+              ? 'bg-blue-600 text-white' 
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          <Building size={16} />
+          By Property
+        </button>
+      </div>
+
+      {/* Property Earnings View */}
+      {activeTab === 'properties' && (
+        <div className="space-y-4 mb-6">
+          {propertyEarnings.length === 0 ? (
+            <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+              <Building size={48} className="mx-auto text-gray-300 mb-3" />
+              <h3 className="text-lg font-semibold text-gray-700">No Property Earnings Yet</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Earnings will appear here once tenants start paying rent
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {propertyEarnings.map((property) => (
+                <motion.div
+                  key={property.listing_id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow"
+                >
+                  <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
+                    <h3 className="font-bold text-white truncate">{property.listing_title || 'Property'}</h3>
+                    <div className="flex items-center gap-1 text-white/80 text-sm mt-1">
+                      <MapPin size={14} />
+                      <span className="truncate">{property.listing_address || property.listing_city}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4">
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p className="text-xs text-gray-500">Total Earned</p>
+                        <p className="text-lg font-bold text-green-600">
+                          Rs. {Number(property.total_earned || 0).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Pending</p>
+                        <p className="text-lg font-bold text-orange-600">
+                          Rs. {Number(property.pending_amount || 0).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-sm text-gray-600 border-t pt-3">
+                      <span>{property.total_payments || 0} payments received</span>
+                      <button 
+                        onClick={() => {
+                          setActiveTab('payments')
+                          setSearchQuery(property.listing_title)
+                        }}
+                        className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                      >
+                        View Details <Eye size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Filters - Only show for payments tab */}
+      {activeTab === 'payments' && (
+        <>
+          <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
         <div className="flex items-center gap-2 mb-3">
           <Filter size={18} className="text-gray-600" />
           <h2 className="text-sm font-semibold text-gray-900">Filters</h2>
@@ -439,6 +544,8 @@ const LandlordIncome = () => {
             </table>
           </div>
         </div>
+      )}
+      </>
       )}
 
       {/* Payment Detail Modal */}

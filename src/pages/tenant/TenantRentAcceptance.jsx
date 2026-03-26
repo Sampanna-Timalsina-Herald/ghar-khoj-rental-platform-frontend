@@ -69,6 +69,7 @@ const TenantRentAcceptance = () => {
         purpose: 'rent',
         booking_id: booking.id,
         payment_mode: 'first',
+        landlord_id: booking.landlord_id, // Track which landlord should receive this payment
         customer_info: {
           name: booking.tenant_name || 'Tenant',
           email: booking.tenant_email || 'tenant@example.com',

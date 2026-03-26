@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import api from '../../api/axios'
 import { useAuthStore } from '../../stores/authStore'
 import { User, Mail, Phone, MapPin, Camera, Save, Loader2, CheckCircle2, XCircle, Lock, Eye, EyeOff, Home } from 'lucide-react'
+import PaymentSettingsSection from '../../components/PaymentSettingsSection'
 
 const LandlordProfile = () => {
   const { user } = useAuthStore()
@@ -503,6 +504,9 @@ const LandlordProfile = () => {
           </div>
         </div>
       </motion.form>
+
+      {/* Payment Settings Section */}
+      <PaymentSettingsSection />
 
       {/* Password Change Modal */}
       {showPasswordModal && (
