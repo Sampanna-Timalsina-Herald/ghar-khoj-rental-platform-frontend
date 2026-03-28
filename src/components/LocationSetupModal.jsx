@@ -1,12 +1,11 @@
 import React, { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { MapPin, Loader2, Crosshair, Navigation, ShieldCheck } from 'lucide-react'
+import { toast } from 'sonner'
 import LocationPicker from './LocationPicker'
-import { useToast } from '../context/ToastContext'
 import { useLocationStore } from '../stores/locationStore'
 
 const LocationSetupModal = ({ isOpen, onClose, onCompleted, force = false }) => {
-  const { addToast } = useToast()
   const { saveLocation } = useLocationStore()
   const [selectedLocation, setSelectedLocation] = useState(null)
   const [label, setLabel] = useState('Home')
@@ -16,7 +15,7 @@ const LocationSetupModal = ({ isOpen, onClose, onCompleted, force = false }) => 
 
   const handleGeoDetect = async () => {
     if (!navigator.geolocation) {
-      addToast('Geolocation is not supported in this browser', 'error')
+      toast.error('Geolocation is not supported in this browser')
       return
     }
 
@@ -30,7 +29,7 @@ const LocationSetupModal = ({ isOpen, onClose, onCompleted, force = false }) => 
       },
       (err) => {
         console.error('Geolocation error', err)
-        addToast('Unable to detect your location. Please pick it manually on the map.', 'error')
+        toast.error('Unable to detect your location. Please pick it manually on the map.')
         setDetecting(false)
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -60,7 +59,7 @@ const LocationSetupModal = ({ isOpen, onClose, onCompleted, force = false }) => 
 
   const handleSave = async () => {
     if (!selectedLocation) {
-      addToast('Please select a location on the map or use auto-detect.', 'warning')
+      toast.warning('Please select a location on the map or use auto-detect.')
       return
     }
 
@@ -75,14 +74,14 @@ const LocationSetupModal = ({ isOpen, onClose, onCompleted, force = false }) => 
         radiusKm: Number(radiusKm) || 20,
         isPrimary: true,
       })
-      addToast('Location saved. You can now continue.', 'success')
+      toast.success('Location saved. You can now continue.')
       onCompleted?.()
       if (!force) {
         onClose?.()
       }
     } catch (error) {
       console.error('Failed to save location', error)
-      addToast(error.response?.data?.error || 'Failed to save location', 'error')
+      toast.error(error.response?.data?.error || 'Failed to save location')
     } finally {
       setSaving(false)
     }

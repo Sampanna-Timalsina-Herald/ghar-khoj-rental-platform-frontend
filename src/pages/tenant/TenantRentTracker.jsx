@@ -6,6 +6,7 @@ import { processEsewaPayment, processKhaltiPayment } from '../../services/paymen
 import ReceiptViewerModal from '../../components/ReceiptViewerModal'
 import khaltiLogo from '../../assets/khalti-logo.svg'
 import esewaLogo from '../../assets/esewa-logo.svg'
+import { toast } from 'sonner'
 
 const addMonths = (date, months) => {
   const next = new Date(date)
@@ -26,7 +27,6 @@ const TenantRentTracker = () => {
   const [bookings, setBookings] = useState([])
   const [payments, setPayments] = useState([])
   const [processing, setProcessing] = useState(null)
-  const [message, setMessage] = useState({ type: '', text: '' })
   const [selectedBooking, setSelectedBooking] = useState(null)
   const [showPaymentHistory, setShowPaymentHistory] = useState(false)
   const [showGatewayModal, setShowGatewayModal] = useState(false)
@@ -37,7 +37,6 @@ const TenantRentTracker = () => {
   const fetchData = async () => {
     try {
       setLoading(true)
-      setMessage({ type: '', text: '' })
       
       console.log('[RENT TRACKER] Fetching data...')
       
@@ -62,10 +61,7 @@ const TenantRentTracker = () => {
       setPayments(paymentsData)
     } catch (error) {
       console.error('[RENT TRACKER] Error:', error)
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.error || error.message || 'Failed to load rent tracker' 
-      })
+      toast.error(error.response?.data?.error || error.message || 'Failed to load rent tracker')
     } finally {
       setLoading(false)
     }
@@ -175,9 +171,9 @@ const TenantRentTracker = () => {
         await processEsewaPayment(payload)
       }
 
-      setMessage({ type: 'success', text: `Redirecting to ${gateway === 'khalti' ? 'Khalti' : 'eSewa'} payment...` })
+      toast.success(`Redirecting to ${gateway === 'khalti' ? 'Khalti' : 'eSewa'} payment...`)
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to initiate payment' })
+      toast.error(error.response?.data?.error || 'Failed to initiate payment')
       setProcessing(null)
     }
   }
@@ -187,9 +183,9 @@ const TenantRentTracker = () => {
       await api.post(`/bookings/${booking.id}/send-rent-reminder`, {
         due_date: dueDate.toISOString()
       })
-      setMessage({ type: 'success', text: 'Reminder sent.' })
+      toast.success('Reminder sent.')
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to send reminder' })
+      toast.error(error.response?.data?.error || 'Failed to send reminder')
     }
   }
 
@@ -217,17 +213,6 @@ const TenantRentTracker = () => {
           <Calendar size={16} /> Refresh
         </button>
       </div>
-
-      {/* Message */}
-      {message.text && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`${message.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'} border rounded-lg p-4 text-sm`}
-        >
-          {message.text}
-        </motion.div>
-      )}
 
       {/* Stats Overview */}
       {activeRentals.length > 0 && (

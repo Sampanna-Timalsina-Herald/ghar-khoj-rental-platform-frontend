@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
+import { toast } from 'sonner'
 import api from '../../api/axios'
 import { useAuthStore } from '../../stores/authStore'
-import { User, Mail, Phone, MapPin, Camera, Save, Loader2, CheckCircle2, XCircle, Lock, Eye, EyeOff, Home } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Camera, Save, Loader2, XCircle, Lock, Eye, EyeOff, Home } from 'lucide-react'
 import PaymentSettingsSection from '../../components/PaymentSettingsSection'
 
 const LandlordProfile = () => {
@@ -17,7 +18,7 @@ const LandlordProfile = () => {
     city: '',
     profileImage: '',
   })
-  const [message, setMessage] = useState({ type: '', text: '' })
+  const [originalFormData, setOriginalFormData] = useState(null)
   const fileInputRef = useRef(null)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
@@ -37,19 +38,18 @@ const LandlordProfile = () => {
       fetchProfile()
     } else {
       setLoading(false)
-      setMessage({ type: 'error', text: 'Please log in to view your profile.' })
+      toast.error('Please log in to view your profile.')
     }
   }, [])
 
   const fetchProfile = async () => {
     setLoading(true)
-    setMessage({ type: '', text: '' })
     
     try {
       // Check if we have a token before making the request
       const { accessToken, isAuthenticated } = useAuthStore.getState()
       if (!isAuthenticated || !accessToken) {
-        setMessage({ type: 'error', text: 'Session expired. Please log in again.' })
+        toast.error('Session expired. Please log in again.')
         setLoading(false)
         return
       }
@@ -72,20 +72,21 @@ const LandlordProfile = () => {
           city: userData.city || '',
           profileImage: profileImageUrl,
         })
+        setOriginalFormData({
+          name: userData.name || '',
+          email: userData.email || '',
+          phone: userData.phone || '',
+          city: userData.city || '',
+          profileImage: profileImageUrl,
+        })
       }
     } catch (error) {
       console.error('Failed to fetch profile:', error)
       // Don't logout on profile fetch error - just show message
       if (error.response?.status === 401) {
-        setMessage({ 
-          type: 'error', 
-          text: 'Session expired. Please refresh the page or log in again.' 
-        })
+        toast.error('Session expired. Please refresh the page or log in again.')
       } else {
-        setMessage({ 
-          type: 'error', 
-          text: error.response?.data?.error || 'Failed to load profile. Please try again.' 
-        })
+        toast.error(error.response?.data?.error || 'Failed to load profile. Please try again.')
       }
     } finally {
       setLoading(false)
@@ -108,18 +109,17 @@ const LandlordProfile = () => {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      setMessage({ type: 'error', text: 'Please select a valid image file' })
+      toast.error('Please select a valid image file')
       return
     }
 
     // Validate file size (max 2MB original)
     if (file.size > 2 * 1024 * 1024) {
-      setMessage({ type: 'error', text: 'Image size must be less than 2MB' })
+      toast.error('Image size must be less than 2MB')
       return
     }
 
     setUploadingImage(true)
-    setMessage({ type: '', text: '' })
 
     try {
       // Compress and convert image
@@ -164,20 +164,23 @@ const LandlordProfile = () => {
               ...prev,
               profileImage: imageUrl,
             }))
+            setOriginalFormData(prev => ({
+              ...prev,
+              profileImage: imageUrl,
+            }))
             useAuthStore.setState({ user: { ...user, profileImage: imageUrl } })
-            setMessage({ type: 'success', text: '✅ Profile image uploaded successfully!' })
-            setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+            toast.success('Profile image uploaded successfully!')
           }
         } catch (error) {
           console.error('Failed to upload image:', error)
-          setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to upload image' })
+          toast.error(error.response?.data?.error || 'Failed to upload image')
         } finally {
           setUploadingImage(false)
         }
       }
 
       img.onerror = () => {
-        setMessage({ type: 'error', text: 'Failed to load image. Please try a different file.' })
+        toast.error('Failed to load image. Please try a different file.')
         setUploadingImage(false)
       }
 
@@ -189,7 +192,7 @@ const LandlordProfile = () => {
       reader.readAsDataURL(file)
     } catch (error) {
       console.error('Failed to process image:', error)
-      setMessage({ type: 'error', text: 'Failed to process image' })
+      toast.error('Failed to process image')
       setUploadingImage(false)
     }
   }
@@ -198,17 +201,16 @@ const LandlordProfile = () => {
     e.preventDefault()
     
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setMessage({ type: 'error', text: 'New passwords do not match' })
+      toast.error('New passwords do not match')
       return
     }
 
     if (passwordData.newPassword.length < 8) {
-      setMessage({ type: 'error', text: 'Password must be at least 8 characters' })
+      toast.error('Password must be at least 8 characters')
       return
     }
 
     setSaving(true)
-    setMessage({ type: '', text: '' })
 
     try {
       const response = await api.post('/auth/change-password', {
@@ -217,14 +219,13 @@ const LandlordProfile = () => {
       })
 
       if (response.data.success) {
-        setMessage({ type: 'success', text: 'Password changed successfully!' })
+        toast.success('Password changed successfully!')
         setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
         setShowPasswordModal(false)
-        setTimeout(() => setMessage({ type: '', text: '' }), 3000)
       }
     } catch (error) {
       console.error('Failed to change password:', error)
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to change password' })
+      toast.error(error.response?.data?.error || 'Failed to change password')
     } finally {
       setSaving(false)
     }
@@ -237,15 +238,14 @@ const LandlordProfile = () => {
     try {
       const response = await api.put('/auth/profile', formData)
       if (response.data.success) {
-        setMessage({ type: 'success', text: '✅ Profile updated successfully!' })
+        toast.success('Profile updated successfully!')
         useAuthStore.setState({ user: { ...user, ...response.data.user } })
+        setOriginalFormData({ ...formData })
         setIsEditMode(false)
-        setTimeout(() => setMessage({ type: '', text: '' }), 3000)
       }
     } catch (error) {
       console.error('Failed to update profile:', error)
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to update profile' })
-      setTimeout(() => setMessage({ type: '', text: '' }), 5000)
+      toast.error(error.response?.data?.error || 'Failed to update profile')
     } finally {
       setSaving(false)
     }
@@ -254,8 +254,12 @@ const LandlordProfile = () => {
   const handleCancelEdit = () => {
     setIsEditMode(false)
     // Reset form data to original values
-    fetchProfile()
+    if (originalFormData) {
+      setFormData({ ...originalFormData })
+    }
   }
+
+  const hasChanges = JSON.stringify(formData) !== JSON.stringify(originalFormData)
 
   if (loading) {
     return (
@@ -280,25 +284,6 @@ const LandlordProfile = () => {
           </div>
         </div>
       </motion.div>
-
-      {message.text && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`p-4 rounded-lg flex items-center gap-3 ${
-            message.type === 'success' 
-              ? 'bg-green-50 border border-green-200 text-green-700' 
-              : 'bg-red-50 border border-red-200 text-red-700'
-          }`}
-        >
-          {message.type === 'success' ? (
-            <CheckCircle2 size={20} />
-          ) : (
-            <XCircle size={20} />
-          )}
-          <span>{message.text}</span>
-        </motion.div>
-      )}
 
       <motion.form
         initial={{ opacity: 0, y: 20 }}
@@ -408,7 +393,7 @@ const LandlordProfile = () => {
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
                     type="submit"
-                    disabled={saving}
+                    disabled={saving || !hasChanges}
                     className="px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 min-w-[140px]"
                   >
                     {saving ? (
@@ -416,6 +401,8 @@ const LandlordProfile = () => {
                         <Loader2 size={16} className="animate-spin" />
                         <span>Saving...</span>
                       </>
+                    ) : !hasChanges ? (
+                      <span>No Changes</span>
                     ) : (
                       <>
                         <Save size={16} />

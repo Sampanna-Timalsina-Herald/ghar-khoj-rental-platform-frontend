@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Wallet, Building2, Loader2, CheckCircle, AlertCircle, Info } from 'lucide-react'
+import { toast } from 'sonner'
+import { Wallet, Building2, Loader2, CheckCircle, Info } from 'lucide-react'
 import { getPaymentSettings, updatePaymentSettings } from '../services/landlordService'
 
 // Import payment logos
@@ -10,7 +11,6 @@ import esewaLogo from '../assets/esewa-logo.svg'
 const PaymentSettingsSection = ({ onSave }) => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState({ type: '', text: '' })
   const [settings, setSettings] = useState({
     esewa_id: '',
     khalti_id: '',
@@ -19,6 +19,9 @@ const PaymentSettingsSection = ({ onSave }) => {
     bank_account_name: '',
     bank_account_number: ''
   })
+  const [originalSettings, setOriginalSettings] = useState(null)
+
+  const hasChanges = JSON.stringify(settings) !== JSON.stringify(originalSettings)
 
   useEffect(() => {
     fetchSettings()
@@ -29,18 +32,20 @@ const PaymentSettingsSection = ({ onSave }) => {
       setLoading(true)
       const response = await getPaymentSettings()
       if (response.success) {
-        setSettings({
+        const fetchedSettings = {
           esewa_id: response.data.esewa_id || '',
           khalti_id: response.data.khalti_id || '',
           preferred_payment_method: response.data.preferred_payment_method || 'khalti',
           bank_name: response.data.bank_name || '',
           bank_account_name: response.data.bank_account_name || '',
           bank_account_number: response.data.bank_account_number || ''
-        })
+        }
+        setSettings(fetchedSettings)
+        setOriginalSettings(fetchedSettings)
       }
     } catch (error) {
       console.error('Failed to fetch payment settings:', error)
-      setMessage({ type: 'error', text: 'Failed to load payment settings' })
+      toast.error('Failed to load payment settings')
     } finally {
       setLoading(false)
     }
@@ -55,45 +60,40 @@ const PaymentSettingsSection = ({ onSave }) => {
   const handleChange = (e) => {
     const { name, value } = e.target
     setSettings(prev => ({ ...prev, [name]: value }))
-    setMessage({ type: '', text: '' })
   }
 
   const handleSave = async () => {
     // Validate phone numbers
     if (settings.esewa_id && !validateNepalPhone(settings.esewa_id)) {
-      setMessage({ type: 'error', text: 'Invalid eSewa ID. Must be 10 digits starting with 97 or 98' })
+      toast.error('Invalid eSewa ID. Must be 10 digits starting with 97 or 98')
       return
     }
 
     if (settings.khalti_id && !validateNepalPhone(settings.khalti_id)) {
-      setMessage({ type: 'error', text: 'Invalid Khalti ID. Must be 10 digits starting with 97 or 98' })
+      toast.error('Invalid Khalti ID. Must be 10 digits starting with 97 or 98')
       return
     }
 
     // Validate bank details if bank is selected
     if (settings.preferred_payment_method === 'bank') {
       if (!settings.bank_name || !settings.bank_account_name || !settings.bank_account_number) {
-        setMessage({ type: 'error', text: 'Please fill in all bank details' })
+        toast.error('Please fill in all bank details')
         return
       }
     }
 
     try {
       setSaving(true)
-      setMessage({ type: '', text: '' })
 
       const response = await updatePaymentSettings(settings)
 
       if (response.success) {
-        setMessage({ type: 'success', text: 'Payment settings saved successfully!' })
+        toast.success('Payment settings saved successfully!')
+        setOriginalSettings(settings)
         if (onSave) onSave(response.data)
-        setTimeout(() => setMessage({ type: '', text: '' }), 3000)
       }
     } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.error || 'Failed to save payment settings' 
-      })
+      toast.error(error.response?.data?.error || 'Failed to save payment settings')
     } finally {
       setSaving(false)
     }
@@ -138,22 +138,6 @@ const PaymentSettingsSection = ({ onSave }) => {
             </p>
           </div>
         </div>
-
-        {/* Message */}
-        {message.text && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`p-4 rounded-lg flex items-center gap-3 ${
-              message.type === 'success'
-                ? 'bg-green-50 border border-green-200 text-green-700'
-                : 'bg-red-50 border border-red-200 text-red-700'
-            }`}
-          >
-            {message.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
-            <span>{message.text}</span>
-          </motion.div>
-        )}
 
         {/* Preferred Payment Method */}
         <div>
@@ -335,7 +319,7 @@ const PaymentSettingsSection = ({ onSave }) => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !hasChanges}
             className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {saving ? (
@@ -343,6 +327,8 @@ const PaymentSettingsSection = ({ onSave }) => {
                 <Loader2 className="animate-spin" size={20} />
                 Saving...
               </>
+            ) : !hasChanges ? (
+              'No Changes'
             ) : (
               <>
                 <CheckCircle size={20} />

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
+import { toast } from 'sonner'
 
 const AdminListings = () => {
   const [listings, setListings] = useState([])
@@ -13,7 +14,6 @@ const AdminListings = () => {
   const [rejectModal, setRejectModal] = useState(null)
   const [feedbackMessage, setFeedbackMessage] = useState('')
   const [actionLoading, setActionLoading] = useState({})
-  const [message, setMessage] = useState({ type: '', text: '' })
   const [saving, setSaving] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const listingsPerPage = 15
@@ -28,7 +28,7 @@ const AdminListings = () => {
       setListings(response.data.data || [])
     } catch (error) {
       console.error('Failed to fetch listings:', error)
-      setMessage({ type: 'error', text: 'Failed to load listings' })
+      toast.error('Failed to load listings')
     } finally {
       setLoading(false)
     }
@@ -44,13 +44,11 @@ const AdminListings = () => {
             listing.id === id ? { ...listing, status: 'active', is_verified: true } : listing
           )
         )
-        setMessage({ type: 'success', text: 'Listing approved successfully' })
-        setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+        toast.success('Listing approved successfully')
       }
     } catch (error) {
       console.error('Failed to approve listing:', error)
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to approve listing' })
-      setTimeout(() => setMessage({ type: '', text: '' }), 5000)
+      toast.error(error.response?.data?.error || 'Failed to approve listing')
     } finally {
       setActionLoading(prev => ({ ...prev, [id]: false }))
     }
@@ -66,15 +64,13 @@ const AdminListings = () => {
             listing.id === id ? { ...listing, status: 'inactive', admin_notes: feedbackMessage } : listing
           )
         )
-        setMessage({ type: 'success', text: 'Listing rejected' })
-        setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+        toast.success('Listing rejected')
         setRejectModal(null)
         setFeedbackMessage('')
       }
     } catch (error) {
       console.error('Failed to reject listing:', error)
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to reject listing' })
-      setTimeout(() => setMessage({ type: '', text: '' }), 5000)
+      toast.error(error.response?.data?.error || 'Failed to reject listing')
     } finally {
       setActionLoading(prev => ({ ...prev, [id]: false }))
     }
@@ -90,15 +86,13 @@ const AdminListings = () => {
             listing.id === id ? { ...listing, is_verified: false, admin_notes: feedbackMessage } : listing
           )
         )
-        setMessage({ type: 'success', text: 'Correction request sent to landlord' })
-        setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+        toast.success('Correction request sent to landlord')
         setRequestChangesModal(null)
         setFeedbackMessage('')
       }
     } catch (error) {
       console.error('Failed to request changes:', error)
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to request changes' })
-      setTimeout(() => setMessage({ type: '', text: '' }), 5000)
+      toast.error(error.response?.data?.error || 'Failed to request changes')
     } finally {
       setActionLoading(prev => ({ ...prev, [id]: false }))
     }
@@ -122,13 +116,11 @@ const AdminListings = () => {
       if (response.data.success) {
         setListings(listings.map(l => l.id === editingListing.id ? response.data.data : l))
         setEditingListing(null)
-        setMessage({ type: 'success', text: 'Listing updated successfully' })
-        setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+        toast.success('Listing updated successfully')
       }
     } catch (error) {
       console.error('Failed to update listing:', error)
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to update listing' })
-      setTimeout(() => setMessage({ type: '', text: '' }), 5000)
+      toast.error(error.response?.data?.error || 'Failed to update listing')
     } finally {
       setSaving(false)
     }
@@ -141,13 +133,11 @@ const AdminListings = () => {
       if (response.data.success) {
         setListings(listings.filter(l => l.id !== listingId))
         setDeleteConfirm(null)
-        setMessage({ type: 'success', text: 'Listing deleted successfully' })
-        setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+        toast.success('Listing deleted successfully')
       }
     } catch (error) {
       console.error('Failed to delete listing:', error)
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to delete listing' })
-      setTimeout(() => setMessage({ type: '', text: '' }), 5000)
+      toast.error(error.response?.data?.error || 'Failed to delete listing')
     } finally {
       setSaving(false)
     }
@@ -191,17 +181,6 @@ const AdminListings = () => {
         <h1 className="text-2xl font-bold text-gray-900">Manage Listings</h1>
         <p className="text-gray-600 mt-1">Review, edit, and manage all property listings</p>
       </div>
-
-      {/* Message */}
-      {message.text && (
-        <div className={`p-4 rounded-lg ${
-          message.type === 'success' 
-            ? 'bg-green-50 border border-green-200 text-green-700' 
-            : 'bg-red-50 border border-red-200 text-red-700'
-        }`}>
-          {message.text}
-        </div>
-      )}
 
       {/* Search Bar */}
       <div className="flex gap-4">

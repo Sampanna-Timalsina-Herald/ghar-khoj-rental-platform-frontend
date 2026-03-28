@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
+import { toast } from 'sonner'
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([])
@@ -9,7 +10,6 @@ const AdminUsers = () => {
   const [editingUser, setEditingUser] = useState(null)
   const [viewingUser, setViewingUser] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
-  const [message, setMessage] = useState({ type: '', text: '' })
   const [saving, setSaving] = useState(false)
   const [filterRole, setFilterRole] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
@@ -25,7 +25,7 @@ const AdminUsers = () => {
       setUsers(response.data.data || [])
     } catch (error) {
       console.error('Failed to fetch users:', error)
-      setMessage({ type: 'error', text: 'Failed to load users' })
+      toast.error('Failed to load users')
     } finally {
       setLoading(false)
     }
@@ -47,12 +47,10 @@ const AdminUsers = () => {
       const response = await api.put(`/admin/users/${editingUser.id}`, editingUser)
       setUsers(users.map(u => u.id === editingUser.id ? response.data.data : u))
       setEditingUser(null)
-      setMessage({ type: 'success', text: 'User updated successfully' })
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+      toast.success('User updated successfully')
     } catch (error) {
       console.error('Failed to update user:', error)
-      setMessage({ type: 'error', text: 'Failed to update user' })
-      setTimeout(() => setMessage({ type: '', text: '' }), 5000)
+      toast.error('Failed to update user')
     } finally {
       setSaving(false)
     }
@@ -64,12 +62,10 @@ const AdminUsers = () => {
       await api.delete(`/admin/users/${userId}`)
       setUsers(users.filter(u => u.id !== userId))
       setDeleteConfirm(null)
-      setMessage({ type: 'success', text: 'User deleted successfully' })
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+      toast.success('User deleted successfully')
     } catch (error) {
       console.error('Failed to delete user:', error)
-      setMessage({ type: 'error', text: 'Failed to delete user' })
-      setTimeout(() => setMessage({ type: '', text: '' }), 5000)
+      toast.error('Failed to delete user')
     } finally {
       setSaving(false)
     }
@@ -106,17 +102,6 @@ const AdminUsers = () => {
         <h1 className="text-2xl font-bold text-gray-900">Manage Users</h1>
         <p className="text-gray-600 mt-1">Review and manage all platform users</p>
       </div>
-
-      {/* Message */}
-      {message.text && (
-        <div className={`p-4 rounded-lg ${
-          message.type === 'success' 
-            ? 'bg-green-50 border border-green-200 text-green-700' 
-            : 'bg-red-50 border border-red-200 text-red-700'
-        }`}>
-          {message.text}
-        </div>
-      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">

@@ -3,11 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FileText, Clock, CheckCircle, AlertCircle, X, Send, ThumbsUp, Download, Trash2 } from 'lucide-react'
 import api from '../../api/axios'
-import { useToast } from '../../context/ToastContext'
+import { toast } from 'sonner'
 
 const TenantAgreements = () => {
   const navigate = useNavigate()
-  const { addToast } = useToast()
   const [agreements, setAgreements] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedAgreement, setSelectedAgreement] = useState(null)
@@ -28,11 +27,11 @@ const TenantAgreements = () => {
       // Filter only tenant agreements
       setAgreements(allAgreements)
       if (allAgreements.length === 0) {
-        addToast('No agreements found', 'info')
+        toast.info('No agreements found')
       }
     } catch (error) {
       console.error('Failed to fetch agreements:', error)
-      addToast(error.response?.data?.message || 'Failed to load agreements', 'error')
+      toast.error(error.response?.data?.message || 'Failed to load agreements')
     } finally {
       setLoading(false)
     }
@@ -111,12 +110,12 @@ const TenantAgreements = () => {
     setApproving(true)
     try {
       await api.put(`/agreements/${agreementId}/request-approval`)
-      addToast('✅ Approval requested! Landlord will review soon.', 'success')
+      toast.success('✅ Approval requested! Landlord will review soon.')
       fetchAgreements()
       setSelectedAgreement(null)
     } catch (error) {
       const errorMsg = error.response?.data?.message || 'Failed to request approval'
-      addToast(errorMsg, 'error')
+      toast.error(errorMsg)
       console.error('Request approval error:', error)
     } finally {
       setApproving(false)
@@ -143,7 +142,7 @@ const TenantAgreements = () => {
       setSelectedAgreement(null)
     } catch (error) {
       const errorMsg = error.response?.data?.error || error.message || 'Failed to accept agreement'
-      addToast(errorMsg, 'error')
+      toast.error(errorMsg)
       console.error('Accept agreement error:', error)
     }
   }
@@ -162,10 +161,10 @@ const TenantAgreements = () => {
       link.click()
       link.parentNode.removeChild(link)
       window.URL.revokeObjectURL(url)
-      addToast('📄 PDF downloaded successfully', 'success')
+      toast.success('📄 PDF downloaded successfully')
     } catch (error) {
       const errorMsg = error.response?.data?.message || 'Failed to download PDF'
-      addToast(errorMsg, 'error')
+      toast.error(errorMsg)
       console.error('Download PDF error:', error)
     } finally {
       setDownloadingPDF(false)
@@ -176,13 +175,13 @@ const TenantAgreements = () => {
     setDeleting(true)
     try {
       await api.delete(`/agreements/${agreementId}`)
-      addToast('✅ Agreement deleted successfully', 'success')
+      toast.success('✅ Agreement deleted successfully')
       fetchAgreements()
       setSelectedAgreement(null)
       setShowDeleteConfirm(false)
     } catch (error) {
       const errorMsg = error.response?.data?.message || 'Failed to delete agreement'
-      addToast(errorMsg, 'error')
+      toast.error(errorMsg)
       console.error('Delete agreement error:', error)
     } finally {
       setDeleting(false)
@@ -190,7 +189,7 @@ const TenantAgreements = () => {
   }
 
   const confirmDelete = () => {
-    addToast('⚠️ Click "Confirm Delete" button to permanently delete this agreement', 'info')
+    toast.info('⚠️ Click "Confirm Delete" button to permanently delete this agreement')
     setShowDeleteConfirm(true)
     setTimeout(() => setShowDeleteConfirm(false), 5000) // Reset after 5 seconds
   }

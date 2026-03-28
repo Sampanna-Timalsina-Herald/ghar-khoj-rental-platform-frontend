@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
 import SignaturePad from '../../components/SignaturePad'
+import { toast } from 'sonner'
 import { 
   Calendar, CheckCircle, Eye, FileText, Loader2, XCircle, Grid3X3, List, 
   User, MapPin, DollarSign, Clock, AlertCircle, Search, X, FileSignature 
@@ -19,7 +20,6 @@ const LandlordBookings = () => {
   const [rejectionReason, setRejectionReason] = useState('')
   const [landlordSignature, setLandlordSignature] = useState('')
   const [previewImage, setPreviewImage] = useState('')
-  const [message, setMessage] = useState({ type: '', text: '' })
   const [viewMode, setViewMode] = useState('card')
   const [filterStatus, setFilterStatus] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -72,7 +72,7 @@ const LandlordBookings = () => {
         setBookings(response.data.data)
       }
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to load bookings' })
+      toast.error(error.response?.data?.error || 'Failed to load bookings')
     } finally {
       setLoading(false)
     }
@@ -117,11 +117,11 @@ const LandlordBookings = () => {
       setActionLoading(bookingId)
       const response = await api.put(`/bookings/${bookingId}/approve`)
       if (response.data.success) {
-        setMessage({ type: 'success', text: 'Booking approved. Tenant must pay and accept first.' })
+        toast.success('Booking approved. Tenant must pay and accept first.')
         fetchBookings()
       }
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to approve booking' })
+      toast.error(error.response?.data?.error || 'Failed to approve booking')
     } finally {
       setActionLoading(null)
     }
@@ -129,7 +129,7 @@ const LandlordBookings = () => {
 
   const handleReject = async () => {
     if (!selectedBooking || !rejectionReason.trim()) {
-      setMessage({ type: 'error', text: 'Please provide rejection reason' })
+      toast.error('Please provide rejection reason')
       return
     }
 
@@ -139,11 +139,11 @@ const LandlordBookings = () => {
       if (response.data.success) {
         setShowRejectModal(false)
         setRejectionReason('')
-        setMessage({ type: 'success', text: 'Booking rejected.' })
+        toast.success('Booking rejected.')
         fetchBookings()
       }
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to reject booking' })
+      toast.error(error.response?.data?.error || 'Failed to reject booking')
     } finally {
       setActionLoading(null)
     }
@@ -151,7 +151,7 @@ const LandlordBookings = () => {
 
   const handleVerifyStart = async (bookingId) => {
     if (!landlordSignature) {
-      setMessage({ type: 'error', text: 'Digital signature is required for verification' })
+      toast.error('Digital signature is required for verification')
       return
     }
 
@@ -164,11 +164,11 @@ const LandlordBookings = () => {
       if (response.data.success) {
         setLandlordSignature('')
         setSelectedBooking(null)
-        setMessage({ type: 'success', text: 'Verified successfully. Rent is now active.' })
+        toast.success('Verified successfully. Rent is now active.')
         fetchBookings()
       }
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to verify and start rent' })
+      toast.error(error.response?.data?.error || 'Failed to verify and start rent')
     } finally {
       setActionLoading(null)
     }
@@ -213,28 +213,6 @@ const LandlordBookings = () => {
           </motion.button>
         </div>
       </div>
-
-      {/* Message Alert */}
-      <AnimatePresence>
-        {message.text && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className={`border rounded-xl p-4 flex items-start gap-3 ${
-              message.type === 'success'
-                ? 'bg-green-50 border-green-200 text-green-700'
-                : 'bg-red-50 border-red-200 text-red-700'
-            }`}
-          >
-            {message.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
-            <p className="text-sm font-medium flex-1">{message.text}</p>
-            <button onClick={() => setMessage({ type: '', text: '' })} className="text-current hover:opacity-70">
-              <X size={18} />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">

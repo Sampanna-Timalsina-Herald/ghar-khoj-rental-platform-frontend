@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MapPin, DollarSign, Home, Sparkles, Check } from 'lucide-react';
+import { toast } from 'sonner';
 import api from '../api/axios';
-import { useToast } from '../context/ToastContext';
 
 const PROPERTY_TYPES = [
   { value: 'apartment', label: 'Apartment', icon: '🏢' },
@@ -24,7 +24,6 @@ const LOCATIONS = [
 ];
 
 const PreferencesModal = ({ isOpen, onClose, onSave, isFirstTime = false }) => {
-  const { addToast } = useToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [preferences, setPreferences] = useState({
@@ -66,7 +65,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, isFirstTime = false }) => {
   const handleSubmit = async () => {
     // Validation
     if (preferences.locations.length === 0) {
-      addToast('Please select at least one location', 'warning', 4000);
+      toast.warning('Please select at least one location');
       return;
     }
 
@@ -74,7 +73,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, isFirstTime = false }) => {
       const min = parseInt(preferences.minPrice);
       const max = parseInt(preferences.maxPrice);
       if (min > max) {
-        addToast('Minimum price cannot be greater than maximum price', 'error', 4000);
+        toast.error('Minimum price cannot be greater than maximum price');
         return;
       }
     }
@@ -90,7 +89,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, isFirstTime = false }) => {
       });
 
       if (response.data.success) {
-        addToast('Preferences saved successfully! You\'ll receive email notifications for matching properties.', 'success', 5000);
+        toast.success('Preferences saved successfully! You\'ll receive email notifications for matching properties.');
         
         // Build ML user profile and generate recommendations
         try {
@@ -107,7 +106,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, isFirstTime = false }) => {
         onSave?.();
         onClose();
       } else {
-        addToast(response.data.message || 'Failed to save preferences', 'error', 4000);
+        toast.error(response.data.message || 'Failed to save preferences');
       }
     } catch (error) {
       console.error('Failed to save preferences:', error);
@@ -116,13 +115,13 @@ const PreferencesModal = ({ isOpen, onClose, onSave, isFirstTime = false }) => {
       if (error.response) {
         // Server responded with error
         const errorMessage = error.response.data?.error || error.response.data?.message || 'Failed to save preferences';
-        addToast(errorMessage, 'error', 5000);
+        toast.error(errorMessage);
       } else if (error.request) {
         // Request made but no response
-        addToast('Network error. Please check your connection and try again.', 'error', 5000);
+        toast.error('Network error. Please check your connection and try again.');
       } else {
         // Something else happened
-        addToast('An unexpected error occurred. Please try again.', 'error', 4000);
+        toast.error('An unexpected error occurred. Please try again.');
       }
     } finally {
       setLoading(false);

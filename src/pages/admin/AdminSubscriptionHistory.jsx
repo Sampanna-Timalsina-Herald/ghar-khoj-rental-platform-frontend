@@ -2,12 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, Calendar, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
-import { useToast } from '../../context/ToastContext';
+import { toast } from 'sonner';
 import ReceiptDownloadButton from '../../components/ReceiptDownloadButton';
 
 const AdminSubscriptionHistory = () => {
   const navigate = useNavigate();
-  const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [deletingId, setDeletingId] = useState(null);
@@ -23,7 +22,7 @@ const AdminSubscriptionHistory = () => {
       setRows(response.data.data || []);
     } catch (error) {
       console.error('Error fetching subscription history:', error);
-      addToast(error.response?.data?.error || 'Failed to fetch subscription history', 'error');
+      toast.error(error.response?.data?.error || 'Failed to fetch subscription history');
     } finally {
       setLoading(false);
     }
@@ -44,12 +43,12 @@ const AdminSubscriptionHistory = () => {
 
     try {
       await api.delete(`/subscriptions/admin/${subscriptionId}`);
-      addToast('Subscription deleted successfully', 'success');
+      toast.success('Subscription deleted successfully');
       // Remove from local state
       setRows(rows.filter(row => row.id !== subscriptionId));
     } catch (error) {
       console.error('Error deleting subscription:', error);
-      addToast(error.response?.data?.error || 'Failed to delete subscription', 'error');
+      toast.error(error.response?.data?.error || 'Failed to delete subscription');
     } finally {
       setDeletingId(null);
     }

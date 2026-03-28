@@ -2,14 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { Heart, MessageCircle, ChevronLeft, ChevronRight, MapPin, Bed, Bath, Ruler, X, Loader2, Share2, Flag } from 'lucide-react'
+import { toast } from 'sonner'
 import { useAuthStore } from '../stores/authStore'
 import api from '../api/axios'
-import { useToast } from '../context/ToastContext'
 
 const PropertyDetailModal = ({ listing, isOpen, onClose }) => {
   const navigate = useNavigate()
   const { isAuthenticated, role } = useAuthStore()
-  const { addToast } = useToast()
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isFavorite, setIsFavorite] = useState(false)
   const [loadingFavorite, setLoadingFavorite] = useState(false)
@@ -62,7 +61,7 @@ const PropertyDetailModal = ({ listing, isOpen, onClose }) => {
       console.error('Error response:', error.response)
       console.error('Error message:', error.message)
       console.error('Error data:', error.response?.data)
-      addToast(`Failed to update favorite: ${error.response?.data?.error || error.message}`, 'error')
+      toast.error(`Failed to update favorite: ${error.response?.data?.error || error.message}`)
     } finally {
       setLoadingFavorite(false)
     }

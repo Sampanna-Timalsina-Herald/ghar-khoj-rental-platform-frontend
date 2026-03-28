@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Mail, ArrowRight, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 import Input from "./ui/Input";
 import api from "../../api/axios";
 import modernInterior from "../../assets/interior1.jpg";
@@ -9,21 +10,18 @@ const ForgotPasswordPage = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [error, setError] = useState("");
 
   const emailInputRef = useRef(null);
 
   // Clear form and focus input on page load
   useEffect(() => {
     setEmail("");
-    setError("");
     setIsSubmitted(false);
     emailInputRef.current?.focus();
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
@@ -31,7 +29,7 @@ const ForgotPasswordPage = () => {
       setIsSubmitted(true);
     } catch (err) {
       console.error("Forgot password error:", err);
-      setError(
+      toast.error(
         err.response?.data?.message || "Something went wrong. Please try again."
       );
     } finally {
@@ -42,7 +40,6 @@ const ForgotPasswordPage = () => {
   const handleRetry = () => {
     setIsSubmitted(false);
     setEmail("");
-    setError("");
     emailInputRef.current?.focus();
   };
 
@@ -104,12 +101,6 @@ const ForgotPasswordPage = () => {
                   Enter the email associated with your account and we'll send you a link to reset your password.
                 </p>
               </div>
-
-              {error && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl flex items-start gap-3 text-sm animate-slide-up">
-                  {error}
-                </div>
-              )}
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <Input

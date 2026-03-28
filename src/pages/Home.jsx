@@ -11,7 +11,7 @@ import api from "../api/axios";
 import { useAuthStore } from "../stores/authStore";
 import SmartNav from "../components/SmartNav";
 import SearchSuggestions from "../components/SearchSuggestions";
-import { useToast } from "../context/ToastContext";
+import { toast } from 'sonner';
 
 const AMENITY_OPTIONS = ["Wifi", "Parking", "Balcony", "Garden", "AC"];
 
@@ -140,7 +140,7 @@ const ListingCard = ({ data, onBookClick }) => {
       console.error('Error response:', error.response)
       console.error('Error message:', error.message)
       console.error('Error data:', error.response?.data)
-      addToast(`Failed to update favorite: ${error.response?.data?.error || error.message}`, 'error')
+      toast.error(`Failed to update favorite: ${error.response?.data?.error || error.message}`)
     } finally {
       setLoadingFav(false);
     }
@@ -439,7 +439,6 @@ const StepCard = ({ icon: Icon, title, description, delay }) => (
 const Home = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
-  const { addToast } = useToast();
   const [featuredListings, setFeaturedListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

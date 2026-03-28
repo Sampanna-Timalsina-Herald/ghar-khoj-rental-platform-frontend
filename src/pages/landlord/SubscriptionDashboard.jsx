@@ -16,7 +16,7 @@ import {
   Settings
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '../../context/ToastContext';
+import { toast } from 'sonner';
 import ReceiptDownloadButton from '../../components/ReceiptDownloadButton';
 
 const SubscriptionDashboard = () => {
@@ -25,7 +25,6 @@ const SubscriptionDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
-  const { addToast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -62,12 +61,12 @@ const SubscriptionDashboard = () => {
       );
       
       if (response.data.success) {
-        addToast(`Auto-renew ${newValue ? 'enabled' : 'disabled'} successfully`, 'success');
+        toast.success(`Auto-renew ${newValue ? 'enabled' : 'disabled'} successfully`);
         fetchSubscriptionData();
       }
     } catch (error) {
       console.error('Error toggling auto-renew:', error);
-      addToast('Failed to update auto-renew setting', 'error');
+      toast.error('Failed to update auto-renew setting');
     }
   };
 

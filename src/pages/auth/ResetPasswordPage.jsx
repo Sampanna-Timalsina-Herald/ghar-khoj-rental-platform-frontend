@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import api from "../../api/axios";
 import { HiEye, HiEyeOff } from "react-icons/hi"; // Tailwind compatible icons
 
@@ -13,16 +14,14 @@ const ResetPasswordPage = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  const [message, setMessage] = useState("");
-  const [type, setType] = useState(""); // "error" | "success"
   const [loading, setLoading] = useState(false);
+  const [tokenValid, setTokenValid] = useState(true);
 
   // Validate token on page load
   useEffect(() => {
     if (!token) {
-      setType("error");
-      setMessage("Invalid or missing reset token. Please request a new password reset link.");
+      setTokenValid(false);
+      toast.error("Invalid or missing reset token. Please request a new password reset link.");
     }
   }, [token]);
 
@@ -30,14 +29,12 @@ const ResetPasswordPage = () => {
     e.preventDefault();
 
     if (!token) {
-      setType("error");
-      setMessage("Invalid or missing reset token");
+      toast.error("Invalid or missing reset token");
       return;
     }
 
     if (password !== confirmPassword) {
-      setType("error");
-      setMessage("Passwords do not match");
+      toast.error("Passwords do not match");
       return;
     }
 
@@ -48,15 +45,13 @@ const ResetPasswordPage = () => {
         newPassword: password,
       });
 
-      setType("success");
-      setMessage("Password reset successful! Redirecting...");
+      toast.success("Password reset successful! Redirecting...");
       setPassword("");
       setConfirmPassword("");
 
       setTimeout(() => navigate("/login"), 1500);
     } catch (error) {
-      setType("error");
-      setMessage(error.response?.data?.error || error.response?.data?.message || "Failed to reset password");
+      toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to reset password");
     } finally {
       setLoading(false);
     }
@@ -68,18 +63,6 @@ const ResetPasswordPage = () => {
         <h2 className="text-2xl font-semibold text-center mb-6">
           Reset Password
         </h2>
-
-        {message && (
-          <div
-            className={`p-3 mb-4 rounded text-sm ${
-              type === "error"
-                ? "bg-red-100 text-red-700"
-                : "bg-green-100 text-green-700"
-            }`}
-          >
-            {message}
-          </div>
-        )}
 
         {!token ? (
           <div className="text-center">

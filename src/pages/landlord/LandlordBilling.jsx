@@ -13,7 +13,7 @@ import api from '../../api/axios';
 import jsPDF from 'jspdf';
 import PaymentGatewayModal from '../../components/PaymentGatewayModal';
 import { useAuthStore } from '../../stores/authStore';
-import { useToast } from '../../context/ToastContext';
+import { toast } from 'sonner';
 import ReceiptViewerModal from '../../components/ReceiptViewerModal';
 
 const LandlordBillingDashboard = () => {
@@ -25,7 +25,6 @@ const LandlordBillingDashboard = () => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const { addToast } = useToast();
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const { user } = useAuthStore();
   const [rentPayments, setRentPayments] = useState([]);
@@ -78,7 +77,7 @@ const LandlordBillingDashboard = () => {
         setShowInvoiceModal(true);
       } else {
         console.error('[BILLING] Failed to fetch invoice:', response.data.error);
-        addToast('Failed to load invoice: ' + response.data.error, 'error');
+        toast.error('Failed to load invoice: ' + response.data.error);
       }
     } catch (error) {
       console.error('[BILLING] Error fetching invoice:', error);
@@ -94,8 +93,11 @@ const LandlordBillingDashboard = () => {
     setSelectedTransaction(null);
     // Refresh dashboard data after payment
     fetchDashboardData();
-  };  console.error('[BILLING] Error response:', error.response?.data);
-      addToast('Failed to load invoice. Please try again.', 'error');
+  };
+    } catch (error) {
+      console.error('[BILLING] Error fetching invoice:', error);
+      console.error('[BILLING] Error response:', error.response?.data);
+      toast.error('Failed to load invoice. Please try again.');
     }
   };
 

@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Send, Loader2, ArrowLeft, MessageCircle, User, Check, CheckCheck } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { toast } from 'sonner'
 import api from '../api/axios'
 import socketService, { initSocket } from '../services/socket'
 import { useAuthStore } from '../stores/authStore'
-import { useToast } from '../context/ToastContext'
 
 const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
   const { user, accessToken } = useAuthStore()
-  const { addToast } = useToast()
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
@@ -128,7 +127,7 @@ const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
       // Remove optimistic message on error
       setMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id))
       setNewMessage(messageContent) // Restore message text
-      addToast('Failed to send message', 'error')
+      toast.error('Failed to send message')
     } finally {
       setSending(false)
     }

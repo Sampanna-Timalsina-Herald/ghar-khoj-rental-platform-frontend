@@ -17,7 +17,7 @@ import {
   AlertTriangle,
   ChevronDown
 } from 'lucide-react';
-import { useToast } from '../../context/ToastContext';
+import { toast } from 'sonner';
 import ReceiptDownloadButton from '../../components/ReceiptDownloadButton';
 
 const AdminSubscriptions = () => {
@@ -29,7 +29,6 @@ const AdminSubscriptions = () => {
   const [filterPlan, setFilterPlan] = useState('all');
   const [cancelModal, setCancelModal] = useState(null);
   const [showReportMenu, setShowReportMenu] = useState(false);
-  const { addToast } = useToast();
   const [cancelReason, setCancelReason] = useState('');
   const [canceling, setCanceling] = useState(false);
 
@@ -66,10 +65,10 @@ const AdminSubscriptions = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      addToast('Report downloaded successfully', 'success');
+      toast.success('Report downloaded successfully');
     } catch (error) {
       console.error('Error downloading report:', error);
-      addToast('Failed to download report', 'error');
+      toast.error('Failed to download report');
     }
   };
 
@@ -83,14 +82,14 @@ const AdminSubscriptions = () => {
       });
       
       if (response.data.success) {
-        addToast('Subscription cancelled successfully', 'success');
+        toast.success('Subscription cancelled successfully');
         fetchData();
         setCancelModal(null);
         setCancelReason('');
       }
     } catch (error) {
       console.error('Error cancelling subscription:', error);
-      addToast(error.response?.data?.error || 'Failed to cancel subscription', 'error');
+      toast.error(error.response?.data?.error || 'Failed to cancel subscription');
     } finally {
       setCanceling(false);
     }

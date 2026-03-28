@@ -10,6 +10,7 @@ import {
   CreditCard, Eye, RefreshCw, Power, ChevronDown
 } from 'lucide-react';
 import api from '../../api/axios';
+import { toast } from 'sonner';
 
 const AdminCommissionDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -28,7 +29,6 @@ const AdminCommissionDashboard = () => {
     payment_reference: '',
     notes: ''
   });
-  const [message, setMessage] = useState({ type: '', text: '' });
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [commissionEnabled, setCommissionEnabled] = useState(true);
   const [togglingCommission, setTogglingCommission] = useState(false);
@@ -51,7 +51,7 @@ const AdminCommissionDashboard = () => {
       }
     } catch (error) {
       console.error('Error fetching dashboard:', error);
-      showMessage('error', 'Failed to load commission dashboard');
+      toast.error('Failed to load commission dashboard');
     } finally {
       setLoading(false);
     }
@@ -70,27 +70,27 @@ const AdminCommissionDashboard = () => {
       }
     } catch (error) {
       console.error('Error fetching transactions:', error);
-      showMessage('error', 'Failed to load transactions');
+      toast.error('Failed to load transactions');
     }
   };
 
   const handleMarkAsPaid = async (transactionId) => {
     if (!paymentData.payment_reference.trim()) {
-      showMessage('error', 'Payment reference is required');
+      toast.error('Payment reference is required');
       return;
     }
 
     try {
       const response = await api.put(`/admin/commissions/transactions/${transactionId}/mark-paid`, paymentData);
       if (response.data.success) {
-        showMessage('success', 'Payment marked as paid successfully');
+        toast.success('Payment marked as paid successfully');
         setShowPaymentModal(false);
         setPaymentData({ payment_method: 'bank_transfer', payment_reference: '', notes: '' });
         fetchDashboardData();
       }
     } catch (error) {
       console.error('Error marking payment:', error);
-      showMessage('error', 'Failed to mark payment as paid');
+      toast.error('Failed to mark payment as paid');
     }
   };
 
@@ -113,16 +113,11 @@ const AdminCommissionDashboard = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      showMessage('success', 'Report downloaded successfully');
+      toast.success('Report downloaded successfully');
     } catch (error) {
       console.error('Error downloading report:', error);
-      showMessage('error', 'Failed to download report');
+      toast.error('Failed to download report');
     }
-  };
-
-  const showMessage = (type, text) => {
-    setMessage({ type, text });
-    setTimeout(() => setMessage({ type: '', text: '' }), 4000);
   };
 
   const handleToggleCommission = async () => {
@@ -132,11 +127,11 @@ const AdminCommissionDashboard = () => {
       const response = await api.put('/admin/commissions/toggle', { enabled: newState });
       if (response.data.success) {
         setCommissionEnabled(newState);
-        showMessage('success', `Commission system ${newState ? 'enabled' : 'disabled'} successfully`);
+        toast.success(`Commission system ${newState ? 'enabled' : 'disabled'} successfully`);
       }
     } catch (error) {
       console.error('Error toggling commission:', error);
-      showMessage('error', 'Failed to toggle commission status');
+      toast.error('Failed to toggle commission status');
     } finally {
       setTogglingCommission(false);
     }
@@ -260,19 +255,6 @@ const AdminCommissionDashboard = () => {
           </div>
         </div>
       </div>
-
-      {/* Message */}
-      {message.text && (
-        <div
-          className={`p-4 rounded-lg border ${
-            message.type === 'success'
-              ? 'bg-green-50 border-green-200 text-green-800'
-              : 'bg-red-50 border-red-200 text-red-800'
-          }`}
-        >
-          {message.text}
-        </div>
-      )}
 
       {/* Commission Disabled Banner */}
       {!commissionEnabled && (

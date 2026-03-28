@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import PaymentGatewayModal from '../../components/PaymentGatewayModal';
 import UpgradeConfirmationModal from '../../components/UpgradeConfirmationModal';
 import { useAuthStore } from '../../stores/authStore';
-import { useToast } from '../../context/ToastContext';
+import { toast } from 'sonner';
 
 const SubscriptionPlans = () => {
   const [plans, setPlans] = useState([]);
@@ -18,7 +18,6 @@ const SubscriptionPlans = () => {
   const [currentSubscription, setCurrentSubscription] = useState(null);
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { addToast } = useToast();
 
   useEffect(() => {
     fetchPlans();
@@ -60,7 +59,7 @@ const SubscriptionPlans = () => {
       
       // Prevent downgrade
       if (newTier < currentTier) {
-        addToast(`You cannot downgrade from ${currentSubscription.plan_display_name} (Tier ${currentTier}) to ${plan.display_name} (Tier ${newTier}). Please cancel your current subscription first if you wish to downgrade.`, 'error', 5000);
+        toast.error(`You cannot downgrade from ${currentSubscription.plan_display_name} (Tier ${currentTier}) to ${plan.display_name} (Tier ${newTier}). Please cancel your current subscription first if you wish to downgrade.`);
         return;
       }
       

@@ -7,7 +7,7 @@ import {
   Eye, MapPin, DollarSign, Bed, Bath, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '../../context/ToastContext';
+import { toast } from 'sonner';
 
 const LandlordDashboard = () => {
   const navigate = useNavigate();
@@ -16,7 +16,6 @@ const LandlordDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, available, rented, pending
   const [viewMode, setViewMode] = useState('card'); // card or table
-  const { addToast } = useToast();
 
   useEffect(() => {
     fetchListings();
@@ -148,11 +147,11 @@ const LandlordDashboard = () => {
               : listing
           )
         );
-        addToast('Rental cancelled successfully! Listing is now available.', 'success');
+        toast.success('Rental cancelled successfully! Listing is now available.');
       }
     } catch (error) {
       console.error('Failed to cancel rental:', error);
-      addToast(error.response?.data?.error || 'Failed to cancel rental. Please try again.', 'error');
+      toast.error(error.response?.data?.error || 'Failed to cancel rental. Please try again.');
     }
   };
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../../api/axios'
+import { toast } from 'sonner'
 import { 
   Plus, Edit2, Trash2, Loader2, MapPin, Bed, Bath, Eye, X, Search, 
   Home, Calendar, User, Clock, CheckCircle, AlertCircle, Filter, Grid3X3, List
@@ -14,7 +15,6 @@ const LandlordListings = () => {
   const [loading, setLoading] = useState(true)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [deleting, setDeleting] = useState(false)
-  const [message, setMessage] = useState({ type: '', text: '' })
   const [searchQuery, setSearchQuery] = useState('')
   const [filterCity, setFilterCity] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -40,7 +40,7 @@ const LandlordListings = () => {
     } catch (error) {
       console.error('[LISTINGS] Failed to fetch listings:', error)
       console.error('[LISTINGS] Error response:', error.response?.data)
-      setMessage({ type: 'error', text: 'Failed to load listings' })
+      toast.error('Failed to load listings')
     } finally {
       setLoading(false)
     }
@@ -152,12 +152,10 @@ const LandlordListings = () => {
       await api.delete(`/listings/${id}`)
       setListings((prev) => prev.filter((listing) => listing.id !== id))
       setDeleteConfirm(null)
-      setMessage({ type: 'success', text: 'Listing deleted successfully' })
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+      toast.success('Listing deleted successfully')
     } catch (error) {
       console.error('Failed to delete listing:', error)
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to delete listing' })
-      setTimeout(() => setMessage({ type: '', text: '' }), 5000)
+      toast.error(error.response?.data?.error || 'Failed to delete listing')
     } finally {
       setDeleting(false)
     }
@@ -173,8 +171,7 @@ const LandlordListings = () => {
           listing.id === id ? { ...listing, admin_changes_seen: true } : listing
         )
       )
-      setMessage({ type: 'success', text: 'Admin notification dismissed' })
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+      toast.success('Admin notification dismissed')
     } catch (error) {
       console.error('Failed to dismiss admin notes:', error)
     }
@@ -190,7 +187,6 @@ const LandlordListings = () => {
     if (!confirmed) return
     
     try {
-      setMessage({ type: '', text: '' })
       const response = await api.put(`/listings/${id}/cancel-rental`)
       
       if (response.data.success) {
@@ -210,16 +206,11 @@ const LandlordListings = () => {
               : listing
           )
         )
-        setMessage({ type: 'success', text: 'Rental cancelled successfully! Listing is now available.' })
-        setTimeout(() => setMessage({ type: '', text: '' }), 5000)
+        toast.success('Rental cancelled successfully! Listing is now available.')
       }
     } catch (error) {
       console.error('Failed to cancel rental:', error)
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.error || 'Failed to cancel rental. Please try again.' 
-      })
-      setTimeout(() => setMessage({ type: '', text: '' }), 5000)
+      toast.error(error.response?.data?.error || 'Failed to cancel rental. Please try again.')
     }
   }
 
@@ -253,20 +244,6 @@ const LandlordListings = () => {
           Create Listing
         </motion.button>
       </motion.div>
-
-      {message.text && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`p-4 rounded-lg flex items-center gap-3 ${
-            message.type === 'success' 
-              ? 'bg-green-50 border border-green-200 text-green-700' 
-              : 'bg-red-50 border border-red-200 text-red-700'
-          }`}
-        >
-          {message.text}
-        </motion.div>
-      )}
 
       {/* Smaller Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">

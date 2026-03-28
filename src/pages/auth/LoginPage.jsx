@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, Loader2, Mail, KeyRound, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion"; 
+import { toast } from "sonner";
 import Input from "./ui/Input";
 import api from "../../api/axios";
 import modernInterior from "../../assets/interior1.jpg"; // Keeping the original image import
@@ -47,7 +48,6 @@ const LoginPage = () => {
     password: "",
   });
 
-  const [error, setError] = useState("");
   const [showOTPVerification, setShowOTPVerification] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [otpResending, setOtpResending] = useState(false);
@@ -56,12 +56,10 @@ const LoginPage = () => {
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    if (error) setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
@@ -73,7 +71,7 @@ const LoginPage = () => {
       });
 
       if (!roleResponse.data.success) {
-        setError("User not found");
+        toast.error("User not found");
         setLoading(false);
         return;
       }
@@ -110,11 +108,10 @@ const LoginPage = () => {
       if (errorData.requiresOTPVerification && errorData.email) {
         setShowOTPVerification(true);
         setOtpTimer(60);
-        setError("");
         return;
       }
       
-      setError(errorData.error || "Login failed. Please try again.");
+      toast.error(errorData.error || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -140,13 +137,13 @@ const LoginPage = () => {
 
   const handleResendOTP = async () => {
     setOtpResending(true);
-    setError("");
     try {
       await api.post('/auth/resend-otp', { email: formData.email });
       setOtpTimer(60);
       setOtp(['', '', '', '', '', '']);
+      toast.success("OTP sent successfully!");
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to resend OTP');
+      toast.error(err.response?.data?.error || 'Failed to resend OTP');
     } finally {
       setOtpResending(false);
     }
@@ -156,12 +153,11 @@ const LoginPage = () => {
     e.preventDefault();
     const otpString = otp.join('');
     if (otpString.length !== 6) {
-      setError('Please enter all 6 digits of the OTP.');
+      toast.warning('Please enter all 6 digits of the OTP.');
       return;
     }
 
     setLoading(true);
-    setError("");
 
     try {
       const response = await api.post('/auth/verify-otp', { 
@@ -174,10 +170,10 @@ const LoginPage = () => {
       if (autoLogin && user) {
         // Auto-login after verification
         loginStore(user, accessToken, user.role);
+        toast.success("Login successful!");
         navigate(`/${user.role}`, { replace: true });
       } else {
         // Manual login required
-        setError('');
         setShowOTPVerification(false);
         // Trigger login again
         setTimeout(() => {
@@ -185,7 +181,7 @@ const LoginPage = () => {
         }, 100);
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid OTP. Please try again.');
+      toast.error(err.response?.data?.error || 'Invalid OTP. Please try again.');
       setOtp(['', '', '', '', '', '']);
     } finally {
       setLoading(false);
@@ -291,17 +287,6 @@ const LoginPage = () => {
             <motion.p variants={itemVariants} className="text-slate-500 text-lg">Enter your credentials below.</motion.p>
           </div>
 
-          {error && (
-            <motion.div 
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              transition={{ duration: 0.3 }}
-              className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl flex items-start gap-3 text-sm overflow-hidden"
-            >
-              {error}
-            </motion.div>
-          )}
-
           {showOTPVerification ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -362,7 +347,6 @@ const LoginPage = () => {
                   onClick={() => {
                     setShowOTPVerification(false);
                     setOtp(['', '', '', '', '', '']);
-                    setError('');
                   }}
                   className="w-full text-sm text-slate-500 hover:text-slate-700"
                 >

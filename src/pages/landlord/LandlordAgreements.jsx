@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FileText, Clock, CheckCircle, AlertCircle, X, Send, Check, Download } from 'lucide-react'
 import api from '../../api/axios'
-import { useToast } from '../../context/ToastContext'
+import { toast } from 'sonner'
 
 const LandlordAgreements = () => {
-  const { addToast } = useToast()
   const [agreements, setAgreements] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedAgreement, setSelectedAgreement] = useState(null)
@@ -25,11 +24,11 @@ const LandlordAgreements = () => {
       const allAgreements = Array.isArray(response.data) ? response.data : response.data.data || []
       setAgreements(allAgreements)
       if (allAgreements.length === 0) {
-        addToast('No agreements found', 'info')
+        toast.info('No agreements found')
       }
     } catch (error) {
       console.error('Failed to fetch agreements:', error)
-      addToast(error.response?.data?.message || 'Failed to load agreements', 'error')
+      toast.error(error.response?.data?.message || 'Failed to load agreements')
     } finally {
       setLoading(false)
     }
@@ -90,12 +89,12 @@ const LandlordAgreements = () => {
     setActionLoading(true)
     try {
       await api.put(`/agreements/${agreementId}/send-for-review`)
-      addToast('✅ Agreement sent to tenant for review!', 'success')
+      toast.success('✅ Agreement sent to tenant for review!')
       fetchAgreements()
       setSelectedAgreement(null)
     } catch (error) {
       const errorMsg = error.response?.data?.message || 'Failed to send agreement for review'
-      addToast(errorMsg, 'error')
+      toast.error(errorMsg)
       console.error('Send for review error:', error)
     } finally {
       setActionLoading(false)
@@ -106,12 +105,12 @@ const LandlordAgreements = () => {
     setActionLoading(true)
     try {
       await api.put(`/agreements/${agreementId}/approve`)
-      addToast('🎉 Agreement approved! Confirmation emails sent.', 'success')
+      toast.success('🎉 Agreement approved! Confirmation emails sent.')
       fetchAgreements()
       setSelectedAgreement(null)
     } catch (error) {
       const errorMsg = error.response?.data?.message || 'Failed to approve agreement'
-      addToast(errorMsg, 'error')
+      toast.error(errorMsg)
       console.error('Approve error:', error)
     } finally {
       setActionLoading(false)
@@ -120,7 +119,7 @@ const LandlordAgreements = () => {
 
   const handleReject = async (agreementId) => {
     if (!rejectionReason.trim()) {
-      addToast('Please provide a reason for rejection', 'warning')
+      toast.warning('Please provide a reason for rejection')
       return
     }
 
@@ -129,14 +128,14 @@ const LandlordAgreements = () => {
       await api.put(`/agreements/${agreementId}/reject`, {
         reason: rejectionReason,
       })
-      addToast('⚠️ Agreement rejected.', 'success')
+      toast.success('⚠️ Agreement rejected.')
       fetchAgreements()
       setSelectedAgreement(null)
       setShowRejectForm(false)
       setRejectionReason('')
     } catch (error) {
       const errorMsg = error.response?.data?.message || 'Failed to reject agreement'
-      addToast(errorMsg, 'error')
+      toast.error(errorMsg)
       console.error('Reject error:', error)
     } finally {
       setActionLoading(false)
@@ -157,10 +156,10 @@ const LandlordAgreements = () => {
       link.click()
       link.parentNode.removeChild(link)
       window.URL.revokeObjectURL(url)
-      addToast('📄 PDF downloaded successfully', 'success')
+      toast.success('📄 PDF downloaded successfully')
     } catch (error) {
       const errorMsg = error.response?.data?.message || 'Failed to download PDF'
-      addToast(errorMsg, 'error')
+      toast.error(errorMsg)
       console.error('Download PDF error:', error)
     } finally {
       setDownloadingPDF(false)

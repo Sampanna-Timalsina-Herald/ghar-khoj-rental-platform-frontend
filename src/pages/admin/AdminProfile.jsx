@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
+import { toast } from 'sonner'
 import api from '../../api/axios'
 import { useAuthStore } from '../../stores/authStore'
-import { User, Mail, Phone, MapPin, Camera, Save, Loader2, CheckCircle2, XCircle, Shield, Lock, Eye, EyeOff } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Camera, Save, Loader2, XCircle, Shield, Lock, Eye, EyeOff } from 'lucide-react'
 
 const AdminProfile = () => {
   const { user } = useAuthStore()
@@ -27,7 +28,7 @@ const AdminProfile = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [message, setMessage] = useState({ type: '', text: '' })
+  const [originalFormData, setOriginalFormData] = useState(null)
 
   useEffect(() => {
     // Only fetch if user is authenticated
@@ -39,14 +40,13 @@ const AdminProfile = () => {
     } else {
       setLoading(false)
       if (!isAuthenticated) {
-        setMessage({ type: 'error', text: 'Please log in to view your profile.' })
+        toast.error('Please log in to view your profile.')
       }
     }
   }, [])
 
   const fetchProfile = async () => {
     setLoading(true)
-    setMessage({ type: '', text: '' })
     
     try {
       // Check actual values at time of fetch
@@ -63,7 +63,7 @@ const AdminProfile = () => {
 
       if (!tokenFromLS && !authState.accessToken && !authState.token) {
         console.error('[AdminProfile] No token found anywhere!')
-        setMessage({ type: 'error', text: 'Session expired. Please log in again.' })
+        toast.error('Session expired. Please log in again.')
         setLoading(false)
         return
       }
@@ -80,13 +80,15 @@ const AdminProfile = () => {
           profileImageUrl = API_URL.replace('/api', '') + profileImageUrl
         }
         
-        setFormData({
+        const data = {
           name: userData.name || '',
           email: userData.email || '',
           phone: userData.phone || '',
           city: userData.city || '',
           profileImage: profileImageUrl,
-        })
+        }
+        setFormData(data)
+        setOriginalFormData(data)
       }
     } catch (error) {
       console.error('Failed to fetch profile:', {
@@ -98,20 +100,11 @@ const AdminProfile = () => {
       
       // Don't logout on profile fetch error - just show message
       if (error.response?.status === 401) {
-        setMessage({ 
-          type: 'error', 
-          text: 'Session expired. Please refresh the page or log in again.' 
-        })
+        toast.error('Session expired. Please refresh the page or log in again.')
       } else if (error.code === 'ERR_NETWORK') {
-        setMessage({ 
-          type: 'error', 
-          text: 'Network error. Please check your connection and try again.' 
-        })
+        toast.error('Network error. Please check your connection and try again.')
       } else {
-        setMessage({ 
-          type: 'error', 
-          text: error.response?.data?.error || 'Failed to load profile. Please try again.' 
-        })
+        toast.error(error.response?.data?.error || 'Failed to load profile. Please try again.')
       }
     } finally {
       setLoading(false)
@@ -134,18 +127,17 @@ const AdminProfile = () => {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      setMessage({ type: 'error', text: 'Please select a valid image file' })
+      toast.error('Please select a valid image file')
       return
     }
 
     // Validate file size (max 2MB original)
     if (file.size > 2 * 1024 * 1024) {
-      setMessage({ type: 'error', text: 'Image size must be less than 2MB' })
+      toast.error('Image size must be less than 2MB')
       return
     }
 
     setUploadingImage(true)
-    setMessage({ type: '', text: '' })
 
     try {
       // Compress and convert image
@@ -190,20 +182,23 @@ const AdminProfile = () => {
               ...prev,
               profileImage: imageUrl,
             }))
+            setOriginalFormData(prev => ({
+              ...prev,
+              profileImage: imageUrl,
+            }))
             useAuthStore.setState({ user: { ...user, profileImage: imageUrl } })
-            setMessage({ type: 'success', text: '✅ Profile image uploaded successfully!' })
-            setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+            toast.success('Profile image uploaded successfully!')
           }
         } catch (error) {
           console.error('Failed to upload image:', error)
-          setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to upload image' })
+          toast.error(error.response?.data?.error || 'Failed to upload image')
         } finally {
           setUploadingImage(false)
         }
       }
 
       img.onerror = () => {
-        setMessage({ type: 'error', text: 'Failed to load image. Please try a different file.' })
+        toast.error('Failed to load image. Please try a different file.')
         setUploadingImage(false)
       }
 
@@ -215,7 +210,7 @@ const AdminProfile = () => {
       reader.readAsDataURL(file)
     } catch (error) {
       console.error('Failed to process image:', error)
-      setMessage({ type: 'error', text: 'Failed to process image' })
+      toast.error('Failed to process image')
       setUploadingImage(false)
     }
   }
@@ -224,17 +219,16 @@ const AdminProfile = () => {
     e.preventDefault()
     
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setMessage({ type: 'error', text: 'New passwords do not match' })
+      toast.error('New passwords do not match')
       return
     }
 
     if (passwordData.newPassword.length < 8) {
-      setMessage({ type: 'error', text: 'Password must be at least 8 characters' })
+      toast.error('Password must be at least 8 characters')
       return
     }
 
     setSaving(true)
-    setMessage({ type: '', text: '' })
 
     try {
       const response = await api.post('/auth/change-password', {
@@ -243,39 +237,42 @@ const AdminProfile = () => {
       })
 
       if (response.data.success) {
-        setMessage({ type: 'success', text: 'Password changed successfully!' })
+        toast.success('Password changed successfully!')
         setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
         setShowPasswordModal(false)
-        setTimeout(() => setMessage({ type: '', text: '' }), 3000)
       }
     } catch (error) {
       console.error('Failed to change password:', error)
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to change password' })
+      toast.error(error.response?.data?.error || 'Failed to change password')
     } finally {
       setSaving(false)
     }
   }
 
+  const hasFormChanges = () => {
+    if (!originalFormData) return false
+    return (
+      formData.name !== originalFormData.name ||
+      formData.phone !== originalFormData.phone ||
+      formData.city !== originalFormData.city
+    )
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSaving(true)
-    setMessage({ type: '', text: '' })
 
     try {
       const response = await api.put('/auth/profile', formData)
       if (response.data.success) {
-        setMessage({ 
-          type: 'success', 
-          text: '✅ Profile updated successfully!' 
-        })
+        toast.success('Profile updated successfully!')
         useAuthStore.setState({ user: { ...user, ...response.data.user } })
+        setOriginalFormData({ ...formData })
         setIsEditMode(false)
-        setTimeout(() => setMessage({ type: '', text: '' }), 4000)
       }
     } catch (error) {
       console.error('Failed to update profile:', error)
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to update profile' })
-      setTimeout(() => setMessage({ type: '', text: '' }), 5000)
+      toast.error(error.response?.data?.error || 'Failed to update profile')
     } finally {
       setSaving(false)
     }
@@ -310,25 +307,6 @@ const AdminProfile = () => {
           </div>
         </div>
       </motion.div>
-
-      {message.text && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`p-4 rounded-lg flex items-center gap-3 ${
-            message.type === 'success' 
-              ? 'bg-green-50 border border-green-200 text-green-700' 
-              : 'bg-red-50 border border-red-200 text-red-700'
-          }`}
-        >
-          {message.type === 'success' ? (
-            <CheckCircle2 size={20} />
-          ) : (
-            <XCircle size={20} />
-          )}
-          <span>{message.text}</span>
-        </motion.div>
-      )}
 
       <motion.form
         initial={{ opacity: 0, y: 20 }}
@@ -439,7 +417,7 @@ const AdminProfile = () => {
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
                     type="submit"
-                    disabled={saving}
+                    disabled={saving || !hasFormChanges()}
                     className="px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 min-w-[140px]"
                   >
                     {saving ? (
