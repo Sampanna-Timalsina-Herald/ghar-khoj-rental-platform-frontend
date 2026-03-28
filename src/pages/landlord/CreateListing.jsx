@@ -350,8 +350,8 @@ const CreateListing = () => {
   const isLocationReady = Boolean(
     formData.latitude &&
     formData.longitude &&
-    formData.address.trim() &&
-    formData.city.trim()
+    (formData.address || '').trim() &&
+    (formData.city || '').trim()
   )
 
   return (

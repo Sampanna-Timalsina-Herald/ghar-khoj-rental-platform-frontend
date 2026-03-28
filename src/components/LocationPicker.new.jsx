@@ -173,7 +173,6 @@ const LocationPicker = ({ onLocationSelect, initialLocation }) => {
 
         // Reverse geocode
         try {
-          setSearching(true);
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
           );
@@ -196,8 +195,6 @@ const LocationPicker = ({ onLocationSelect, initialLocation }) => {
           }
         } catch (error) {
           console.error('Reverse geocoding failed:', error);
-        } finally {
-          setSearching(false);
         }
       });
 
