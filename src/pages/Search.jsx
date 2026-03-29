@@ -5,6 +5,7 @@ import api from '../api/axios'
 import { useAuthStore } from '../stores/authStore'
 import { Heart, MapPin, Bed, Bath, Ruler, Filter, Loader2, ChevronRight, X, ArrowLeft } from 'lucide-react'
 import SmartNav from '../components/SmartNav'
+import { toast } from 'sonner'
 
 const Search = () => {
   const [searchParams] = useSearchParams()
@@ -12,7 +13,6 @@ const Search = () => {
   const { isAuthenticated } = useAuthStore()
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
   const [filters, setFilters] = useState({
     minPrice: searchParams.get('minPrice') || '',
     maxPrice: searchParams.get('maxPrice') || '',
@@ -32,7 +32,6 @@ const Search = () => {
   const fetchListings = async () => {
     try {
       setLoading(true)
-      setError(null)
       const queryParams = new URLSearchParams()
       
       if (filters.minPrice) queryParams.append('minPrice', filters.minPrice)
@@ -47,7 +46,7 @@ const Search = () => {
       setListings(response.data.data || response.data || [])
     } catch (err) {
       console.error('Failed to fetch listings:', err)
-      setError('Failed to load listings. Please try again.')
+      toast.error('Failed to load listings. Please try again.')
       setListings([])
     } finally {
       setLoading(false)
@@ -133,19 +132,6 @@ const Search = () => {
             {listings.length > 0 ? `Found ${listings.length} properties matching your criteria` : 'Refine your search to find properties'}
           </p>
         </motion.div>
-
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center justify-between"
-          >
-            <span>{error}</span>
-            <button onClick={() => setError(null)}>
-              <X size={20} />
-            </button>
-          </motion.div>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Filters Sidebar */}

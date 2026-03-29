@@ -441,7 +441,6 @@ const Home = () => {
   const { isAuthenticated } = useAuthStore();
   const [featuredListings, setFeaturedListings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch featured listings from database
@@ -456,10 +455,9 @@ const Home = () => {
           }
         });
         setFeaturedListings(response.data.data || response.data || []);
-        setError(null);
       } catch (err) {
         console.error('Error fetching listings:', err);
-        setError('Failed to load listings');
+        toast.error('Failed to load listings');
         setFeaturedListings([]);
       } finally {
         setLoading(false);
@@ -662,12 +660,6 @@ const Home = () => {
              </Link>
            </motion.div>
         </motion.div>
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-            {error}
-          </div>
-        )}
 
         {loading ? (
           <div className="flex justify-center items-center py-16">

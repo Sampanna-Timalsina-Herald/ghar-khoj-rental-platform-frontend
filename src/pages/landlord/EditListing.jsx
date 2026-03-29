@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import api from '../../api/axios'
-import { Loader2, ArrowLeft, Upload, X, CheckCircle2 } from 'lucide-react'
+import { Loader2, ArrowLeft, Upload, X } from 'lucide-react'
 import CollegeSelect from '../../components/CollegeSelect'
+import { toast } from 'sonner'
 
 const EditListing = () => {
   const navigate = useNavigate()
@@ -24,10 +25,8 @@ const EditListing = () => {
   const [images, setImages] = useState([])
   const [imagePreviews, setImagePreviews] = useState([])
   const [existingImages, setExistingImages] = useState([])
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
-  const [success, setSuccess] = useState(false)
   const [listingStatus, setListingStatus] = useState(null)
   const [adminChangesSeen, setAdminChangesSeen] = useState(false)
 
@@ -89,7 +88,7 @@ const EditListing = () => {
       }
     } catch (err) {
       console.error('Failed to fetch listing:', err)
-      setError(err.response?.data?.error || 'Failed to load listing')
+      toast.error(err.response?.data?.error || 'Failed to load listing')
     } finally {
       setLoading(false)
     }
@@ -123,7 +122,6 @@ const EditListing = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError('')
     setUpdating(true)
 
     try {
@@ -148,12 +146,12 @@ const EditListing = () => {
 
       await api.put(`/listings/${id}`, submitData)
 
-      setSuccess(true)
+      toast.success('Listing updated successfully!')
       setTimeout(() => {
         navigate('/landlord/listings')
       }, 2000)
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to update listing')
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Failed to update listing')
     } finally {
       setUpdating(false)
     }
@@ -289,27 +287,6 @@ const EditListing = () => {
         className="bg-white rounded-xl shadow-lg p-6 md:p-8"
       >
         <h1 className="text-3xl font-bold text-text mb-8">Edit Listing</h1>
-
-        {success && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3"
-          >
-            <CheckCircle2 size={24} className="text-green-600" />
-            <span className="text-green-700 font-semibold">Listing updated successfully!</span>
-          </motion.div>
-        )}
-
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700"
-          >
-            {error}
-          </motion.div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}

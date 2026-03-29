@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import api from '../../api/axios'
 import { useAuthStore } from '../../stores/authStore'
-import { User, Mail, Phone, MapPin, Camera, Save, Loader2, XCircle, Lock, Eye, EyeOff, Home } from 'lucide-react'
+import { 
+  User, Mail, Phone, MapPin, Camera, Loader2, Lock, Eye, EyeOff, 
+  Pencil, ChevronRight, CreditCard, X
+} from 'lucide-react'
 import PaymentSettingsSection from '../../components/PaymentSettingsSection'
 
 const LandlordProfile = () => {
   const { user } = useAuthStore()
+  const [activeTab, setActiveTab] = useState('profile')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
@@ -32,7 +36,6 @@ const LandlordProfile = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   useEffect(() => {
-    // Only fetch if user is authenticated
     const { isAuthenticated } = useAuthStore.getState()
     if (isAuthenticated) {
       fetchProfile()
@@ -44,9 +47,7 @@ const LandlordProfile = () => {
 
   const fetchProfile = async () => {
     setLoading(true)
-    
     try {
-      // Check if we have a token before making the request
       const { accessToken, isAuthenticated } = useAuthStore.getState()
       if (!isAuthenticated || !accessToken) {
         toast.error('Session expired. Please log in again.')
@@ -59,34 +60,27 @@ const LandlordProfile = () => {
         const userData = response.data.user
         let profileImageUrl = userData.profileImage || userData.profile_image || ''
         
-        // If profile image is a relative path (starts with /uploads), prepend API base URL
         if (profileImageUrl && profileImageUrl.startsWith('/uploads')) {
           const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
           profileImageUrl = API_URL.replace('/api', '') + profileImageUrl
         }
         
-        setFormData({
+        const fetchedData = {
           name: userData.name || '',
           email: userData.email || '',
           phone: userData.phone || '',
           city: userData.city || '',
           profileImage: profileImageUrl,
-        })
-        setOriginalFormData({
-          name: userData.name || '',
-          email: userData.email || '',
-          phone: userData.phone || '',
-          city: userData.city || '',
-          profileImage: profileImageUrl,
-        })
+        }
+        setFormData(fetchedData)
+        setOriginalFormData(fetchedData)
       }
     } catch (error) {
       console.error('Failed to fetch profile:', error)
-      // Don't logout on profile fetch error - just show message
       if (error.response?.status === 401) {
         toast.error('Session expired. Please refresh the page or log in again.')
       } else {
-        toast.error(error.response?.data?.error || 'Failed to load profile. Please try again.')
+        toast.error(error.response?.data?.error || 'Failed to load profile.')
       }
     } finally {
       setLoading(false)
@@ -107,13 +101,11 @@ const LandlordProfile = () => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast.error('Please select a valid image file')
       return
     }
 
-    // Validate file size (max 2MB original)
     if (file.size > 2 * 1024 * 1024) {
       toast.error('Image size must be less than 2MB')
       return
@@ -122,13 +114,11 @@ const LandlordProfile = () => {
     setUploadingImage(true)
 
     try {
-      // Compress and convert image
       const canvas = document.createElement('canvas')
       const ctx = canvas.getContext('2d')
       const img = new Image()
 
       img.onload = async () => {
-        // Calculate new dimensions (max 1200px width/height)
         let width = img.width
         let height = img.height
         const maxDim = 1200
@@ -143,7 +133,6 @@ const LandlordProfile = () => {
         canvas.height = height
         ctx.drawImage(img, 0, 0, width, height)
 
-        // Convert to base64 with reduced quality
         const base64String = canvas.toDataURL('image/jpeg', 0.8)
 
         try {
@@ -154,22 +143,15 @@ const LandlordProfile = () => {
           if (response.data.success) {
             let imageUrl = response.data.profileImage
             
-            // If profile image is a relative path, prepend API base URL
             if (imageUrl && imageUrl.startsWith('/uploads')) {
               const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
               imageUrl = API_URL.replace('/api', '') + imageUrl
             }
             
-            setFormData(prev => ({
-              ...prev,
-              profileImage: imageUrl,
-            }))
-            setOriginalFormData(prev => ({
-              ...prev,
-              profileImage: imageUrl,
-            }))
+            setFormData(prev => ({ ...prev, profileImage: imageUrl }))
+            setOriginalFormData(prev => ({ ...prev, profileImage: imageUrl }))
             useAuthStore.setState({ user: { ...user, profileImage: imageUrl } })
-            toast.success('Profile image uploaded successfully!')
+            toast.success('Profile image uploaded!')
           }
         } catch (error) {
           console.error('Failed to upload image:', error)
@@ -180,11 +162,10 @@ const LandlordProfile = () => {
       }
 
       img.onerror = () => {
-        toast.error('Failed to load image. Please try a different file.')
+        toast.error('Failed to load image.')
         setUploadingImage(false)
       }
 
-      // Read file as data URL
       const reader = new FileReader()
       reader.onload = (event) => {
         img.src = event.target?.result
@@ -253,7 +234,6 @@ const LandlordProfile = () => {
 
   const handleCancelEdit = () => {
     setIsEditMode(false)
-    // Reset form data to original values
     if (originalFormData) {
       setFormData({ ...originalFormData })
     }
@@ -264,380 +244,415 @@ const LandlordProfile = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 size={32} className="animate-spin text-primary-600" />
+        <Loader2 size={32} className="animate-spin text-blue-600" />
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="flex items-center gap-3">
-          <Home size={32} className="text-primary-600" />
-          <div>
-            <h1 className="text-3xl font-bold text-text">Landlord Profile</h1>
-            <p className="text-gray-600 mt-1">Manage your account information</p>
+    <div className="min-h-screen bg-slate-50/50">
+      {/* Tab Navigation */}
+      <div className="border-b border-slate-200 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="flex gap-8">
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`py-4 px-1 relative font-medium text-sm transition-colors ${
+                activeTab === 'profile'
+                  ? 'text-blue-600'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Profile
+              {activeTab === 'profile' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('payment')}
+              className={`py-4 px-1 relative font-medium text-sm transition-colors ${
+                activeTab === 'payment'
+                  ? 'text-blue-600'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Payment
+              {activeTab === 'payment' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                />
+              )}
+            </button>
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      <motion.form
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        onSubmit={handleSubmit}
-        className="bg-white rounded-2xl shadow-xl overflow-hidden"
-      >
-        {/* Modern Profile Header with Gradient */}
-        <div className="relative bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 px-6 md:px-8 pt-8 pb-24">
-          <div className="absolute inset-0 bg-black opacity-5"></div>
-          <div className="relative flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="relative group">
-                <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-white/95 backdrop-blur-sm flex items-center justify-center overflow-hidden shadow-2xl ring-4 ring-white/30 transition-transform group-hover:scale-105">
-                  {formData.profileImage ? (
-                    <img
-                      src={formData.profileImage}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Home size={48} className="text-emerald-600" />
-                  )}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        <AnimatePresence mode="wait">
+          {activeTab === 'profile' ? (
+            <motion.div
+              key="profile"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+            >
+              {/* Left Sidebar - Profile Card */}
+              <div className="lg:col-span-1">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                  {/* Profile Image Section */}
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 flex flex-col items-center">
+                    <div className="relative">
+                      <div className="w-28 h-28 rounded-full bg-white shadow-md flex items-center justify-center overflow-hidden ring-4 ring-white">
+                        {formData.profileImage ? (
+                          <img
+                            src={formData.profileImage}
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <User size={48} className="text-slate-400" />
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingImage}
+                        className="absolute bottom-0 right-0 p-2 bg-white text-slate-600 rounded-full shadow-lg hover:bg-slate-50 transition-all disabled:opacity-50 border border-slate-200"
+                      >
+                        {uploadingImage ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <Pencil size={16} />
+                        )}
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={uploadingImage}
+                        className="hidden"
+                      />
+                    </div>
+                    <h2 className="mt-4 text-xl font-semibold text-slate-800">
+                      {formData.name || 'Your Name'}
+                    </h2>
+                    <p className="text-slate-500 text-sm">{formData.email}</p>
+                  </div>
+
+                  {/* Contact Info */}
+                  <div className="p-5 space-y-3">
+                    <div className="flex items-center gap-3 text-sm">
+                      <Mail size={18} className="text-blue-500" />
+                      <span className="text-slate-600">Email address</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Phone size={18} className="text-green-500" />
+                      <span className="text-slate-700 font-medium">
+                        {formData.phone || 'Not provided'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <User size={18} className="text-orange-500" />
+                      <span className="text-slate-600">Phone Number</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <MapPin size={18} className="text-red-500" />
+                      <span className="text-slate-700">
+                        {formData.city || 'Location not set'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Edit Profile Button */}
+                  <div className="p-5 pt-0">
+                    {!isEditMode ? (
+                      <button
+                        onClick={() => setIsEditMode(true)}
+                        className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"
+                      >
+                        <Pencil size={18} />
+                        Edit Profile
+                        <ChevronRight size={18} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleCancelEdit}
+                        className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors"
+                      >
+                        <X size={18} />
+                        Cancel Editing
+                      </button>
+                    )}
+                  </div>
                 </div>
-                {isEditMode && (
+
+                {/* Change Password Card */}
+                <button
+                  onClick={() => setShowPasswordModal(true)}
+                  className="mt-4 w-full bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-slate-100 rounded-lg">
+                      <Lock size={20} className="text-slate-600" />
+                    </div>
+                    <span className="font-medium text-slate-700">Change Password</span>
+                  </div>
+                  <ChevronRight size={20} className="text-slate-400" />
+                </button>
+              </div>
+
+              {/* Right Side - Edit Form */}
+              <div className="lg:col-span-2">
+                <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                  <h3 className="text-xl font-semibold text-slate-800 mb-6">
+                    Edit Your Profile
+                  </h3>
+
+                  <div className="space-y-5">
+                    {/* Full Name */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        disabled={!isEditMode}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-500"
+                        placeholder="Enter your full name"
+                      />
+                    </div>
+
+                    {/* Email */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        disabled
+                        className="w-full px-4 py-3 bg-cyan-50 border border-cyan-200 rounded-xl text-slate-600 cursor-not-allowed"
+                      />
+                    </div>
+
+                    {/* Phone Number */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        disabled={!isEditMode}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-500"
+                        placeholder="+977 9999999999"
+                      />
+                    </div>
+
+                    {/* Address / Location */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Address / Location
+                      </label>
+                      <input
+                        type="text"
+                        name="city"
+                        value={formData.city}
+                        onChange={handleChange}
+                        disabled={!isEditMode}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-500"
+                        placeholder="Kathmandu, Metropolitan City"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  {isEditMode && (
+                    <div className="flex justify-end gap-3 mt-8">
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="px-6 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={saving || !hasChanges}
+                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {saving ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            Save Changes
+                            <ChevronRight size={18} />
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </form>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="payment"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <PaymentSettingsSection />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Password Change Modal */}
+      <AnimatePresence>
+        {showPasswordModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowPasswordModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-slate-800">Change Password</h2>
+                <button
+                  onClick={() => setShowPasswordModal(false)}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <X size={20} className="text-slate-500" />
+                </button>
+              </div>
+
+              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Current Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showCurrentPassword ? 'text' : 'password'}
+                      name="currentPassword"
+                      value={passwordData.currentPassword}
+                      onChange={handlePasswordChange}
+                      className="w-full px-4 py-3 pr-10 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      placeholder="Enter current password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-3 text-slate-500"
+                    >
+                      {showCurrentPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      name="newPassword"
+                      value={passwordData.newPassword}
+                      onChange={handlePasswordChange}
+                      className="w-full px-4 py-3 pr-10 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      placeholder="Enter new password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-3 text-slate-500"
+                    >
+                      {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      name="confirmPassword"
+                      value={passwordData.confirmPassword}
+                      onChange={handlePasswordChange}
+                      className="w-full px-4 py-3 pr-10 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      placeholder="Confirm new password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-3 text-slate-500"
+                    >
+                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingImage}
-                    className="absolute -bottom-2 -right-2 p-3 bg-white text-emerald-600 rounded-xl shadow-xl hover:shadow-2xl hover:scale-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed border-2 border-emerald-100"
+                    onClick={() => setShowPasswordModal(false)}
+                    className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors"
                   >
-                    {uploadingImage ? (
-                      <Loader2 size={18} className="animate-spin" />
-                    ) : (
-                      <Camera size={18} />
-                    )}
+                    Cancel
                   </button>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  disabled={uploadingImage}
-                  className="hidden"
-                />
-              </div>
-              <div className="text-white">
-                <h3 className="text-2xl md:text-3xl font-bold drop-shadow-lg">{formData.name || 'Your Name'}</h3>
-                <p className="text-white/90 mt-1 text-sm md:text-base">{formData.email}</p>
-                <span className="inline-flex items-center mt-3 px-4 py-1.5 bg-white/20 backdrop-blur-md text-white rounded-full text-xs font-semibold border border-white/30">
-                  <Home size={14} className="mr-1.5" />
-                  Landlord Account
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions Card */}
-        <div className="relative px-6 md:px-8 -mt-16 mb-8">
-          <div className="bg-white rounded-2xl shadow-xl p-4 border border-gray-100">
-            <div className="flex flex-wrap gap-3 justify-center">
-              {!isEditMode ? (
-                <>
-                  <motion.button
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="button"
-                    onClick={() => setIsEditMode(true)}
-                    className="group relative overflow-hidden px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all min-w-[140px]"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-emerald-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="relative flex items-center justify-center gap-1.5">
-                      <User size={16} />
-                      <span>Edit Profile</span>
-                    </div>
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="button"
-                    onClick={() => setShowPasswordModal(true)}
-                    className="group relative overflow-hidden px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all min-w-[160px]"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="relative flex items-center justify-center gap-1.5">
-                      <Lock size={16} />
-                      <span>Change Password</span>
-                    </div>
-                  </motion.button>
-                </>
-              ) : (
-                <>
-                  <motion.button
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="button"
-                    onClick={handleCancelEdit}
-                    className="px-5 py-2.5 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-all flex items-center justify-center gap-1.5 min-w-[100px]"
-                  >
-                    <XCircle size={16} />
-                    <span>Cancel</span>
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
+                  <button
                     type="submit"
-                    disabled={saving || !hasChanges}
-                    className="px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 min-w-[140px]"
+                    disabled={saving}
+                    className="flex-1 px-4 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {saving ? (
                       <>
                         <Loader2 size={16} className="animate-spin" />
-                        <span>Saving...</span>
+                        Changing...
                       </>
-                    ) : !hasChanges ? (
-                      <span>No Changes</span>
                     ) : (
-                      <>
-                        <Save size={16} />
-                        <span>Save Changes</span>
-                      </>
-                    )}
-                  </motion.button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Form Fields - Personal Information */}
-        <div className="px-6 md:px-8 pb-8">
-          <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <div className="w-2 h-6 bg-emerald-500 rounded-full"></div>
-            Personal Information
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <User size={16} className="text-emerald-500" />
-                Full Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                disabled={!isEditMode}
-                className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 outline-none transition-all disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed hover:border-gray-300"
-                placeholder="Enter your full name"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <Mail size={16} className="text-emerald-500" />
-                Email Address
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                disabled
-                className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed"
-              />
-              <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-                <Lock size={12} />
-                Email cannot be changed
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <Phone size={16} className="text-emerald-500" />
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                disabled={!isEditMode}
-                className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 outline-none transition-all disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed hover:border-gray-300"
-                placeholder="+977 9999999999"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <MapPin size={16} className="text-emerald-500" />
-                City
-              </label>
-              <input
-                type="text"
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-                disabled={!isEditMode}
-                className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 outline-none transition-all disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed hover:border-gray-300"
-                placeholder="Enter your city"
-              />
-            </div>
-          </div>
-        </div>
-      </motion.form>
-
-      {/* Payment Settings Section */}
-      <PaymentSettingsSection />
-
-      {/* Password Change Modal */}
-      {showPasswordModal && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={() => setShowPasswordModal(false)}
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md"
-          >
-            <div className="flex items-center gap-2 mb-6">
-              <Lock size={24} className="text-primary-600" />
-              <h2 className="text-2xl font-bold text-text">Change Password</h2>
-            </div>
-
-            <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              {/* Current Password */}
-              <div>
-                <label className="block text-sm font-semibold text-text mb-2">
-                  Current Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showCurrentPassword ? 'text' : 'password'}
-                    name="currentPassword"
-                    value={passwordData.currentPassword}
-                    onChange={handlePasswordChange}
-                    className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-                    placeholder="Enter current password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-3 top-3 text-gray-500"
-                  >
-                    {showCurrentPassword ? (
-                      <EyeOff size={20} />
-                    ) : (
-                      <Eye size={20} />
+                      'Change Password'
                     )}
                   </button>
                 </div>
-              </div>
-
-              {/* New Password */}
-              <div>
-                <label className="block text-sm font-semibold text-text mb-2">
-                  New Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showNewPassword ? 'text' : 'password'}
-                    name="newPassword"
-                    value={passwordData.newPassword}
-                    onChange={handlePasswordChange}
-                    className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-                    placeholder="Enter new password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-3 text-gray-500"
-                  >
-                    {showNewPassword ? (
-                      <EyeOff size={20} />
-                    ) : (
-                      <Eye size={20} />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Confirm Password */}
-              <div>
-                <label className="block text-sm font-semibold text-text mb-2">
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    name="confirmPassword"
-                    value={passwordData.confirmPassword}
-                    onChange={handlePasswordChange}
-                    className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-                    placeholder="Confirm new password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-3 text-gray-500"
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff size={20} />
-                    ) : (
-                      <Eye size={20} />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="button"
-                  onClick={() => setShowPasswordModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  Cancel
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      Changing...
-                    </>
-                  ) : (
-                    'Change Password'
-                  )}
-                </motion.button>
-              </div>
-            </form>
+              </form>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   )
 }
 
 export default LandlordProfile
-

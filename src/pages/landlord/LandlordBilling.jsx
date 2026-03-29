@@ -81,7 +81,10 @@ const LandlordBillingDashboard = () => {
       }
     } catch (error) {
       console.error('[BILLING] Error fetching invoice:', error);
-    
+      console.error('[BILLING] Error response:', error.response?.data);
+      toast.error('Failed to load invoice. Please try again.');
+    }
+  };
 
   const handlePayNow = (transaction) => {
     setSelectedTransaction(transaction);
@@ -93,12 +96,6 @@ const LandlordBillingDashboard = () => {
     setSelectedTransaction(null);
     // Refresh dashboard data after payment
     fetchDashboardData();
-  };
-    } catch (error) {
-      console.error('[BILLING] Error fetching invoice:', error);
-      console.error('[BILLING] Error response:', error.response?.data);
-      toast.error('Failed to load invoice. Please try again.');
-    }
   };
 
   const downloadInvoicePDF = (invoice) => {

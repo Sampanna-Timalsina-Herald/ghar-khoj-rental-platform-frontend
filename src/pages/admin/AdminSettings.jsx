@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Settings, Bell, Lock, Globe, Database, Save, X, CheckCircle, RefreshCw, AlertCircle } from 'lucide-react'
+import { Settings, Bell, Lock, Globe, Database, Save, X, RefreshCw, AlertCircle } from 'lucide-react'
 import api from '../../api/axios'
+import { toast } from 'sonner'
 
 const SettingSection = ({ icon, title, description, children }) => (
   <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -56,8 +57,6 @@ const AdminSettings = () => {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [error, setError] = useState('')
   const [originalSettings, setOriginalSettings] = useState({})
 
   useEffect(() => {
@@ -67,7 +66,6 @@ const AdminSettings = () => {
   const fetchSettings = async () => {
     try {
       setLoading(true)
-      setError('')
       
       const response = await api.get('/admin/settings')
       
@@ -80,7 +78,7 @@ const AdminSettings = () => {
       }
     } catch (err) {
       console.error('Error fetching settings:', err)
-      setError('Failed to load settings. Please try again.')
+      toast.error('Failed to load settings. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -88,25 +86,21 @@ const AdminSettings = () => {
 
   const handleSettingChange = (key, value) => {
     setSettings(prev => ({ ...prev, [key]: value }))
-    setSaved(false)
-    setError('')
   }
 
   const handleSave = async () => {
     try {
       setSaving(true)
-      setError('')
       
       const response = await api.put('/admin/settings', settings)
       
       if (response.data.success) {
-        setSaved(true)
+        toast.success('Settings saved successfully!')
         setOriginalSettings(settings)
-        setTimeout(() => setSaved(false), 3000)
       }
     } catch (err) {
       console.error('Error saving settings:', err)
-      setError('Failed to save settings. Please try again.')
+      toast.error('Failed to save settings. Please try again.')
     } finally {
       setSaving(false)
     }
@@ -114,8 +108,6 @@ const AdminSettings = () => {
 
   const handleCancel = () => {
     setSettings(originalSettings)
-    setSaved(false)
-    setError('')
   }
 
   const hasChanges = JSON.stringify(settings) !== JSON.stringify(originalSettings)
@@ -144,22 +136,6 @@ const AdminSettings = () => {
           Refresh
         </button>
       </div>
-
-      {/* Save Notification */}
-      {saved && (
-        <div className="flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-          <CheckCircle size={20} />
-          <span className="font-medium">Settings saved successfully!</span>
-        </div>
-      )}
-
-      {/* Error Notification */}
-      {error && (
-        <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          <AlertCircle size={20} />
-          <span className="font-medium">{error}</span>
-        </div>
-      )}
 
       {/* Basic Settings */}
       <SettingSection

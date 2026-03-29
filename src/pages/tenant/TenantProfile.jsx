@@ -1,28 +1,53 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import api from '../../api/axios'
 import { useAuthStore } from '../../stores/authStore'
 import { useLocationStore } from '../../stores/locationStore'
-import { User, Mail, Phone, MapPin, GraduationCap, Camera, Save, Loader2, Lock, Eye, EyeOff, Users, Settings } from 'lucide-react'
+import { 
+  User, Mail, Phone, MapPin, GraduationCap, Loader2, Lock, Eye, EyeOff, 
+  Pencil, ChevronRight, X, Wifi, Car, Snowflake, Droplets, UtensilsCrossed, Trees, Dumbbell, Shield, Shirt, Tv, ThermometerSun
+} from 'lucide-react'
 import CollegeSelect from '../../components/CollegeSelect'
 import PreferencesModal from '../../components/PreferencesModal'
-import LocationSetupModal from '../../components/LocationSetupModal'
+
+// Amenities list with icons - matching CreateListing
+const AMENITIES_OPTIONS = [
+  { value: 'wifi', label: 'WiFi', icon: Wifi },
+  { value: 'parking', label: 'Parking', icon: Car },
+  { value: 'ac', label: 'AC', icon: Snowflake },
+  { value: 'hot_water', label: 'Hot Water', icon: Droplets },
+  { value: 'kitchen', label: 'Kitchen', icon: UtensilsCrossed },
+  { value: 'balcony', label: 'Balcony', icon: Trees },
+  { value: 'gym', label: 'Gym', icon: Dumbbell },
+  { value: 'security', label: 'Security', icon: Shield },
+  { value: 'laundry', label: 'Laundry', icon: Shirt },
+  { value: 'tv', label: 'TV', icon: Tv },
+  { value: 'heater', label: 'Heater', icon: ThermometerSun },
+  { value: 'garden', label: 'Garden', icon: Trees },
+]
+
+// Property types - matching CreateListing
+const PROPERTY_TYPES = [
+  { value: 'apartment', label: 'Apartment' },
+  { value: 'house', label: 'House' },
+  { value: 'room', label: 'Room' },
+]
+
+// Preferred locations for tenant preferences
+const PREFERRED_LOCATIONS = [
+  { value: 'Kathmandu', label: 'Kathmandu' },
+  { value: 'Bhaktapur', label: 'Bhaktapur' },
+  { value: 'Lalitpur', label: 'Lalitpur' },
+]
 
 const TenantProfile = () => {
   const { user } = useAuthStore()
-  const { locations, primaryLocation, fetchLocations, setPrimary, deleteLocation } = useLocationStore()
-  const fileInputRef = useRef(null)
+  const { locations, fetchLocations } = useLocationStore()
+  const [activeTab, setActiveTab] = useState('profile')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [uploadingImage, setUploadingImage] = useState(false)
-  const [showPasswordModal, setShowPasswordModal] = useState(false)
-  const [showPreferencesModal, setShowPreferencesModal] = useState(false)
-  const [showLocationModal, setShowLocationModal] = useState(false)
-  const [showClearConfirmModal, setShowClearConfirmModal] = useState(false)
-  const [preferences, setPreferences] = useState(null)
   const [isEditMode, setIsEditMode] = useState(false)
-  const [originalFormData, setOriginalFormData] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -30,6 +55,20 @@ const TenantProfile = () => {
     city: '',
     college: '',
     profileImage: '',
+  })
+  const [originalFormData, setOriginalFormData] = useState(null)
+  const fileInputRef = useRef(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [isEditingPreferences, setIsEditingPreferences] = useState(false)
+  const [preferences, setPreferences] = useState(null)
+  const [preferencesFormData, setPreferencesFormData] = useState({
+    locations: [],
+    min_price: '',
+    max_price: '',
+    bedrooms: '',
+    property_types: [],
+    amenities: [],
   })
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -39,9 +78,9 @@ const TenantProfile = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const preferencesFormRef = useRef(null)
 
   useEffect(() => {
-    // Only fetch if user is authenticated
     const { isAuthenticated } = useAuthStore.getState()
     if (isAuthenticated) {
       fetchProfile()
@@ -55,9 +94,7 @@ const TenantProfile = () => {
 
   const fetchProfile = async () => {
     setLoading(true)
-    
     try {
-      // Check if we have a token before making the request
       const { accessToken, isAuthenticated } = useAuthStore.getState()
       if (!isAuthenticated || !accessToken) {
         toast.error('Session expired. Please log in again.')
@@ -70,13 +107,12 @@ const TenantProfile = () => {
         const userData = response.data.user
         let profileImageUrl = userData.profileImage || userData.profile_image || ''
         
-        // If profile image is a relative path (starts with /uploads), prepend API base URL
         if (profileImageUrl && profileImageUrl.startsWith('/uploads')) {
           const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
           profileImageUrl = API_URL.replace('/api', '') + profileImageUrl
         }
         
-        const fetchedFormData = {
+        const fetchedData = {
           name: userData.name || '',
           email: userData.email || '',
           phone: userData.phone || '',
@@ -84,16 +120,15 @@ const TenantProfile = () => {
           college: userData.college || '',
           profileImage: profileImageUrl,
         }
-        setFormData(fetchedFormData)
-        setOriginalFormData(fetchedFormData)
+        setFormData(fetchedData)
+        setOriginalFormData(fetchedData)
       }
     } catch (error) {
       console.error('Failed to fetch profile:', error)
-      // Don't logout on profile fetch error - just show message
       if (error.response?.status === 401) {
         toast.error('Session expired. Please refresh the page or log in again.')
       } else {
-        toast.error(error.response?.data?.error || 'Failed to load profile. Please try again.')
+        toast.error(error.response?.data?.error || 'Failed to load profile.')
       }
     } finally {
       setLoading(false)
@@ -104,30 +139,19 @@ const TenantProfile = () => {
     try {
       const response = await api.get('/preferences')
       if (response.data.success) {
-        setPreferences(response.data.data)
+        const prefs = response.data.data
+        setPreferences(prefs)
+        setPreferencesFormData({
+          locations: prefs?.locations || [],
+          min_price: prefs?.min_price || '',
+          max_price: prefs?.max_price || '',
+          bedrooms: prefs?.bedrooms || '',
+          property_types: prefs?.property_types || [],
+          amenities: prefs?.amenities || [],
+        })
       }
     } catch (error) {
       console.error('Failed to fetch preferences:', error)
-    }
-  }
-
-  const handleSetPrimaryLocation = async (locationId) => {
-    try {
-      await setPrimary(locationId)
-      toast.success('Primary location updated.')
-    } catch (error) {
-      console.error('Failed to set primary location:', error)
-      toast.error(error.response?.data?.error || 'Failed to set primary location')
-    }
-  }
-
-  const handleDeleteLocation = async (locationId) => {
-    try {
-      await deleteLocation(locationId)
-      toast.success('Location removed.')
-    } catch (error) {
-      console.error('Failed to delete location:', error)
-      toast.error(error.response?.data?.error || 'Failed to delete location')
     }
   }
 
@@ -145,13 +169,11 @@ const TenantProfile = () => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast.error('Please select a valid image file')
       return
     }
 
-    // Validate file size (max 2MB original)
     if (file.size > 2 * 1024 * 1024) {
       toast.error('Image size must be less than 2MB')
       return
@@ -160,13 +182,11 @@ const TenantProfile = () => {
     setUploadingImage(true)
 
     try {
-      // Compress and convert image
       const canvas = document.createElement('canvas')
       const ctx = canvas.getContext('2d')
       const img = new Image()
 
       img.onload = async () => {
-        // Calculate new dimensions (max 1200px width/height)
         let width = img.width
         let height = img.height
         const maxDim = 1200
@@ -181,7 +201,6 @@ const TenantProfile = () => {
         canvas.height = height
         ctx.drawImage(img, 0, 0, width, height)
 
-        // Convert to base64 with reduced quality
         const base64String = canvas.toDataURL('image/jpeg', 0.8)
 
         try {
@@ -192,18 +211,15 @@ const TenantProfile = () => {
           if (response.data.success) {
             let imageUrl = response.data.profileImage
             
-            // If profile image is a relative path, prepend API base URL
             if (imageUrl && imageUrl.startsWith('/uploads')) {
               const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
               imageUrl = API_URL.replace('/api', '') + imageUrl
             }
             
-            setFormData(prev => ({
-              ...prev,
-              profileImage: imageUrl,
-            }))
+            setFormData(prev => ({ ...prev, profileImage: imageUrl }))
+            setOriginalFormData(prev => ({ ...prev, profileImage: imageUrl }))
             useAuthStore.setState({ user: { ...user, profileImage: imageUrl } })
-            toast.success('Profile image uploaded successfully!')
+            toast.success('Profile image uploaded!')
           }
         } catch (error) {
           console.error('Failed to upload image:', error)
@@ -214,11 +230,10 @@ const TenantProfile = () => {
       }
 
       img.onerror = () => {
-        toast.error('Failed to load image. Please try a different file.')
+        toast.error('Failed to load image.')
         setUploadingImage(false)
       }
 
-      // Read file as data URL
       const reader = new FileReader()
       reader.onload = (event) => {
         img.src = event.target?.result
@@ -265,8 +280,6 @@ const TenantProfile = () => {
     }
   }
 
-  const hasChanges = JSON.stringify(formData) !== JSON.stringify(originalFormData)
-
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSaving(true)
@@ -275,9 +288,8 @@ const TenantProfile = () => {
       const response = await api.put('/auth/profile', formData)
       if (response.data.success) {
         toast.success('Profile updated successfully!')
-        // Update auth store with new user data
         useAuthStore.setState({ user: { ...user, ...response.data.user } })
-        setOriginalFormData(formData)
+        setOriginalFormData({ ...formData })
         setIsEditMode(false)
       }
     } catch (error) {
@@ -290,690 +302,765 @@ const TenantProfile = () => {
 
   const handleCancelEdit = () => {
     setIsEditMode(false)
-    // Reset form data to original values
-    fetchProfile()
-  }
-
-  const handleClearPreferences = async () => {
-    try {
-      const response = await api.delete('/preferences')
-      if (response.data.success) {
-        setPreferences(null)
-        setShowClearConfirmModal(false)
-        toast.success('Preferences cleared successfully!')
-      }
-    } catch (error) {
-      console.error('Failed to clear preferences:', error)
-      setShowClearConfirmModal(false)
-      toast.error(error.response?.data?.error || 'Failed to clear preferences')
+    if (originalFormData) {
+      setFormData({ ...originalFormData })
     }
   }
+
+  const hasChanges = JSON.stringify(formData) !== JSON.stringify(originalFormData)
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 size={32} className="animate-spin text-primary-600" />
+        <Loader2 size={32} className="animate-spin text-blue-600" />
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="flex items-center gap-3">
-          <Users size={32} className="text-primary-600" />
-          <div>
-            <h1 className="text-3xl font-bold text-text">Tenant Profile</h1>
-            <p className="text-gray-600 mt-1">Manage your account information</p>
+    <div className="min-h-screen bg-slate-50/50">
+      {/* Tab Navigation */}
+      <div className="border-b border-slate-200 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="flex gap-8">
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`py-4 px-1 relative font-medium text-sm transition-colors ${
+                activeTab === 'profile'
+                  ? 'text-blue-600'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Profile
+              {activeTab === 'profile' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('preferences')}
+              className={`py-4 px-1 relative font-medium text-sm transition-colors ${
+                activeTab === 'preferences'
+                  ? 'text-blue-600'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Preferences
+              {activeTab === 'preferences' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                />
+              )}
+            </button>
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      <motion.form
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        onSubmit={handleSubmit}
-        className="bg-white rounded-2xl shadow-xl overflow-hidden"
-      >
-        {/* Modern Profile Header with Gradient */}
-        <div className="relative bg-gradient-to-br from-primary-500 via-primary-600 to-purple-600 px-6 md:px-8 pt-8 pb-24">
-          <div className="absolute inset-0 bg-black opacity-5"></div>
-          <div className="relative flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="relative group">
-                <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-white/95 backdrop-blur-sm flex items-center justify-center overflow-hidden shadow-2xl ring-4 ring-white/30 transition-transform group-hover:scale-105">
-                  {formData.profileImage ? (
-                    <img
-                      src={formData.profileImage}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User size={48} className="text-primary-600" />
-                  )}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        <AnimatePresence mode="wait">
+          {activeTab === 'profile' ? (
+            <motion.div
+              key="profile"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+            >
+              {/* Left Sidebar - Profile Card */}
+              <div className="lg:col-span-1">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                  {/* Profile Image Section */}
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 flex flex-col items-center">
+                    <div className="relative">
+                      <div className="w-28 h-28 rounded-full bg-white shadow-md flex items-center justify-center overflow-hidden ring-4 ring-white">
+                        {formData.profileImage ? (
+                          <img
+                            src={formData.profileImage}
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <User size={48} className="text-slate-400" />
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingImage}
+                        className="absolute bottom-0 right-0 p-2 bg-white text-slate-600 rounded-full shadow-lg hover:bg-slate-50 transition-all disabled:opacity-50 border border-slate-200"
+                      >
+                        {uploadingImage ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <Pencil size={16} />
+                        )}
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={uploadingImage}
+                        className="hidden"
+                      />
+                    </div>
+                    <h2 className="mt-4 text-xl font-semibold text-slate-800">
+                      {formData.name || 'Your Name'}
+                    </h2>
+                    <p className="text-slate-500 text-sm">{formData.email}</p>
+                  </div>
+
+                  {/* Contact Info */}
+                  <div className="p-5 space-y-3">
+                    <div className="flex items-center gap-3 text-sm">
+                      <Mail size={18} className="text-blue-500" />
+                      <span className="text-slate-600">Email address</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Phone size={18} className="text-green-500" />
+                      <span className="text-slate-700 font-medium">
+                        {formData.phone || 'Not provided'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <User size={18} className="text-orange-500" />
+                      <span className="text-slate-600">Phone Number</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <MapPin size={18} className="text-red-500" />
+                      <span className="text-slate-700">
+                        {formData.city || 'Location not set'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <GraduationCap size={18} className="text-purple-500" />
+                      <span className="text-slate-700">
+                        {formData.college || 'College not set'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Edit Profile Button */}
+                  <div className="p-5 pt-0">
+                    {!isEditMode ? (
+                      <button
+                        onClick={() => setIsEditMode(true)}
+                        className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"
+                      >
+                        <Pencil size={18} />
+                        Edit Profile
+                        <ChevronRight size={18} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleCancelEdit}
+                        className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors"
+                      >
+                        <X size={18} />
+                        Cancel Editing
+                      </button>
+                    )}
+                  </div>
                 </div>
-                {isEditMode && (
+
+                {/* Change Password Card */}
+                <button
+                  onClick={() => setShowPasswordModal(true)}
+                  className="mt-4 w-full bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-slate-100 rounded-lg">
+                      <Lock size={20} className="text-slate-600" />
+                    </div>
+                    <span className="font-medium text-slate-700">Change Password</span>
+                  </div>
+                  <ChevronRight size={20} className="text-slate-400" />
+                </button>
+              </div>
+
+              {/* Right Side - Edit Form */}
+              <div className="lg:col-span-2">
+                <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                  <h3 className="text-xl font-semibold text-slate-800 mb-6">
+                    Edit Your Profile
+                  </h3>
+
+                  <div className="space-y-5">
+                    {/* Full Name */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        disabled={!isEditMode}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-500"
+                        placeholder="Enter your full name"
+                      />
+                    </div>
+
+                    {/* Email */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        disabled
+                        className="w-full px-4 py-3 bg-cyan-50 border border-cyan-200 rounded-xl text-slate-600 cursor-not-allowed"
+                      />
+                    </div>
+
+                    {/* Phone Number */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        disabled={!isEditMode}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-500"
+                        placeholder="+977 9999999999"
+                      />
+                    </div>
+
+                    {/* Address / Location */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Address / Location
+                      </label>
+                      <input
+                        type="text"
+                        name="city"
+                        value={formData.city}
+                        onChange={handleChange}
+                        disabled={!isEditMode}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-500"
+                        placeholder="Kathmandu, Metropolitan City"
+                      />
+                    </div>
+
+                    {/* College */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        College / University
+                      </label>
+                      <CollegeSelect
+                        value={formData.college}
+                        onChange={(value) => setFormData(prev => ({ ...prev, college: value }))}
+                        disabled={!isEditMode}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  {isEditMode && (
+                    <div className="flex justify-end gap-3 mt-8">
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="px-6 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={saving || !hasChanges}
+                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {saving ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            Save Changes
+                            <ChevronRight size={18} />
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </form>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="preferences"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+            >
+              {/* Left Sidebar - Preferences Info Card */}
+              <div className="lg:col-span-1">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-6">
+                    <h3 className="text-lg font-semibold text-slate-800">Your Preferences</h3>
+                    <p className="text-slate-600 text-sm mt-1">Manage your rental preferences</p>
+                  </div>
+
+                  <div className="p-5 space-y-4">
+                    {preferences && (preferencesFormData.locations?.length > 0 || preferencesFormData.property_types?.length > 0) ? (
+                      <>
+                        {preferencesFormData.locations?.length > 0 && (
+                          <div>
+                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Preferred Locations</label>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {preferencesFormData.locations.map(location => (
+                                <span key={location} className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                                  {location}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {preferencesFormData.min_price || preferencesFormData.max_price ? (
+                          <div>
+                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Budget Range</label>
+                            <p className="text-slate-700 font-medium mt-2">
+                              Rs. {preferencesFormData.min_price || '—'} - Rs. {preferencesFormData.max_price || '—'}
+                            </p>
+                          </div>
+                        ) : null}
+                        {preferencesFormData.bedrooms && (
+                          <div>
+                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Minimum Bedrooms</label>
+                            <p className="text-slate-700 font-medium mt-2">
+                              {preferencesFormData.bedrooms}+ BHK
+                            </p>
+                          </div>
+                        )}
+                        {preferencesFormData.property_types?.length > 0 && (
+                          <div>
+                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Property Types</label>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {preferencesFormData.property_types.map(type => {
+                                const typeObj = PROPERTY_TYPES.find(t => t.value === type)
+                                return (
+                                  <span key={type} className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                                    {typeObj?.label || type}
+                                  </span>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        {preferencesFormData.amenities?.length > 0 && (
+                          <div>
+                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Preferred Amenities</label>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {preferencesFormData.amenities.map(amenity => {
+                                const amenityObj = AMENITIES_OPTIONS.find(a => a.value === amenity)
+                                return (
+                                  <span key={amenity} className="px-3 py-1 bg-pink-100 text-pink-700 text-xs font-medium rounded-full">
+                                    {amenityObj?.label || amenity}
+                                  </span>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-slate-600 text-sm">No preferences set yet</p>
+                    )}
+                  </div>
+
+                  {/* Edit Button */}
+                  <div className="p-5 pt-0">
+                    {!isEditingPreferences ? (
+                      <button
+                        onClick={() => {
+                           setIsEditingPreferences(true)
+                           setTimeout(() => {
+                             preferencesFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                           }, 100)
+                         }}
+                        className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl transition-colors"
+                      >
+                        <Pencil size={18} />
+                        Edit Preferences
+                        <ChevronRight size={18} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setIsEditingPreferences(false)}
+                        className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors"
+                      >
+                        <X size={18} />
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Side - Edit Preferences Form */}
+              <div className="lg:col-span-2">
+                {isEditingPreferences ? (
+                   <form ref={preferencesFormRef} onSubmit={async (e) => {
+                     e.preventDefault()
+                     setSaving(true)
+                     try {
+                       const response = await api.post('/preferences', {
+                         locations: preferencesFormData.locations,
+                         min_price: preferencesFormData.min_price ? parseInt(preferencesFormData.min_price) : null,
+                         max_price: preferencesFormData.max_price ? parseInt(preferencesFormData.max_price) : null,
+                         bedrooms: preferencesFormData.bedrooms ? parseInt(preferencesFormData.bedrooms) : null,
+                         property_types: preferencesFormData.property_types,
+                         amenities: preferencesFormData.amenities,
+                       })
+                       if (response.data.success) {
+                         toast.success('Preferences updated successfully!')
+                         setPreferences(response.data.data)
+                         setIsEditingPreferences(false)
+                       }
+                     } catch (error) {
+                       console.error('Failed to save preferences:', error)
+                       toast.error('Failed to save preferences')
+                     } finally {
+                       setSaving(false)
+                     }
+                   }} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                     <h3 className="text-xl font-semibold text-slate-800 mb-6">
+                       Edit Your Preferences
+                     </h3>
+
+                     <div className="space-y-6">
+                       {/* Locations */}
+                       <div>
+                         <label className="block text-sm font-semibold text-slate-700 mb-3">
+                           Preferred Locations
+                         </label>
+                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                           {PREFERRED_LOCATIONS.map(location => (
+                             <motion.button
+                               key={location.value}
+                               type="button"
+                               whileHover={{ scale: 1.05 }}
+                               whileTap={{ scale: 0.95 }}
+                               onClick={() => setPreferencesFormData(prev => ({
+                                 ...prev,
+                                 locations: prev.locations.includes(location.value)
+                                   ? prev.locations.filter(l => l !== location.value)
+                                   : [...prev.locations, location.value]
+                               }))}
+                               className={`p-3 rounded-xl border-2 transition-all text-sm font-medium ${
+                                 preferencesFormData.locations.includes(location.value)
+                                   ? 'border-blue-600 bg-blue-50 text-blue-700'
+                                   : 'border-slate-200 hover:border-blue-300 text-slate-700'
+                               }`}
+                             >
+                               {location.label}
+                             </motion.button>
+                           ))}
+                         </div>
+                       </div>
+
+                       {/* Price Range */}
+                       <div>
+                         <label className="block text-sm font-semibold text-slate-700 mb-3">
+                           Budget Range (Monthly)
+                         </label>
+                         <div className="grid grid-cols-2 gap-4">
+                           <div>
+                             <label className="block text-xs text-slate-600 mb-2">Min Price (Rs.)</label>
+                             <input
+                               type="number"
+                               value={preferencesFormData.min_price}
+                               onChange={(e) => setPreferencesFormData(prev => ({ ...prev, min_price: e.target.value }))}
+                               placeholder="e.g., 5000"
+                               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+                             />
+                           </div>
+                           <div>
+                             <label className="block text-xs text-slate-600 mb-2">Max Price (Rs.)</label>
+                             <input
+                               type="number"
+                               value={preferencesFormData.max_price}
+                               onChange={(e) => setPreferencesFormData(prev => ({ ...prev, max_price: e.target.value }))}
+                               placeholder="e.g., 25000"
+                               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+                             />
+                           </div>
+                         </div>
+                       </div>
+
+                       {/* Bedrooms */}
+                       <div>
+                         <label className="block text-sm font-semibold text-slate-700 mb-3">
+                           Minimum Bedrooms
+                         </label>
+                         <div className="grid grid-cols-4 gap-2">
+                           {[1, 2, 3, 4].map(num => (
+                             <motion.button
+                               key={num}
+                               type="button"
+                               whileHover={{ scale: 1.05 }}
+                               whileTap={{ scale: 0.95 }}
+                               onClick={() => setPreferencesFormData(prev => ({ ...prev, bedrooms: num.toString() }))}
+                               className={`p-3 rounded-xl border-2 transition-all font-semibold text-sm ${
+                                 preferencesFormData.bedrooms === num.toString()
+                                   ? 'border-blue-600 bg-blue-50 text-blue-700'
+                                   : 'border-slate-200 hover:border-blue-300 text-slate-700'
+                               }`}
+                             >
+                               {num}+ BHK
+                             </motion.button>
+                           ))}
+                         </div>
+                       </div>
+
+                       {/* Property Types */}
+                       <div>
+                         <label className="block text-sm font-semibold text-slate-700 mb-3">
+                           Property Types
+                         </label>
+                         <div className="grid grid-cols-3 gap-3">
+                           {PROPERTY_TYPES.map(type => (
+                             <motion.button
+                               key={type.value}
+                               type="button"
+                               whileHover={{ scale: 1.05 }}
+                               whileTap={{ scale: 0.95 }}
+                               onClick={() => setPreferencesFormData(prev => ({
+                                 ...prev,
+                                 property_types: prev.property_types.includes(type.value)
+                                   ? prev.property_types.filter(t => t !== type.value)
+                                   : [...prev.property_types, type.value]
+                               }))}
+                               className={`p-3 rounded-xl border-2 transition-all font-medium text-sm ${
+                                 preferencesFormData.property_types.includes(type.value)
+                                   ? 'border-purple-600 bg-purple-50 text-purple-700'
+                                   : 'border-slate-200 hover:border-purple-300 text-slate-700'
+                               }`}
+                             >
+                               {type.label}
+                             </motion.button>
+                           ))}
+                         </div>
+                       </div>
+
+                       {/* Amenities */}
+                       <div>
+                         <label className="block text-sm font-semibold text-slate-700 mb-3">
+                           Preferred Amenities
+                         </label>
+                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                           {AMENITIES_OPTIONS.map(amenity => {
+                             const IconComponent = amenity.icon
+                             return (
+                               <motion.button
+                                 key={amenity.value}
+                                 type="button"
+                                 whileHover={{ scale: 1.05 }}
+                                 whileTap={{ scale: 0.95 }}
+                                 onClick={() => setPreferencesFormData(prev => ({
+                                   ...prev,
+                                   amenities: prev.amenities.includes(amenity.value)
+                                     ? prev.amenities.filter(a => a !== amenity.value)
+                                     : [...prev.amenities, amenity.value]
+                                 }))}
+                                 className={`p-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 text-sm font-medium ${
+                                   preferencesFormData.amenities.includes(amenity.value)
+                                     ? 'border-pink-600 bg-pink-50 text-pink-700'
+                                     : 'border-slate-200 hover:border-pink-300 text-slate-700'
+                                 }`}
+                               >
+                                 <IconComponent size={16} />
+                                 <span>{amenity.label}</span>
+                               </motion.button>
+                             )
+                           })}
+                         </div>
+                       </div>
+                     </div>
+
+                     {/* Action Buttons */}
+                     <div className="flex justify-end gap-3 mt-8">
+                       <button
+                         type="button"
+                         onClick={() => setIsEditingPreferences(false)}
+                         className="px-6 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors"
+                       >
+                         Cancel
+                       </button>
+                       <button
+                         type="submit"
+                         disabled={saving}
+                         className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                       >
+                         {saving ? (
+                           <>
+                             <Loader2 size={18} className="animate-spin" />
+                             Saving...
+                           </>
+                         ) : (
+                           <>
+                             Save Preferences
+                             <ChevronRight size={18} />
+                           </>
+                         )}
+                       </button>
+                     </div>
+                   </form>
+
+                ) : (
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 flex items-center justify-center min-h-[300px]">
+                    <div className="text-center">
+                      <p className="text-slate-600">Click "Edit Preferences" to manage your rental preferences</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Password Change Modal */}
+      <AnimatePresence>
+        {showPasswordModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowPasswordModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-slate-800">Change Password</h2>
+                <button
+                  onClick={() => setShowPasswordModal(false)}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <X size={20} className="text-slate-500" />
+                </button>
+              </div>
+
+              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Current Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showCurrentPassword ? 'text' : 'password'}
+                      name="currentPassword"
+                      value={passwordData.currentPassword}
+                      onChange={handlePasswordChange}
+                      className="w-full px-4 py-3 pr-10 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      placeholder="Enter current password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-3 text-slate-500"
+                    >
+                      {showCurrentPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      name="newPassword"
+                      value={passwordData.newPassword}
+                      onChange={handlePasswordChange}
+                      className="w-full px-4 py-3 pr-10 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      placeholder="Enter new password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-3 text-slate-500"
+                    >
+                      {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      name="confirmPassword"
+                      value={passwordData.confirmPassword}
+                      onChange={handlePasswordChange}
+                      className="w-full px-4 py-3 pr-10 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      placeholder="Confirm new password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-3 text-slate-500"
+                    >
+                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingImage}
-                    className="absolute -bottom-2 -right-2 p-3 bg-white text-primary-600 rounded-xl shadow-xl hover:shadow-2xl hover:scale-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed border-2 border-primary-100"
+                    onClick={() => setShowPasswordModal(false)}
+                    className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors"
                   >
-                    {uploadingImage ? (
-                      <Loader2 size={18} className="animate-spin" />
-                    ) : (
-                      <Camera size={18} />
-                    )}
+                    Cancel
                   </button>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  disabled={uploadingImage}
-                  className="hidden"
-                />
-              </div>
-              <div className="text-white">
-                <h3 className="text-2xl md:text-3xl font-bold drop-shadow-lg">{formData.name || 'Your Name'}</h3>
-                <p className="text-white/90 mt-1 text-sm md:text-base">{formData.email}</p>
-                <span className="inline-flex items-center mt-3 px-4 py-1.5 bg-white/20 backdrop-blur-md text-white rounded-full text-xs font-semibold border border-white/30">
-                  <Users size={14} className="mr-1.5" />
-                  Tenant Account
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions Card - Now positioned overlapping the header */}
-        <div className="relative px-6 md:px-8 -mt-16 mb-8">
-          <div className="bg-white rounded-2xl shadow-xl p-4 border border-gray-100">
-            <div className="flex flex-wrap gap-3 justify-center">
-              {!isEditMode ? (
-                <>
-                  <motion.button
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="button"
-                    onClick={() => setIsEditMode(true)}
-                    className="group relative overflow-hidden px-5 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all min-w-[140px]"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary-600 to-primary-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="relative flex items-center justify-center gap-1.5">
-                      <User size={16} />
-                      <span>Edit Profile</span>
-                    </div>
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="button"
-                    onClick={() => setShowPasswordModal(true)}
-                    className="group relative overflow-hidden px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all min-w-[160px]"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="relative flex items-center justify-center gap-1.5">
-                      <Lock size={16} />
-                      <span>Change Password</span>
-                    </div>
-                  </motion.button>
-                </>
-              ) : (
-                <>
-                  <motion.button
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="button"
-                    onClick={handleCancelEdit}
-                    className="px-5 py-2.5 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-all flex items-center justify-center gap-1.5 min-w-[100px]"
-                  >
-                    <XCircle size={16} />
-                    <span>Cancel</span>
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
+                  <button
                     type="submit"
-                    disabled={saving || !hasChanges}
-                    className="px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 min-w-[140px]"
+                    disabled={saving}
+                    className="flex-1 px-4 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {saving ? (
                       <>
                         <Loader2 size={16} className="animate-spin" />
-                        <span>Saving...</span>
+                        Changing...
                       </>
                     ) : (
-                      <>
-                        <Save size={16} />
-                        <span>Save Changes</span>
-                      </>
-                    )}
-                  </motion.button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Form Fields - Personal Information */}
-        <div className="px-6 md:px-8 pb-8">
-          <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <div className="w-2 h-6 bg-primary-500 rounded-full"></div>
-            Personal Information
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <User size={16} className="text-primary-500" />
-                Full Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                disabled={!isEditMode}
-                className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-400 focus:border-primary-400 outline-none transition-all disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed hover:border-gray-300"
-                placeholder="Enter your full name"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <Mail size={16} className="text-primary-500" />
-                Email Address
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                disabled
-                className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed"
-                placeholder="Your email"
-              />
-              <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-                <Lock size={12} />
-                Email cannot be changed
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <Phone size={16} className="text-primary-500" />
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                disabled={!isEditMode}
-                className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-400 focus:border-primary-400 outline-none transition-all disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed hover:border-gray-300"
-                placeholder="+977 9999999999"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <MapPin size={16} className="text-primary-500" />
-                City
-              </label>
-              <input
-                type="text"
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-                disabled={!isEditMode}
-                className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-400 focus:border-primary-400 outline-none transition-all disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed hover:border-gray-300"
-                placeholder="Enter your city"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <CollegeSelect
-                value={formData.college}
-                onChange={(collegeName) => setFormData(prev => ({ ...prev, college: collegeName }))}
-                label="College/University"
-                placeholder="Select your college or university"
-                showLocation={true}
-                disabled={!isEditMode}
-              />
-            </div>
-          </div>
-        </div>
-      </motion.form>
-
-      {/* Location Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="bg-white rounded-xl shadow-lg p-6 md:p-8 mb-6"
-      >
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <MapPin size={24} className="text-blue-600" />
-            <div>
-              <h2 className="text-2xl font-bold text-text">Saved Locations</h2>
-              <p className="text-gray-600 text-sm">Used for distance, maps, and location-aware recommendations.</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setShowLocationModal(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
-            >
-              {locations.length > 0 ? 'Add Another' : 'Add Location'}
-            </motion.button>
-          </div>
-        </div>
-
-        {primaryLocation ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-            <div className="lg:col-span-2 p-4 rounded-xl border border-blue-200 bg-blue-50">
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-white rounded-full border border-blue-200">
-                  <MapPin className="text-blue-600" size={18} />
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-blue-700 font-semibold mb-1">Primary location</p>
-                  <h3 className="text-lg font-semibold text-blue-900">{primaryLocation.label || 'Primary'}</h3>
-                  <p className="text-sm text-blue-800">{primaryLocation.fullAddress || primaryLocation.city}</p>
-                  <p className="text-xs text-blue-700 mt-1">{primaryLocation.latitude.toFixed(5)}, {primaryLocation.longitude.toFixed(5)} • {primaryLocation.radiusKm || primaryLocation.radius_km || 20} km radius</p>
-                </div>
-              </div>
-            </div>
-            <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-700">
-              <p className="font-semibold mb-1">How it is used</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Filters recommendations within your radius</li>
-                <li>Shows distance on property maps</li>
-                <li>Can be changed anytime</li>
-              </ul>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-6 text-gray-600">
-            <p>No location saved yet. Add one to unlock location-based suggestions.</p>
-          </div>
-        )}
-
-        {locations.length > 0 && (
-          <div className="overflow-x-auto border border-gray-100 rounded-xl">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600 uppercase text-xs tracking-wide">
-                <tr>
-                  <th className="text-left px-4 py-3">Label</th>
-                  <th className="text-left px-4 py-3">Address</th>
-                  <th className="text-left px-4 py-3">Radius</th>
-                  <th className="text-left px-4 py-3">Primary</th>
-                  <th className="text-right px-4 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {locations.map((loc) => (
-                  <tr key={loc.id} className="border-t border-gray-100">
-                    <td className="px-4 py-3 font-semibold text-gray-800">{loc.label || 'Location'}</td>
-                    <td className="px-4 py-3 text-gray-600">
-                      <p className="truncate max-w-xs">{loc.fullAddress || loc.city}</p>
-                      <p className="text-xs text-gray-500">{loc.latitude.toFixed(4)}, {loc.longitude.toFixed(4)}</p>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{loc.radiusKm || loc.radius_km || 20} km</td>
-                    <td className="px-4 py-3 text-gray-600">{loc.isPrimary ? 'Yes' : 'No'}</td>
-                    <td className="px-4 py-3 text-right space-x-2">
-                      {!loc.isPrimary && (
-                        <button
-                          onClick={() => handleSetPrimaryLocation(loc.id)}
-                          className="px-3 py-1 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200"
-                        >
-                          Make primary
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDeleteLocation(loc.id)}
-                        className="px-3 py-1 rounded-lg bg-red-100 text-red-700 hover:bg-red-200"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </motion.div>
-
-      {/* Preferences Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="bg-white rounded-xl shadow-lg p-6 md:p-8"
-      >
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Settings size={24} className="text-purple-600" />
-            <div>
-              <h2 className="text-2xl font-bold text-text">Property Preferences</h2>
-              <p className="text-gray-600 text-sm">Get notified when properties matching your preferences are listed</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            {preferences?.has_set_preferences && (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowClearConfirmModal(true)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 hover:shadow-lg transition"
-              >
-                Clear
-              </motion.button>
-            )}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowPreferencesModal(true)}
-              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition"
-            >
-              {preferences?.has_set_preferences ? 'Update' : 'Set'} Preferences
-            </motion.button>
-          </div>
-        </div>
-
-        {preferences?.has_set_preferences ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {preferences.locations && preferences.locations.length > 0 && (
-              <div>
-                <h3 className="font-semibold text-gray-700 mb-2">Preferred Locations</h3>
-                <div className="flex flex-wrap gap-2">
-                  {preferences.locations.map((loc, idx) => (
-                    <span key={idx} className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm">
-                      {loc}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {(preferences.min_price || preferences.max_price) && (
-              <div>
-                <h3 className="font-semibold text-gray-700 mb-2">Price Range</h3>
-                <p className="text-gray-600">
-                  Rs. {preferences.min_price?.toLocaleString() || '0'} - Rs. {preferences.max_price?.toLocaleString() || '∞'}
-                </p>
-              </div>
-            )}
-
-            {preferences.bedrooms && (
-              <div>
-                <h3 className="font-semibold text-gray-700 mb-2">Minimum Bedrooms</h3>
-                <p className="text-gray-600">{preferences.bedrooms}+ BHK</p>
-              </div>
-            )}
-
-            {preferences.property_types && preferences.property_types.length > 0 && (
-              <div>
-                <h3 className="font-semibold text-gray-700 mb-2">Property Types</h3>
-                <div className="flex flex-wrap gap-2">
-                  {preferences.property_types.map((type, idx) => (
-                    <span key={idx} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm capitalize">
-                      {type}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {preferences.amenities && preferences.amenities.length > 0 && (
-              <div className="md:col-span-2">
-                <h3 className="font-semibold text-gray-700 mb-2">Preferred Amenities</h3>
-                <div className="flex flex-wrap gap-2">
-                  {preferences.amenities.map((amenity, idx) => (
-                    <span key={idx} className="px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-sm">
-                      {amenity}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-500 mb-4">You haven't set your property preferences yet.</p>
-            <p className="text-sm text-gray-400">Set your preferences to receive email notifications when matching properties are listed!</p>
-          </div>
-        )}
-      </motion.div>
-
-      {/* Location Setup Modal */}
-      <LocationSetupModal
-        isOpen={showLocationModal}
-        onClose={() => setShowLocationModal(false)}
-        force={false}
-        onCompleted={() => {
-          fetchLocations()
-          setShowLocationModal(false)
-          toast.success('Location saved successfully!')
-        }}
-      />
-
-      {/* Preferences Modal */}
-      <PreferencesModal
-        isOpen={showPreferencesModal}
-        onClose={() => setShowPreferencesModal(false)}
-        onSave={() => {
-          setShowPreferencesModal(false)
-          fetchPreferences()
-          toast.success('Preferences updated successfully!')
-        }}
-        isFirstTime={false}
-      />
-
-      {/* Password Change Modal */}
-      {showPasswordModal && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={() => setShowPasswordModal(false)}
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md"
-          >
-            <div className="flex items-center gap-2 mb-6">
-              <Lock size={24} className="text-primary-600" />
-              <h2 className="text-2xl font-bold text-text">Change Password</h2>
-            </div>
-
-            <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              {/* Current Password */}
-              <div>
-                <label className="block text-sm font-semibold text-text mb-2">
-                  Current Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showCurrentPassword ? 'text' : 'password'}
-                    name="currentPassword"
-                    value={passwordData.currentPassword}
-                    onChange={handlePasswordChange}
-                    className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-                    placeholder="Enter current password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-3 top-3 text-gray-500"
-                  >
-                    {showCurrentPassword ? (
-                      <EyeOff size={20} />
-                    ) : (
-                      <Eye size={20} />
+                      'Change Password'
                     )}
                   </button>
                 </div>
-              </div>
-
-              {/* New Password */}
-              <div>
-                <label className="block text-sm font-semibold text-text mb-2">
-                  New Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showNewPassword ? 'text' : 'password'}
-                    name="newPassword"
-                    value={passwordData.newPassword}
-                    onChange={handlePasswordChange}
-                    className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-                    placeholder="Enter new password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-3 text-gray-500"
-                  >
-                    {showNewPassword ? (
-                      <EyeOff size={20} />
-                    ) : (
-                      <Eye size={20} />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Confirm Password */}
-              <div>
-                <label className="block text-sm font-semibold text-text mb-2">
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    name="confirmPassword"
-                    value={passwordData.confirmPassword}
-                    onChange={handlePasswordChange}
-                    className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-                    placeholder="Confirm new password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-3 text-gray-500"
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff size={20} />
-                    ) : (
-                      <Eye size={20} />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="button"
-                  onClick={() => setShowPasswordModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  Cancel
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      Changing...
-                    </>
-                  ) : (
-                    'Change Password'
-                  )}
-                </motion.button>
-              </div>
-            </form>
+              </form>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      )}
-
-      {/* Clear Preferences Confirmation Modal */}
-      {showClearConfirmModal && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={() => setShowClearConfirmModal(false)}
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 bg-red-100 rounded-full">
-                <XCircle size={24} className="text-red-600" />
-              </div>
-              <h2 className="text-2xl font-bold text-text">Clear Preferences?</h2>
-            </div>
-
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to clear all your property preferences? You will no longer receive email notifications for matching properties. This action cannot be undone.
-            </p>
-
-            <div className="flex gap-3">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={() => setShowClearConfirmModal(false)}
-                className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={handleClearPreferences}
-                className="flex-1 px-4 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
-              >
-                <XCircle size={20} />
-                Clear Preferences
-              </motion.button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   )
 }
 
 export default TenantProfile
-

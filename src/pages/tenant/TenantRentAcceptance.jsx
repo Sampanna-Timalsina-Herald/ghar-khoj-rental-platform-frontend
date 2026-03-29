@@ -7,6 +7,7 @@ import { processEsewaPayment, processKhaltiPayment } from '../../services/paymen
 import SignaturePad from '../../components/SignaturePad'
 import khaltiLogo from '../../assets/khalti-logo.svg'
 import esewaLogo from '../../assets/esewa-logo.svg'
+import { toast } from 'sonner'
 
 const TenantRentAcceptance = () => {
   const { bookingId } = useParams()
@@ -17,8 +18,6 @@ const TenantRentAcceptance = () => {
   const [paymentStatus, setPaymentStatus] = useState({ is_paid: false })
   const [tenantSignature, setTenantSignature] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [error, setError] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
 
   const fetchData = async () => {
     try {
@@ -30,17 +29,16 @@ const TenantRentAcceptance = () => {
 
       setBooking(bookingResponse.data?.data || null)
       setPaymentStatus(paymentResponse.data?.data || { is_paid: false })
-      setError('')
       
       // Check if payment was just completed
       const urlParams = new URLSearchParams(window.location.search)
       if (urlParams.get('payment_success') === 'true' && paymentResponse.data?.data?.is_paid) {
-        setSuccessMessage('Payment completed successfully! You can now sign the agreement below.')
+        toast.success('Payment completed successfully! You can now sign the agreement below.')
         // Remove the query parameter
         window.history.replaceState({}, '', window.location.pathname)
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to load rent acceptance details')
+      toast.error(err.response?.data?.error || 'Failed to load rent acceptance details')
     } finally {
       setLoading(false)
     }
@@ -83,33 +81,31 @@ const TenantRentAcceptance = () => {
         await processEsewaPayment(payload)
       }
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Payment initiation failed')
+      toast.error(err.response?.data?.error || err.message || 'Payment initiation failed')
       setIsProcessing(false)
     }
   }
 
   const handleAcceptAgreement = async () => {
     if (!tenantSignature) {
-      setError('Please draw your signature to continue')
+      toast.error('Please draw your signature to continue')
       return
     }
 
     try {
       setIsProcessing(true)
-      setError('')
-      setSuccessMessage('')
       
       await api.put(`/bookings/${bookingId}/accept-agreement`, {
         tenant_signature: tenantSignature
       })
 
-      setSuccessMessage('✅ Agreement accepted successfully with your digital signature! The landlord will now verify and start the rent. You will be notified once the rental is active.')
+      toast.success('Agreement accepted successfully with your digital signature! The landlord will now verify and start the rent.')
       await fetchData()
       
-      // Scroll to success message
+      // Scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to accept agreement')
+      toast.error(err.response?.data?.error || 'Failed to accept agreement')
     } finally {
       setIsProcessing(false)
     }
@@ -148,32 +144,6 @@ const TenantRentAcceptance = () => {
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Rent Acceptance Flow</h1>
         <p className="text-gray-600 text-sm">Pay first, sign digitally, then landlord verifies to start rent.</p>
       </div>
-
-      {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-red-50 border-2 border-red-300 text-red-800 rounded-xl p-5 text-sm font-medium flex items-start gap-3"
-        >
-          <Shield size={20} className="flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            {error}
-          </div>
-        </motion.div>
-      )}
-
-      {successMessage && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-green-50 border-2 border-green-300 text-green-800 rounded-xl p-5 text-sm font-medium flex items-start gap-3"
-        >
-          <CheckCircle size={20} className="flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            {successMessage}
-          </div>
-        </motion.div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 space-y-5">

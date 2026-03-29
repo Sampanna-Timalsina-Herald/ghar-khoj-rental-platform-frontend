@@ -55,7 +55,10 @@ const TenantHome = () => {
     try {
       setLoadingRecommendations(true)
       // Try ML recommendations first, fallback to content-based or hybrid
+      console.log('[TenantHome] Fetching ML recommendations...')
       let response = await api.get('/recommendations?algorithm=ml&limit=6')
+      
+      console.log('[TenantHome] API Response:', response.data)
       
       if (response.data.success && response.data.data && response.data.data.length > 0) {
         setRecommendations(response.data.data)
@@ -64,12 +67,21 @@ const TenantHome = () => {
         // If no recommendations exist, try to generate them
         console.log('[TenantHome] No recommendations found, generating...')
         try {
-          await api.post('/recommendations/generate', { algorithm: 'ml', limit: 6 })
+          console.log('[TenantHome] Calling /recommendations/generate')
+          const genResponse = await api.post('/recommendations/generate', { algorithm: 'ml', limit: 6 })
+          console.log('[TenantHome] Generate response:', genResponse.data)
+          
           // Fetch again after generation
+          console.log('[TenantHome] Fetching recommendations after generation...')
           response = await api.get('/recommendations?algorithm=ml&limit=6')
+          console.log('[TenantHome] Fetched after generation:', response.data)
+          
           if (response.data.success && response.data.data) {
             setRecommendations(response.data.data)
             console.log('[TenantHome] ML Recommendations generated and loaded:', response.data.data.length)
+          } else {
+            console.log('[TenantHome] Still no recommendations after generation')
+            setRecommendations([])
           }
         } catch (genError) {
           console.error('[TenantHome] Failed to generate recommendations:', genError)
@@ -77,7 +89,7 @@ const TenantHome = () => {
         }
       }
     } catch (error) {
-      console.error('Failed to fetch recommendations:', error)
+      console.error('[TenantHome] Failed to fetch recommendations:', error)
       // Fallback to featured listings if recommendations fail
       setRecommendations([])
     } finally {

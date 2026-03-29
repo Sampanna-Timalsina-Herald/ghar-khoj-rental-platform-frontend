@@ -1,10 +1,27 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { toast } from 'sonner'
 import api from '../../api/axios'
-import { Loader2, ArrowLeft, Upload, X, CheckCircle2, Home, MapPin, DollarSign, Image, Info, AlertCircle, AlertTriangle, Package } from 'lucide-react'
+import { Loader2, ArrowLeft, Upload, X, CheckCircle2, Home, MapPin, DollarSign, Image, Info, AlertCircle, AlertTriangle, Package, Wifi, Car, Snowflake, Droplets, UtensilsCrossed, Trees, Dumbbell, Shield, Shirt, Tv, ThermometerSun } from 'lucide-react'
 import CollegeSelect from '../../components/CollegeSelect'
 import LocationPicker from '../../components/LocationPicker'
+
+// Amenities list with icons
+const AMENITIES_OPTIONS = [
+  { value: 'wifi', label: 'WiFi', icon: Wifi },
+  { value: 'parking', label: 'Parking', icon: Car },
+  { value: 'ac', label: 'AC', icon: Snowflake },
+  { value: 'hot_water', label: 'Hot Water', icon: Droplets },
+  { value: 'kitchen', label: 'Kitchen', icon: UtensilsCrossed },
+  { value: 'balcony', label: 'Balcony', icon: Trees },
+  { value: 'gym', label: 'Gym', icon: Dumbbell },
+  { value: 'security', label: 'Security', icon: Shield },
+  { value: 'laundry', label: 'Laundry', icon: Shirt },
+  { value: 'tv', label: 'TV', icon: Tv },
+  { value: 'heater', label: 'Heater', icon: ThermometerSun },
+  { value: 'garden', label: 'Garden', icon: Trees },
+]
 
 const CreateListing = () => {
   const navigate = useNavigate()
@@ -26,14 +43,13 @@ const CreateListing = () => {
     type: 'apartment',
     latitude: null,
     longitude: null,
+    amenities: [],
   })
   const [images, setImages] = useState([])
   const [imagePreviews, setImagePreviews] = useState([])
   const [imageError, setImageError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
 
   // Check subscription eligibility on mount
   useEffect(() => {
@@ -141,7 +157,6 @@ const CreateListing = () => {
     }
 
     setFieldErrors({})
-    setError('')
     return true
   }
 
@@ -151,7 +166,7 @@ const CreateListing = () => {
       setImageError('')
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } else if (activeStep !== 3) {
-      setError('Please fill all required fields in this section')
+      toast.error('Please fill all required fields in this section')
     }
   }
 
@@ -167,6 +182,18 @@ const CreateListing = () => {
       ...prev,
       [name]: error,
     }))
+  }
+
+  // Handle amenity checkbox toggle
+  const handleAmenityToggle = (amenityValue) => {
+    setFormData((prev) => {
+      const currentAmenities = prev.amenities || []
+      if (currentAmenities.includes(amenityValue)) {
+        return { ...prev, amenities: currentAmenities.filter(a => a !== amenityValue) }
+      } else {
+        return { ...prev, amenities: [...currentAmenities, amenityValue] }
+      }
+    })
   }
 
   const handleImageChange = (e) => {
@@ -252,7 +279,6 @@ const CreateListing = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError('')
 
     // Validate all fields
     const errors = validateForm()
@@ -265,7 +291,7 @@ const CreateListing = () => {
         bedrooms: 2, bathrooms: 2, type: 2, furnished: 2, rent_amount: 2, deposit_amount: 2,
       }
       setActiveStep(stepMap[firstErrorField] || 0)
-      setError('Please fix the highlighted errors before continuing')
+      toast.error('Please fix the highlighted errors before continuing')
       return
     }
 
@@ -283,8 +309,15 @@ const CreateListing = () => {
       
       // Add form fields
       Object.keys(formData).forEach((key) => {
-        if (formData[key]) {
-          submitData.append(key, formData[key])
+        if (formData[key] !== null && formData[key] !== undefined && formData[key] !== '') {
+          // Handle amenities array specially - convert to JSON string
+          if (key === 'amenities') {
+            if (Array.isArray(formData[key]) && formData[key].length > 0) {
+              submitData.append(key, JSON.stringify(formData[key]))
+            }
+          } else {
+            submitData.append(key, formData[key])
+          }
         }
       })
       
@@ -306,12 +339,12 @@ const CreateListing = () => {
       })
 
       console.log('[CREATE-LISTING] Success:', response.data)
-      setSuccess(true)
+      toast.success('Listing created successfully!')
       setFieldErrors({})
       
       setTimeout(() => {
         navigate('/landlord/listings')
-      }, 2000)
+      }, 1500)
     } catch (err) {
       console.error('[CREATE-LISTING] Error:', err)
       
@@ -341,7 +374,7 @@ const CreateListing = () => {
         errorMessage = err.message
       }
       
-      setError(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -470,34 +503,6 @@ const CreateListing = () => {
             })}
           </div>
         </motion.div>
-
-        {/* Success Message */}
-        {success && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 text-emerald-700 rounded-xl flex items-center gap-3 shadow-md"
-          >
-            <CheckCircle2 size={20} className="flex-shrink-0" />
-            <span className="font-medium">Listing created successfully! Redirecting...</span>
-          </motion.div>
-        )}
-
-        {/* Error Message */}
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="mb-6 p-4 bg-gradient-to-r from-red-50 to-pink-50 border-l-4 border-red-500 text-red-700 rounded-lg shadow-md flex items-start gap-3"
-          >
-            <AlertTriangle size={20} className="flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold">Error</p>
-              <p className="text-sm mt-1">{error}</p>
-            </div>
-          </motion.div>
-        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -819,6 +824,43 @@ const CreateListing = () => {
                     <option value="furnished">Fully Furnished</option>
                   </select>
                 </motion.div>
+
+                {/* Amenities */}
+                <motion.div whileHover={{ scale: 1.005 }}>
+                  <label className="block text-sm font-semibold text-slate-700 mb-3">
+                    Amenities (Select all that apply)
+                  </label>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                    {AMENITIES_OPTIONS.map((amenity) => {
+                      const Icon = amenity.icon
+                      const isSelected = formData.amenities.includes(amenity.value)
+                      return (
+                        <label
+                          key={amenity.value}
+                          className={`flex flex-col items-center p-3 border-2 rounded-xl cursor-pointer transition-all ${
+                            isSelected
+                              ? 'border-purple-500 bg-purple-50'
+                              : 'border-slate-200 hover:border-purple-300 bg-white'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleAmenityToggle(amenity.value)}
+                            className="sr-only"
+                          />
+                          <Icon size={20} className={isSelected ? 'text-purple-600' : 'text-slate-500'} />
+                          <span className={`text-xs mt-1 font-medium ${isSelected ? 'text-purple-700' : 'text-slate-600'}`}>
+                            {amenity.label}
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    {formData.amenities.length} amenities selected
+                  </p>
+                </motion.div>
               </div>
             </div>
               </motion.div>
@@ -915,43 +957,33 @@ const CreateListing = () => {
             {activeStep === 3 && (
               <motion.div
                 key="step-3"
-                initial={{ opacity: 0, x: 100 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-4"
               >
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center">
-                  <Image size={20} className="text-cyan-600" />
-                </div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  Add Photos <span className="text-red-500">*</span>
-                </h2>
-              </div>
-              
-              <p className="text-sm text-slate-600 mb-4">
-                Upload at least one image of your property (required)
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <h2 className="text-lg font-semibold text-slate-800 mb-1">
+                Property Photos
+              </h2>
+              <p className="text-sm text-slate-500 mb-4">
+                Add at least 1 photo. You can upload up to 10.
               </p>
 
-              <motion.div
+              {/* Upload Area */}
+              <div
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
-                whileHover={{ scale: 1.01 }}
-                className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
+                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
                   imageError
-                    ? 'border-red-500 bg-red-50'
+                    ? 'border-red-400 bg-red-50'
                     : dragActive
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-slate-300 bg-slate-50 hover:border-blue-400'
+                    ? 'border-blue-400 bg-blue-50'
+                    : 'border-slate-300 hover:border-slate-400 bg-slate-50'
                 }`}
               >
-                <Upload size={40} className={`mx-auto mb-3 ${
-                  imageError ? 'text-red-400' : 'text-slate-400'
-                }`} />
                 <input
                   type="file"
                   multiple
@@ -960,72 +992,48 @@ const CreateListing = () => {
                   id="image-upload"
                   accept="image/*"
                 />
-                <label
-                  htmlFor="image-upload"
-                  className="block cursor-pointer"
-                >
-                  <span className={`font-semibold text-lg ${
-                    imageError ? 'text-red-600' : 'text-blue-600 hover:text-blue-700'
-                  }`}>
-                    Click to upload
-                  </span>
-                  <p className="text-sm text-slate-500 mt-2">or drag and drop</p>
-                  <p className="text-xs text-slate-400 mt-1">PNG, JPG, WebP, GIF up to 10MB each (Max 10 images)</p>
-                </label>
-              </motion.div>
-
-              <AnimatePresence>
-                {imageError && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mt-3 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-start gap-2"
-                  >
-                    <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
-                    <p className="text-sm">{imageError}</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Image Gallery */}
-              {imagePreviews.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="mt-6"
-                >
-                  <p className="text-sm font-semibold text-slate-700 mb-4">
-                    {imagePreviews.length}/{10} image{imagePreviews.length !== 1 ? 's' : ''} added
+                <label htmlFor="image-upload" className="cursor-pointer">
+                  <Upload size={28} className="mx-auto mb-2 text-slate-400" />
+                  <p className="text-sm text-slate-600">
+                    <span className="text-blue-600 font-medium">Browse</span> or drag & drop
                   </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  <p className="text-xs text-slate-400 mt-1">JPG, PNG, WebP • Max 10MB each</p>
+                </label>
+              </div>
+
+              {/* Error Message */}
+              {imageError && (
+                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                  <AlertCircle size={14} />
+                  {imageError}
+                </p>
+              )}
+
+              {/* Image Previews */}
+              {imagePreviews.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm text-slate-600 mb-3">
+                    {imagePreviews.length} of 10 photos added
+                  </p>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                     {imagePreviews.map((preview, index) => (
-                      <motion.div
-                        key={index}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        whileHover={{ scale: 1.05 }}
-                        className="relative group rounded-lg overflow-hidden"
-                      >
+                      <div key={index} className="relative group aspect-square">
                         <img
                           src={preview}
-                          alt={`Preview ${index + 1}`}
-                          className="w-full h-32 object-cover"
+                          alt={`Photo ${index + 1}`}
+                          className="w-full h-full object-cover rounded-lg"
                         />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
-                          <button
-                            type="button"
-                            onClick={() => removeImage(index)}
-                            className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
-                            title="Remove image"
-                          >
-                            <X size={18} />
-                          </button>
-                        </div>
-                      </motion.div>
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-black/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
                     ))}
                   </div>
-                </motion.div>
+                </div>
               )}
             </div>
               </motion.div>
@@ -1045,7 +1053,7 @@ const CreateListing = () => {
                 onClick={() => setActiveStep(Math.max(0, activeStep - 1))}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                disabled={activeStep === 0 || loading || success}
+                disabled={activeStep === 0 || loading}
                 className="px-6 py-2 border-2 border-slate-300 text-slate-700 font-semibold text-sm rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
                 Previous
@@ -1057,7 +1065,7 @@ const CreateListing = () => {
                   onClick={handleNextStep}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  disabled={loading || success || (activeStep === 1 && !isLocationReady)}
+                  disabled={loading || (activeStep === 1 && !isLocationReady)}
                   className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-sm rounded-lg hover:shadow-lg transition-all disabled:opacity-50"
                 >
                   Next
@@ -1067,7 +1075,7 @@ const CreateListing = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  disabled={loading || success}
+                  disabled={loading}
                   className="px-6 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-sm rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading ? (
@@ -1075,13 +1083,8 @@ const CreateListing = () => {
                       <Loader2 size={16} className="animate-spin" />
                       Creating...
                     </>
-                  ) : success ? (
-                    <>
-                      <CheckCircle2 size={16} />
-                      Created!
-                    </>
                   ) : (
-                    'Create'
+                    'Create Listing'
                   )}
                 </motion.button>
               )}

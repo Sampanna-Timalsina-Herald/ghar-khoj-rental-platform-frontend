@@ -18,6 +18,13 @@ const ListingDetail = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isFavorite, setIsFavorite] = useState(false)
   const [loadingFavorite, setLoadingFavorite] = useState(false)
+  const [engagement, setEngagement] = useState({
+    duration_seconds: 0,
+    viewed_images: false,
+    clicked_contact: false,
+    added_to_favorites: false
+  })
+  const pageStartTime = React.useRef(Date.now())
 
   useEffect(() => {
     fetchListing()
@@ -27,6 +34,64 @@ const ListingDetail = () => {
       trackPropertyView()
     }
   }, [id, isAuthenticated])
+
+  // Track when images are viewed
+  useEffect(() => {
+    if (currentImageIndex > 0 && listing?.images?.length > 0) {
+      setEngagement(prev => ({
+        ...prev,
+        viewed_images: true
+      }))
+    }
+  }, [currentImageIndex])
+
+  // Track duration and update engagement periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const duration = Math.floor((Date.now() - pageStartTime.current) / 1000)
+      setEngagement(prev => ({
+        ...prev,
+        duration_seconds: duration
+      }))
+    }, 5000) // Update every 5 seconds
+
+    return () => clearInterval(interval)
+  }, [])
+
+  // Send engagement update when user leaves the page
+  useEffect(() => {
+    const sendEngagement = async () => {
+      const duration = Math.floor((Date.now() - pageStartTime.current) / 1000)
+      try {
+        await api.put(`/recommendations/ml/update-engagement/${id}`, {
+          duration_seconds: duration,
+          viewed_images: engagement.viewed_images,
+          clicked_contact: engagement.clicked_contact,
+          added_to_favorites: engagement.added_to_favorites
+        })
+        console.log('[ListingDetail] Engagement updated:', {
+          duration_seconds: duration,
+          viewed_images: engagement.viewed_images,
+          clicked_contact: engagement.clicked_contact,
+          added_to_favorites: engagement.added_to_favorites
+        })
+      } catch (error) {
+        console.error('[ListingDetail] Failed to update engagement:', error)
+      }
+    }
+
+    const handleBeforeUnload = () => {
+      sendEngagement()
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      // Also send engagement when component unmounts (navigating away)
+      sendEngagement()
+    }
+  }, [id, engagement])
 
   const checkIfFavorited = async () => {
     try {
@@ -107,14 +172,26 @@ const ListingDetail = () => {
       if (isFavorite) {
         await api.delete(`/favorites/${listing.id}`)
         setIsFavorite(false)
+        setEngagement(prev => ({
+          ...prev,
+          added_to_favorites: false
+        }))
       } else {
         try {
           await api.post(`/favorites/${listing.id}`)
           setIsFavorite(true)
+          setEngagement(prev => ({
+            ...prev,
+            added_to_favorites: true
+          }))
         } catch (postError) {
           // If already in favorites error, treat as already favorited
           if (postError.response?.status === 400 && postError.response?.data?.error?.includes('already')) {
             setIsFavorite(true)
+            setEngagement(prev => ({
+              ...prev,
+              added_to_favorites: true
+            }))
           } else {
             throw postError
           }
@@ -136,6 +213,11 @@ const ListingDetail = () => {
       navigate('/login', { state: { from: 'property', listingId: listing.id } })
       return
     }
+    // Track that contact was clicked
+    setEngagement(prev => ({
+      ...prev,
+      clicked_contact: true
+    }))
     navigate(`/tenant/messages?listing=${listing.id}`, { state: { listing } })
   }
 

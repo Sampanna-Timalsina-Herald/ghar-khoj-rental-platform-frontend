@@ -13,7 +13,6 @@ const TenantBrowse = () => {
   const { isAuthenticated } = useAuthStore()
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
   const searchInputRef = useRef(null)
   const suggestionsRef = useRef(null)
   const filterDebounceTimerRef = useRef(null)
@@ -99,7 +98,6 @@ const TenantBrowse = () => {
   const fetchListings = useCallback(async () => {
     try {
       setLoading(true)
-      setError(null)
       const queryParams = new URLSearchParams()
       
       if (filters.minPrice) queryParams.append('minPrice', filters.minPrice)
@@ -119,7 +117,7 @@ const TenantBrowse = () => {
       setListings(response.data.data || response.data || [])
     } catch (err) {
       console.error('Failed to fetch listings:', err)
-      setError('Failed to load listings. Please try again.')
+      toast.error('Failed to load listings. Please try again.')
       setListings([])
     } finally {
       setLoading(false)
@@ -535,12 +533,6 @@ const TenantBrowse = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Enhanced Filters Sidebar */}
