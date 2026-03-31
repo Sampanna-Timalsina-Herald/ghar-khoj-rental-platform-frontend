@@ -15,8 +15,8 @@ import {
   Download
 } from 'lucide-react';
 import ReceiptDownloadButton from '../../components/ReceiptDownloadButton';
-import khaltiLogo from '../../assets/khalti-logo.svg';
-import esewaLogo from '../../assets/esewa-logo.svg';
+import khaltiLogo from '../../assets/Khalti-logo.png';
+import esewaLogo from '../../assets/Esewa-logo.png';
 
 const AdminPayments = () => {
   const [payments, setPayments] = useState([]);

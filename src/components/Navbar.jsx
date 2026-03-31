@@ -3,6 +3,7 @@ import { Menu, X, LogOut, User } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { Link, useNavigate } from 'react-router-dom'
 import NotificationPanel from './NotificationPanel'
+import gharkhojLogo from '../assets/GHARKHOJ_LOGO.png'
 
 const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   const { user, logout, role } = useAuthStore()
@@ -46,11 +47,12 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
           >
             {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold">
-              GK
-            </div>
-            <span className="font-bold text-lg text-text hidden sm:inline">Gharkhoj</span>
+          <Link to="/" className="flex items-center">
+            <img 
+              src={gharkhojLogo} 
+              alt="Gharkhoj" 
+              className="h-14 w-auto object-contain"
+            />
           </Link>
         </div>
 

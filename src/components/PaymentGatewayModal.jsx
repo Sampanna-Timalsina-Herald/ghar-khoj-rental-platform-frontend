@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CreditCard, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { processKhaltiPayment, processEsewaPayment } from '../services/paymentService';
-import khaltiLogo from '../assets/khalti-logo.svg';
-import esewaLogo from '../assets/esewa-logo.svg';
+import khaltiLogo from '../assets/Khalti-logo.png';
+import esewaLogo from '../assets/Esewa-logo.png';
 
 /**
  * PaymentGatewayModal Component

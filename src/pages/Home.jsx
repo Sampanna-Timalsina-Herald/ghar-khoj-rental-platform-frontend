@@ -7,6 +7,7 @@ import {
   ChevronRight, Heart, DollarSign, Loader
 } from "lucide-react";
 import modernInterior from "../assets/interior1.jpg";
+import gharkhojLogo from "../assets/GHARKHOJ_LOGO.png";
 import api from "../api/axios";
 import { useAuthStore } from "../stores/authStore";
 import SmartNav from "../components/SmartNav";
@@ -726,7 +727,9 @@ const Home = () => {
       <footer className="bg-gray-900 text-gray-400 py-16 mt-20">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-5 gap-12 mb-12">
            <div>
-             <h2 className="text-white text-2xl font-bold mb-4">Gharkhoj.</h2>
+             <Link to="/">
+               <img src={gharkhojLogo} alt="Gharkhoj" className="h-20 w-auto object-contain mb-4" />
+             </Link>
              <p className="text-sm">Kathmandu's #1 rental platform.</p>
            </div>
            

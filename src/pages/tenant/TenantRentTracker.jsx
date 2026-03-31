@@ -4,8 +4,8 @@ import { Calendar, CreditCard, Loader2, Wallet, Clock, CheckCircle, AlertCircle,
 import api from '../../api/axios'
 import { processEsewaPayment, processKhaltiPayment } from '../../services/paymentService'
 import ReceiptViewerModal from '../../components/ReceiptViewerModal'
-import khaltiLogo from '../../assets/khalti-logo.svg'
-import esewaLogo from '../../assets/esewa-logo.svg'
+import khaltiLogo from '../../assets/Khalti-logo.png'
+import esewaLogo from '../../assets/Esewa-logo.png'
 import { toast } from 'sonner'
 
 const addMonths = (date, months) => {

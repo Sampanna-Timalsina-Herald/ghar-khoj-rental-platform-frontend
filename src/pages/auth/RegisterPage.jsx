@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-// Using the same image from LoginPage
 import modernInterior from '../../assets/interior1.jpg'; 
+import gharkhojLogo from '../../assets/GHARKHOJ_LOGO.png';
 import { 
   Eye, 
   EyeOff, 
@@ -19,9 +19,8 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Input from './ui/Input';
-import api from '../../api/axios'; // Placeholder for your axios instance
+import api from '../../api/axios';
 
-// 🟢 NEW: Import the validation utilities
 import { validatePasswordStrength, getPasswordStrengthMessage } from '../../utils/password-validator'; 
 
 const UserRole = {
@@ -580,10 +579,11 @@ const RegisterPage = () => {
             {/* --- Desktop Logo (Linked to Home) --- */}
             <motion.div variants={itemVariants}>
               <Link to="/" className="inline-block">
-                {/* GK Logo - clickable to go to home */}
-                <div className="w-14 h-14 bg-primary-600 rounded-xl flex items-center justify-center mb-10 shadow-xl shadow-primary-600/30 transition-transform duration-200 cursor-pointer hover:scale-[1.05] hover:rotate-2">
-                  <span className="text-3xl font-extrabold text-white">GK</span>
-                </div>
+                <img 
+                  src={gharkhojLogo} 
+                  alt="Gharkhoj Logo" 
+                  className="h-20 w-auto mb-10 transition-transform duration-200 cursor-pointer hover:scale-105"
+                />
               </Link>
             </motion.div>
             
@@ -617,9 +617,13 @@ const RegisterPage = () => {
         <div className="w-full max-w-md z-10 animate-fade-in">
 
           <div className="mb-10 text-center md:text-left">
-            <div className="lg:hidden w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center mx-auto md:mx-0 mb-6 shadow-lg shadow-primary-600/30">
-              <span className="text-2xl font-bold text-white">GK</span>
-            </div>
+            <Link to="/" className="lg:hidden inline-block">
+              <img 
+                src={gharkhojLogo} 
+                alt="Gharkhoj Logo" 
+                className="h-14 w-auto mx-auto md:mx-0 mb-6 cursor-pointer"
+              />
+            </Link>
             <h2 className="text-3xl font-bold text-slate-900 mb-2">
               {step === 'register' ? 'Create Account' : 'Verify Account'}
             </h2>

@@ -5,7 +5,8 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import Input from "./ui/Input";
 import api from "../../api/axios";
-import modernInterior from "../../assets/interior1.jpg"; // Keeping the original image import
+import modernInterior from "../../assets/interior1.jpg";
+import gharkhojLogo from "../../assets/GHARKHOJ_LOGO.png";
 import { useAuthStore } from "../../stores/authStore";
 
 // --- Framer Motion Variants ---
@@ -225,10 +226,11 @@ const LoginPage = () => {
             {/* --- Desktop Logo (Linked to Home) --- */}
             <motion.div variants={itemVariants}>
               <Link to="/" className="inline-block">
-                {/* GK Logo now uses primary blue color */}
-                <div className="w-14 h-14 bg-primary-600 rounded-xl flex items-center justify-center mb-10 shadow-xl shadow-primary-600/30 transition-transform duration-200 cursor-pointer hover:scale-[1.05] hover:rotate-2">
-                  <span className="text-3xl font-extrabold text-white">GK</span>
-                </div>
+                <img 
+                  src={gharkhojLogo} 
+                  alt="Gharkhoj Logo" 
+                  className="h-20 w-auto mb-10 transition-transform duration-200 cursor-pointer hover:scale-105"
+                />
               </Link>
             </motion.div>
             
@@ -274,11 +276,12 @@ const LoginPage = () => {
           className="w-full max-w-md z-10"
         >
           <div className="mb-10">
-            {/* --- Mobile Logo (Linked to Home) --- */}
             <Link to="/" className="lg:hidden inline-block">
-              <div className="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-primary-600/30 cursor-pointer">
-                <span className="text-2xl font-bold text-white">GK</span>
-              </div>
+              <img 
+                src={gharkhojLogo} 
+                alt="Gharkhoj Logo" 
+                className="h-14 w-auto mb-6 cursor-pointer"
+              />
             </Link>
 
             <motion.h2 variants={itemVariants} className="text-4xl font-extrabold text-slate-900 mb-2">Login to Gharkhoj</motion.h2>

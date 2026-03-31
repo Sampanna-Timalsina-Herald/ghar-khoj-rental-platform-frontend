@@ -5,8 +5,8 @@ import { Wallet, Building2, Loader2, CheckCircle, Info } from 'lucide-react'
 import { getPaymentSettings, updatePaymentSettings } from '../services/landlordService'
 
 // Import payment logos
-import khaltiLogo from '../assets/khalti-logo.svg'
-import esewaLogo from '../assets/esewa-logo.svg'
+import khaltiLogo from '../assets/Khalti-logo.png'
+import esewaLogo from '../assets/Esewa-logo.png'
 
 const PaymentSettingsSection = ({ onSave }) => {
   const [loading, setLoading] = useState(true)

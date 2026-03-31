@@ -7,6 +7,7 @@ import {
   CheckCircle, ArrowRight, Star
 } from "lucide-react";
 import SmartNav from "../components/SmartNav";
+import gharkhojLogo from "../assets/GHARKHOJ_LOGO.png";
 
 // Animation Variants
 const containerVariants = {
@@ -525,7 +526,9 @@ const About = () => {
             viewport={{ once: true }}
             className="text-center"
           >
-            <h2 className="text-white text-2xl font-bold mb-2">Gharkhoj.</h2>
+            <Link to="/">
+              <img src={gharkhojLogo} alt="Gharkhoj" className="h-20 w-auto object-contain mx-auto mb-2" />
+            </Link>
             <p className="text-sm mb-6">Transforming Nepal's Rental Market</p>
             <div className="border-t border-gray-800 pt-6 mt-6">
               <p className="text-sm">&copy; 2025 Gharkhoj. All rights reserved. | Built with ❤️ in Kathmandu</p>

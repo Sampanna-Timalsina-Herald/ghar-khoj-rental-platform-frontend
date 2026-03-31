@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import Input from "./ui/Input";
 import api from "../../api/axios";
 import modernInterior from "../../assets/interior1.jpg";
+import gharkhojLogo from "../../assets/GHARKHOJ_LOGO.png";
 //enhanced ui
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState("");
@@ -59,9 +60,7 @@ const ForgotPasswordPage = () => {
         <div className="relative z-10 flex flex-col justify-between p-16 w-full h-full text-white">
           <div>
             <Link to="/" className="inline-block">
-              <div className="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center mb-8 shadow-lg shadow-primary-600/30 hover:scale-105 transition-transform duration-200 cursor-pointer">
-                <span className="text-2xl font-bold text-white">GK</span>
-              </div>
+              <img src={gharkhojLogo} alt="Gharkhoj Logo" className="h-20 w-auto mb-8 transition-transform duration-200 cursor-pointer hover:scale-105" />
             </Link>
             <h1 className="text-5xl font-display font-bold leading-tight mb-6">
               Forgot your<br />
@@ -81,9 +80,7 @@ const ForgotPasswordPage = () => {
         <div className="w-full max-w-md z-10 animate-fade-in">
           {/* Mobile Logo */}
           <Link to="/" className="lg:hidden inline-block">
-            <div className="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-primary-600/30">
-              <span className="text-2xl font-bold text-white">GK</span>
-            </div>
+            <img src={gharkhojLogo} alt="Gharkhoj Logo" className="h-14 w-auto mb-6 cursor-pointer" />
           </Link>
 
           {!isSubmitted ? (

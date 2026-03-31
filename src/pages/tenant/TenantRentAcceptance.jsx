@@ -5,8 +5,8 @@ import { ArrowLeft, CheckCircle, CreditCard, FileSignature, Home, Loader2, Shiel
 import api from '../../api/axios'
 import { processEsewaPayment, processKhaltiPayment } from '../../services/paymentService'
 import SignaturePad from '../../components/SignaturePad'
-import khaltiLogo from '../../assets/khalti-logo.svg'
-import esewaLogo from '../../assets/esewa-logo.svg'
+import khaltiLogo from '../../assets/Khalti-logo.png'
+import esewaLogo from '../../assets/Esewa-logo.png'
 import { toast } from 'sonner'
 
 const TenantRentAcceptance = () => {
