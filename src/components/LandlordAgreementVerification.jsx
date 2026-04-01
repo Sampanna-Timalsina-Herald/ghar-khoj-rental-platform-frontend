@@ -571,7 +571,7 @@ const LandlordAgreementVerification = ({ agreementId, onApprove, onCancel }) => 
         >
           <p className="text-sm text-blue-900">
             <strong className="block mb-2">ℹ️ Next Steps After Approval:</strong>
-            <span className="block mb-2">1. The agreement will be forwarded to KHOJGHAR admin team for final verification</span>
+            <span className="block mb-2">1. The agreement will be forwarded to GHARKHOJ admin team for final verification</span>
             <span className="block mb-2">2. Admin will confirm the lease agreement with both parties</span>
             <span className="block">3. Both you and the tenant will receive confirmation emails with the finalized agreement</span>
           </p>

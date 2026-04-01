@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, CreditCard, Loader2, Wallet, Clock, CheckCircle, AlertCircle, History, TrendingUp, Home, Eye } from 'lucide-react'
+import { Calendar, CreditCard, Loader2, Wallet, CheckCircle, AlertCircle, History, Home, Eye } from 'lucide-react'
 import api from '../../api/axios'
 import { processEsewaPayment, processKhaltiPayment } from '../../services/paymentService'
 import ReceiptViewerModal from '../../components/ReceiptViewerModal'
@@ -189,6 +189,18 @@ const TenantRentTracker = () => {
     }
   }
 
+  // Calculate total paid only for active rentals (must be before any early returns)
+  const totalPaidForActiveRentals = useMemo(() => {
+    let total = 0
+    activeRentals.forEach(booking => {
+      const bookingPayments = getCompletedPaymentsForBooking(booking.id)
+      bookingPayments.forEach(p => {
+        total += Number(p.amount || 0)
+      })
+    })
+    return total
+  }, [activeRentals, payments])
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-3">
@@ -203,226 +215,170 @@ const TenantRentTracker = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Rent Tracker</h1>
-          <p className="text-sm text-gray-600 mt-1">Track your rental payments, history, and upcoming dues</p>
+          <h1 className="text-2xl font-bold text-gray-900">Rent Tracker</h1>
+          <p className="text-sm text-gray-500 mt-1">Track your rental payments and dues</p>
         </div>
         <button
           onClick={fetchData}
-          className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-2"
         >
-          <Calendar size={16} /> Refresh
+          <Calendar size={14} /> Refresh
         </button>
       </div>
 
-      {/* Stats Overview */}
+      {/* Minimal Stats - Only show if there are active rentals */}
       {activeRentals.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 text-white shadow-md"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-xs">Active Rentals</p>
-                <p className="text-2xl font-bold mt-1">{activeRentals.length}</p>
-              </div>
-              <Home size={32} className="opacity-80" />
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Active Rentals</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{activeRentals.length}</p>
             </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-4 text-white shadow-md"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-xs">Total Payments</p>
-                <p className="text-2xl font-bold mt-1">{Array.isArray(payments) ? payments.filter(p => p.status === 'completed').length : 0}</p>
-              </div>
-              <CheckCircle size={32} className="opacity-80" />
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Payments Made</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {activeRentals.reduce((sum, b) => sum + getCompletedPaymentsForBooking(b.id).length, 0)}
+              </p>
             </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-4 text-white shadow-md"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-xs">Total Paid</p>
-                <p className="text-2xl font-bold mt-1">
-                  Rs. {Array.isArray(payments) ? payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + Number(p.amount || 0), 0).toLocaleString() : '0'}
-                </p>
-              </div>
-              <TrendingUp size={32} className="opacity-80" />
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Total Paid</p>
+              <p className="text-2xl font-bold text-green-600 mt-1">
+                Rs. {totalPaidForActiveRentals.toLocaleString()}
+              </p>
             </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg p-4 text-white shadow-md"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-amber-100 text-xs">Upcoming Dues</p>
-                <p className="text-2xl font-bold mt-1">
-                  {activeRentals.filter(b => {
-                    const completedPayments = getCompletedPaymentsForBooking(b.id)
-                    const nextDue = computeNextDue(b, completedPayments.length)
-                    const daysUntilDue = Math.ceil((nextDue - new Date()) / (1000 * 60 * 60 * 24))
-                    return daysUntilDue <= 7 && daysUntilDue >= 0
-                  }).length}
-                </p>
-              </div>
-              <Clock size={32} className="opacity-80" />
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Due Soon</p>
+              <p className="text-2xl font-bold text-amber-600 mt-1">
+                {activeRentals.filter(b => {
+                  const completedPayments = getCompletedPaymentsForBooking(b.id)
+                  const nextDue = computeNextDue(b, completedPayments.length)
+                  const daysUntilDue = Math.ceil((nextDue - new Date()) / (1000 * 60 * 60 * 24))
+                  return daysUntilDue <= 7 && daysUntilDue >= 0
+                }).length}
+              </p>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
 
       {/* Active Rentals */}
       {activeRentals.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-white border border-gray-200 rounded-xl p-12 text-center"
-        >
-          <Home size={64} className="mx-auto text-gray-300 mb-4" />
+        <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
+          <Home size={48} className="mx-auto text-gray-300 mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No Active Rentals</h3>
-          <p className="text-gray-600">You don't have any active rental agreements yet.</p>
-        </motion.div>
+          <p className="text-gray-500 text-sm">You don't have any active rental agreements yet.</p>
+        </div>
       ) : (
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-gray-900">Active Rentals</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {activeRentals.map((booking, index) => {
-              const completedPayments = getCompletedPaymentsForBooking(booking.id)
-              const nextDue = computeNextDue(booking, completedPayments.length)
-              const daysUntilDue = Math.ceil((nextDue - new Date()) / (1000 * 60 * 60 * 24))
-              const isDueSoon = daysUntilDue <= 7 && daysUntilDue >= 0
-              const isOverdue = daysUntilDue < 0
-              const totalMonths = monthsBetween(booking.start_date, booking.end_date)
-              const remainingMonths = Math.max(0, totalMonths - completedPayments.length)
-              const progressPercentage = (completedPayments.length / totalMonths) * 100
+          {activeRentals.map((booking) => {
+            const completedPayments = getCompletedPaymentsForBooking(booking.id)
+            const nextDue = computeNextDue(booking, completedPayments.length)
+            const daysUntilDue = Math.ceil((nextDue - new Date()) / (1000 * 60 * 60 * 24))
+            const isDueSoon = daysUntilDue <= 7 && daysUntilDue >= 0
+            const isOverdue = daysUntilDue < 0
+            const totalMonths = monthsBetween(booking.start_date, booking.end_date)
+            const remainingMonths = Math.max(0, totalMonths - completedPayments.length)
+            const progressPercentage = (completedPayments.length / totalMonths) * 100
+            const totalPaidForBooking = completedPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0)
 
-              return (
-                <motion.div
-                  key={booking.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
-                >
-                  {/* Property Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
+            return (
+              <div
+                key={booking.id}
+                className="bg-white border border-gray-200 rounded-xl overflow-hidden"
+              >
+                {/* Property Header */}
+                <div className="p-5 border-b border-gray-100">
+                  <div className="flex items-start justify-between">
+                    <div>
                       <h3 className="text-lg font-semibold text-gray-900">{booking.listing_title || 'Property'}</h3>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-sm text-gray-500 mt-0.5">
                         {booking.listing_address}, {booking.listing_city}
                       </p>
                     </div>
-                    <span className="text-xs font-semibold bg-blue-100 text-blue-700 px-3 py-1 rounded-full">
-                      {booking.status.replace('_', ' ')}
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                      booking.status === 'active' 
+                        ? 'bg-green-50 text-green-700' 
+                        : 'bg-blue-50 text-blue-700'
+                    }`}>
+                      {booking.status === 'active' ? 'Active' : 'Pending Start'}
                     </span>
                   </div>
+                </div>
 
-                  {/* Rental Period */}
-                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <div>
-                        <p className="text-xs text-gray-500">Start Date</p>
-                        <p className="font-semibold text-gray-900">
-                          {new Date(booking.start_date).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-xs text-gray-500">Duration</p>
-                        <p className="font-semibold text-gray-900">{totalMonths} months</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-500">End Date</p>
-                        <p className="font-semibold text-gray-900">
-                          {new Date(booking.end_date).toLocaleDateString()}
-                        </p>
-                      </div>
+                {/* Details Grid */}
+                <div className="p-5">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+                    <div>
+                      <p className="text-xs text-gray-500">Monthly Rent</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        Rs. {Number(booking.monthly_rent || 0).toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Next Due</p>
+                      <p className={`text-lg font-semibold ${isOverdue ? 'text-red-600' : isDueSoon ? 'text-amber-600' : 'text-gray-900'}`}>
+                        {nextDue.toLocaleDateString()}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {isOverdue ? 'Overdue' : daysUntilDue === 0 ? 'Today' : `in ${daysUntilDue} days`}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Paid So Far</p>
+                      <p className="text-lg font-semibold text-green-600">
+                        Rs. {totalPaidForBooking.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-gray-400">{completedPayments.length} payments</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Remaining</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        Rs. {(remainingMonths * Number(booking.monthly_rent || 0)).toLocaleString()}
+                      </p>
+                      <p className="text-xs text-gray-400">{remainingMonths} months left</p>
                     </div>
                   </div>
 
-                  {/* Payment Progress */}
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between text-sm mb-2">
-                      <span className="text-gray-600">Payment Progress</span>
-                      <span className="font-semibold text-gray-900">
-                        {completedPayments.length} / {totalMonths} months
-                      </span>
+                  {/* Progress Bar */}
+                  <div className="mb-5">
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
+                      <span>Payment Progress</span>
+                      <span>{completedPayments.length} of {totalMonths} months</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
                       <div
-                        className="bg-green-600 h-2 rounded-full transition-all duration-500"
+                        className="bg-green-500 h-1.5 rounded-full transition-all"
                         style={{ width: `${progressPercentage}%` }}
                       />
                     </div>
                   </div>
 
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <p className="text-xs text-blue-600 font-medium">Next Due Date</p>
-                      <p className="font-semibold text-gray-900 mt-1">
-                        {nextDue.toLocaleDateString()}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {daysUntilDue > 0 ? `in ${daysUntilDue} days` : isOverdue ? 'Overdue!' : 'Today'}
-                      </p>
-                    </div>
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                      <p className="text-xs text-green-600 font-medium">Monthly Rent</p>
-                      <p className="font-semibold text-gray-900 mt-1">
-                        Rs. {Number(booking.monthly_rent || 0).toLocaleString()}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">per month</p>
-                    </div>
-                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                      <p className="text-xs text-purple-600 font-medium">Total Paid</p>
-                      <p className="font-semibold text-gray-900 mt-1">
-                        Rs. {(completedPayments.length * Number(booking.monthly_rent || 0)).toLocaleString()}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">{completedPayments.length} payments</p>
-                    </div>
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                      <p className="text-xs text-amber-600 font-medium">Remaining</p>
-                      <p className="font-semibold text-gray-900 mt-1">
-                        Rs. {(remainingMonths * Number(booking.monthly_rent || 0)).toLocaleString()}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">{remainingMonths} months</p>
-                    </div>
+                  {/* Period Info */}
+                  <div className="flex items-center gap-4 text-xs text-gray-500 mb-5">
+                    <span>
+                      <span className="text-gray-400">From:</span> {new Date(booking.start_date).toLocaleDateString()}
+                    </span>
+                    <span>
+                      <span className="text-gray-400">To:</span> {new Date(booking.end_date).toLocaleDateString()}
+                    </span>
+                    <span>
+                      <span className="text-gray-400">Duration:</span> {totalMonths} months
+                    </span>
                   </div>
 
                   {/* Alert for Due/Overdue */}
                   {(isDueSoon || isOverdue) && (
-                    <div className={`rounded-lg p-3 mb-4 flex items-start gap-2 ${
+                    <div className={`rounded-lg p-3 mb-5 flex items-center gap-2 text-sm ${
                       isOverdue 
-                        ? 'bg-red-50 text-red-700 border border-red-200' 
-                        : 'bg-amber-50 text-amber-800 border border-amber-200'
+                        ? 'bg-red-50 text-red-700' 
+                        : 'bg-amber-50 text-amber-700'
                     }`}>
-                      <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold">
-                          {isOverdue ? 'Payment Overdue!' : 'Payment Due Soon'}
-                        </p>
-                        <p className="text-xs mt-1">
-                          {isOverdue 
-                            ? 'Please pay immediately to avoid penalties.' 
-                            : `Payment due in ${daysUntilDue} day(s). Pay now to avoid late fees.`}
-                        </p>
-                      </div>
+                      <AlertCircle size={16} />
+                      <span>
+                        {isOverdue 
+                          ? 'Payment overdue! Please pay immediately.' 
+                          : `Payment due in ${daysUntilDue} day(s).`}
+                      </span>
                     </div>
                   )}
 
@@ -431,31 +387,31 @@ const TenantRentTracker = () => {
                     <button
                       onClick={() => handlePay(booking, 'monthly')}
                       disabled={processing === booking.id}
-                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50 flex items-center gap-2"
                     >
-                      <CreditCard size={16} /> Pay Monthly
+                      <CreditCard size={14} /> Pay Monthly
                     </button>
                     <button
                       onClick={() => handlePay(booking, 'full')}
                       disabled={processing === booking.id}
-                      className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 flex items-center gap-2"
                     >
-                      <Wallet size={16} /> Pay Full
+                      <Wallet size={14} /> Pay Full
                     </button>
                     <button
                       onClick={() => {
                         setSelectedBooking(booking)
                         setShowPaymentHistory(true)
                       }}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      className="px-4 py-2 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 flex items-center gap-2"
                     >
-                      <History size={16} /> History
+                      <History size={14} /> History
                     </button>
                   </div>
-                </motion.div>
-              )
-            })}
-          </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 

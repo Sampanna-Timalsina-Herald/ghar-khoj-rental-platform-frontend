@@ -41,8 +41,8 @@ const ToggleSetting = ({ label, description, enabled, onChange }) => (
 
 const AdminSettings = () => {
   const [settings, setSettings] = useState({
-    siteName: 'KhojGhar',
-    siteDescription: 'Find your perfect home',
+    siteName: 'GharKhoj',
+    siteDescription: 'Find your perfect home in Nepal',
     maintenanceMode: false,
     enableNotifications: true,
     requireEmailVerification: true,

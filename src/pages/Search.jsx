@@ -113,7 +113,7 @@ const Search = () => {
     <div className="w-full min-h-screen bg-gray-50">
       <SmartNav />
       
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 pt-32 pb-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}

@@ -18,6 +18,7 @@ const TenantRentAcceptance = () => {
   const [paymentStatus, setPaymentStatus] = useState({ is_paid: false })
   const [tenantSignature, setTenantSignature] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [error, setError] = useState('')
 
   const fetchData = async () => {
     try {

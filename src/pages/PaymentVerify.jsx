@@ -78,9 +78,9 @@ const PaymentVerify = () => {
     if (paymentDetails && status === 'success') {
       const rentMeta = paymentDetails.gateway_response?.metadata;
       if (rentMeta?.purpose === 'rent' && rentMeta?.booking_id) {
-        // Redirect back to rent acceptance page for first payment
+        // Redirect back to rent flow page for first payment
         if (rentMeta?.payment_mode === 'first') {
-          navigate(`/tenant/rent-acceptance/${rentMeta.booking_id}?payment_success=true`);
+          navigate(`/tenant/rent-flow/${rentMeta.booking_id}?payment_success=true`);
           return;
         }
         // Redirect to rent tracker for monthly/full payments

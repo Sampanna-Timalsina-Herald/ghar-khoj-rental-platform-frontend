@@ -45,7 +45,7 @@ const SmartNav = () => {
     >
       <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
         <Link to="/" className="inline-flex items-center hover:opacity-80 transition-opacity">
-          <img src={gharkhojLogo} alt="Gharkhoj" className="h-16 w-auto object-contain" />
+          <img src={gharkhojLogo} alt="Gharkhoj" className="h-24 w-auto object-contain" />
         </Link>
 
         <div className="hidden lg:flex items-center gap-6">

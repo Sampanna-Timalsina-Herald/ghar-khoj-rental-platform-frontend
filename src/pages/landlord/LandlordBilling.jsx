@@ -108,11 +108,11 @@ const LandlordBillingDashboard = () => {
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(28);
     doc.setFont('helvetica', 'bold');
-    doc.text('KHOJGHAR', margin, 22);
+    doc.text('GHARKHOJ', margin, 22);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(100, 100, 100);
-    doc.text('Property Rental Platform', margin, 29);
+    doc.text('Property Rental Platform | Nepal', margin, 29);
 
     // Invoice title (right aligned)
     doc.setTextColor(0, 0, 0);
@@ -311,14 +311,14 @@ const LandlordBillingDashboard = () => {
     doc.setFontSize(8);
     doc.setTextColor(110, 110, 110);
     doc.setFont('helvetica', 'normal');
-    doc.text('Thank you for using KHOJGHAR Platform', margin, yPos);
+    doc.text('Thank you for using GHARKHOJ Platform', margin, yPos);
     
     yPos += 4;
-    doc.text('For inquiries, please contact: support@khojghar.com', margin, yPos);
+    doc.text('For inquiries, please contact: support@gharkhoj.com', margin, yPos);
     doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - margin, yPos, { align: 'right' });
 
     // Save PDF
-    doc.save(`Invoice-${invoice.invoice_number || 'KHOJGHAR'}.pdf`);
+    doc.save(`Invoice-${invoice.invoice_number || 'GHARKHOJ'}.pdf`);
   };
 
   const formatCurrency = (amount) => {
@@ -694,7 +694,7 @@ const LandlordBillingDashboard = () => {
             <div className="space-y-6">
               {/* Invoice Header */}
               <div className="border-b border-gray-200 pb-6">
-                <h4 className="text-lg font-bold text-gray-900 mb-2">KHOJGHAR Platform</h4>
+                <h4 className="text-lg font-bold text-gray-900 mb-2">GHARKHOJ Platform</h4>
                 <p className="text-sm text-gray-600">Commission Invoice</p>
                 <div className="mt-4 bg-gray-50 p-4 rounded-lg">
                   <p className="text-xs text-gray-600">Invoice Number</p>

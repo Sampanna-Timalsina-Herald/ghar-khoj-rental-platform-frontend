@@ -233,7 +233,7 @@ const ListingDetail = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <SmartNav />
-        <div className="max-w-6xl mx-auto px-4 py-12">
+        <div className="max-w-6xl mx-auto px-4 pt-32 pb-12">
           <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6 font-semibold"
@@ -259,7 +259,7 @@ const ListingDetail = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <SmartNav />
-      <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="max-w-6xl mx-auto px-4 pt-32 pb-6">
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6 font-semibold"

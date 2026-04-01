@@ -78,6 +78,11 @@ const TenantListingDetail = () => {
     }
   }
 
+  // Helper function to allow only numbers in input
+  const handleNumberOnlyChange = (value) => {
+    return value.replace(/[^0-9]/g, '')
+  }
+
   const trackPropertyView = async (propertyId) => {
     try {
       await api.post('/recommendations/ml/track-view', {
@@ -878,9 +883,12 @@ const TenantListingDetail = () => {
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">Phone Number <span className="text-red-500">*</span></label>
                     <input
-                      type="tel"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="98xxxxxxxxxx"
                       value={bookingForm.phone_number}
-                      onChange={(e) => setBookingForm({ ...bookingForm, phone_number: e.target.value })}
+                      onChange={(e) => setBookingForm({ ...bookingForm, phone_number: handleNumberOnlyChange(e.target.value) })}
+                      maxLength="10"
                       className="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none focus:border-blue-500 transition-colors font-medium"
                     />
                   </div>
@@ -899,8 +907,11 @@ const TenantListingDetail = () => {
                     <label className="block text-sm font-bold text-gray-700 mb-2">Citizenship Number <span className="text-red-500">*</span></label>
                     <input
                       type="text"
+                      inputMode="numeric"
+                      placeholder="Enter citizenship number"
                       value={bookingForm.citizenship_number}
-                      onChange={(e) => setBookingForm({ ...bookingForm, citizenship_number: e.target.value })}
+                      onChange={(e) => setBookingForm({ ...bookingForm, citizenship_number: handleNumberOnlyChange(e.target.value) })}
+                      maxLength="15"
                       className="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none focus:border-blue-500 transition-colors font-medium"
                     />
                   </div>
@@ -928,9 +939,12 @@ const TenantListingDetail = () => {
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">Emergency Contact Phone Number <span className="text-red-500">*</span></label>
                     <input
-                      type="tel"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="98xxxxxxxxxx"
                       value={bookingForm.emergency_contact_phone}
-                      onChange={(e) => setBookingForm({ ...bookingForm, emergency_contact_phone: e.target.value })}
+                      onChange={(e) => setBookingForm({ ...bookingForm, emergency_contact_phone: handleNumberOnlyChange(e.target.value) })}
+                      maxLength="10"
                       className="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none focus:border-blue-500 transition-colors font-medium"
                     />
                   </div>
