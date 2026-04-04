@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import { Users, Home, AlertCircle, BarChart3, User as UserIcon, TrendingUp, Settings as SettingsIcon, DollarSign, Package, Calendar } from 'lucide-react'
+import { Users, Home, AlertCircle, BarChart3, User as UserIcon, TrendingUp, Settings as SettingsIcon, DollarSign, Package, Calendar, FileText } from 'lucide-react'
 import Navbar from '../../components/Navbar'
 import Sidebar from '../../components/Sidebar'
 import AdminHome from './AdminHome'
@@ -13,6 +13,7 @@ import AdminCommissionDashboard from './AdminCommissionDashboard'
 import ComprehensiveAnalyticsDashboard from './ComprehensiveAnalyticsDashboard'
 import AdminSubscriptions from './AdminSubscriptions'
 import AdminSubscriptionHistory from './AdminSubscriptionHistory'
+import AdminAgreements from './AdminAgreements'
 
 const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -44,6 +45,11 @@ const AdminDashboard = () => {
       label: 'Users',
       path: '/users',
       icon: <Users size={20} />,
+    },
+    {
+      label: 'Agreements',
+      path: '/agreements',
+      icon: <FileText size={20} />,
     },
     {
       label: 'Commissions',
@@ -92,6 +98,7 @@ const AdminDashboard = () => {
             <Route index element={<AdminHome />} />
             <Route path="listings" element={<AdminListings />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="agreements" element={<AdminAgreements />} />
             <Route path="commissions" element={<AdminCommissionDashboard />} />
             <Route path="subscriptions" element={<AdminSubscriptions />} />
             <Route path="subscriptions/history" element={<AdminSubscriptionHistory />} />

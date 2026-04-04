@@ -13,10 +13,20 @@ const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
+  const [conversationId, setConversationId] = useState(null)
   const messagesEndRef = useRef(null)
   const typingTimeoutRef = useRef(null)
+  const conversationIdRef = useRef(null)
 
   useEffect(() => {
+    conversationIdRef.current = conversationId
+  }, [conversationId])
+
+  useEffect(() => {
+    if (!user?.id || !landlordId) {
+      return
+    }
+
     // Initialize socket
     initSocket(accessToken)
     
@@ -25,6 +35,10 @@ const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
 
     // Listen for new messages
     socketService.on('MessageReceived', (data) => {
+      if (conversationIdRef.current && data.conversation_id && data.conversation_id !== conversationIdRef.current) {
+        return
+      }
+
       setMessages((prev) => [...prev, data])
       scrollToBottom()
     })
@@ -46,15 +60,23 @@ const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
       socketService.off('UserTyping')
       socketService.off('UserStoppedTyping')
     }
-  }, [landlordId, accessToken])
+  }, [landlordId, accessToken, user?.id])
 
   const fetchMessages = async () => {
     try {
+      if (!user?.id || !landlordId) {
+        return
+      }
+
       setLoading(true)
-      const response = await api.get(`/messages/conversation/${landlordId}`, {
-        params: { listing_id: listingId }
+      const response = await api.get(`/messages/conversation/${user.id}/${landlordId}`, {
+        params: listingId ? { property_id: listingId } : {},
       })
-      setMessages(response.data.data || response.data || [])
+      const conversationData = response.data.data?.conversation || null
+      const messageData = response.data.data?.messages || []
+
+      setConversationId(conversationData?.id || null)
+      setMessages(messageData)
       scrollToBottom()
     } catch (error) {
       console.error('Failed to fetch messages:', error)
@@ -101,6 +123,9 @@ const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
 
       // Get the message from response
       const messageData = response.data.data || response.data
+      if (messageData?.conversation_id) {
+        setConversationId(messageData.conversation_id)
+      }
 
       // Replace optimistic message with real one
       setMessages((prev) =>
@@ -120,7 +145,7 @@ const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
       )
 
       // Send via socket for real-time
-      socketService.sendMessage(landlordId, messageContent, listingId)
+      socketService.sendMessage(landlordId, messageContent, listingId || null, messageData?.conversation_id || conversationId)
       scrollToBottom()
     } catch (error) {
       console.error('Failed to send message:', error)
@@ -134,7 +159,7 @@ const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
   }
 
   const handleTyping = () => {
-    socketService.sendTypingIndicator(landlordId, `conversation-${user.id}-${landlordId}`)
+    socketService.sendTypingIndicator(landlordId, conversationId || `conversation-${user.id}-${landlordId}`)
 
     // Clear existing timeout
     if (typingTimeoutRef.current) {
@@ -143,7 +168,7 @@ const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
 
     // Set new timeout to send stop typing after 2 seconds of inactivity
     typingTimeoutRef.current = setTimeout(() => {
-      socketService.sendStopTyping(landlordId, `conversation-${user.id}-${landlordId}`)
+      socketService.sendStopTyping(landlordId, conversationId || `conversation-${user.id}-${landlordId}`)
     }, 2000)
   }
 

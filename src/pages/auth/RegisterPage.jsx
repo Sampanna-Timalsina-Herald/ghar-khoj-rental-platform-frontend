@@ -413,7 +413,7 @@ const RegisterPage = () => {
       <Input
         label="Full Name"
         name="name"
-        placeholder="e.g. John Doe"
+        placeholder="e.g. Your Name"
         value={formData.name}
         onChange={handleChange}
         error={errors.name}
@@ -424,7 +424,7 @@ const RegisterPage = () => {
         label="Email Address"
         name="email"
         type="email"
-        placeholder="john@example.com"
+        placeholder="email@example.com"
         value={formData.email}
         onChange={handleChange}
         error={errors.email}

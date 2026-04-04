@@ -197,7 +197,10 @@ const ModernChat = () => {
     try {
       const formData = new FormData()
       formData.append('receiver_id', selectedConversation.other_user_id)
-      formData.append('listing_id', selectedConversation.listing_id)
+      const conversationListingId = selectedConversation.listing_id || selectedConversation.property_ids?.[0] || null
+      if (conversationListingId) {
+        formData.append('listing_id', conversationListingId)
+      }
       formData.append('message_text', messageContent)
 
       // Add files to form data
@@ -233,7 +236,7 @@ const ModernChat = () => {
       socketService.sendMessage(
         selectedConversation.other_user_id,
         messageContent,
-        selectedConversation.listing_id,
+        conversationListingId,
         selectedConversation.id
       )
 
@@ -293,7 +296,8 @@ const ModernChat = () => {
 
   const filteredConversations = conversations.filter((conv) =>
     conv.other_user_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conv.listing_id?.toLowerCase().includes(searchQuery.toLowerCase())
+    conv.listing_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    conv.property_ids?.some((propertyId) => propertyId?.toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
   const isOtherUserTyping = selectedConversation && typingUsers[selectedConversation.other_user_id]

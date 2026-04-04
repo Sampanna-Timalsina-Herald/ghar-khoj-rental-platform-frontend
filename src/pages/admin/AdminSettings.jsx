@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Settings, Bell, Lock, Globe, Database, Save, X, RefreshCw, AlertCircle } from 'lucide-react'
+import { Settings, Bell, Lock, Globe, Database, Save, X, RefreshCw, AlertCircle, DollarSign } from 'lucide-react'
 import api from '../../api/axios'
 import { toast } from 'sonner'
 
@@ -53,6 +53,10 @@ const AdminSettings = () => {
     maintenanceMessage: 'Site is under maintenance. Please try again later.',
     enableNewListingAlerts: true,
     enableMessageNotifications: true,
+    // Commission settings
+    commission_enabled: false,
+    commission_rate: 7,
+    commission_minimum: 500,
   })
 
   const [loading, setLoading] = useState(true)
@@ -248,6 +252,62 @@ const AdminSettings = () => {
             />
             <p className="text-gray-600 text-sm mt-2">Maximum number of active listings each user can create</p>
           </div>
+        </div>
+      </SettingSection>
+
+      {/* Commission Settings */}
+      <SettingSection
+        icon={<DollarSign size={24} />}
+        title="Commission Settings"
+        description="Control platform commission system for landlords"
+      >
+        <div>
+          <ToggleSetting
+            label="Enable Commission System"
+            description="Charge landlords a commission on rental bookings. When disabled, no commission will be charged for new rentals."
+            enabled={settings.commission_enabled}
+            onChange={(value) => handleSettingChange('commission_enabled', value)}
+          />
+          <div className="py-4 border-t border-gray-100">
+            <label className="block text-sm font-medium text-gray-900 mb-2">Commission Rate (%)</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.1"
+              value={settings.commission_rate || 7}
+              onChange={(e) => handleSettingChange('commission_rate', parseFloat(e.target.value) || 0)}
+              disabled={!settings.commission_enabled}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            />
+            <p className="text-gray-600 text-sm mt-2">Percentage of total rent charged as commission</p>
+          </div>
+          <div className="py-4 border-t border-gray-100">
+            <label className="block text-sm font-medium text-gray-900 mb-2">Minimum Commission (Rs.)</label>
+            <input
+              type="number"
+              min="0"
+              value={settings.commission_minimum || 500}
+              onChange={(e) => handleSettingChange('commission_minimum', parseFloat(e.target.value) || 0)}
+              disabled={!settings.commission_enabled}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            />
+            <p className="text-gray-600 text-sm mt-2">Minimum commission amount per rental transaction</p>
+          </div>
+          {!settings.commission_enabled && (
+            <div className="py-4 border-t border-gray-100 bg-yellow-50 -mx-6 px-6 -mb-6 rounded-b-lg">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="text-yellow-600 mt-0.5" size={20} />
+                <div>
+                  <p className="font-medium text-yellow-800">Commission Disabled</p>
+                  <p className="text-sm text-yellow-700">
+                    No commission will be charged for properties rented while this setting is disabled. 
+                    Previously created commission transactions will remain unchanged.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </SettingSection>
 

@@ -6,7 +6,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { useLocationStore } from '../../stores/locationStore'
 import { 
   User, Mail, Phone, MapPin, GraduationCap, Loader2, Lock, Eye, EyeOff, 
-  Pencil, ChevronRight, X, Wifi, Car, Snowflake, Droplets, UtensilsCrossed, Trees, Dumbbell, Shield, Shirt, Tv, ThermometerSun
+  Pencil, ChevronRight, X, Wifi, Car, Snowflake, Droplets, UtensilsCrossed, Trees, Dumbbell, Shield, Shirt, Tv, ThermometerSun, Trash2
 } from 'lucide-react'
 import CollegeSelect from '../../components/CollegeSelect'
 import PreferencesModal from '../../components/PreferencesModal'
@@ -78,7 +78,40 @@ const TenantProfile = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [clearingPreferences, setClearingPreferences] = useState(false)
   const preferencesFormRef = useRef(null)
+
+  const handleClearPreferences = async () => {
+    if (!window.confirm('Are you sure you want to clear all your preferences? This will reset your recommendations.')) {
+      return
+    }
+    
+    setClearingPreferences(true)
+    try {
+      await api.delete('/preferences')
+      setPreferences(null)
+      setPreferencesFormData({
+        locations: [],
+        min_price: '',
+        max_price: '',
+        bedrooms: '',
+        property_types: [],
+        amenities: [],
+      })
+      toast.success('Preferences cleared successfully!')
+      // Rebuild ML profile with empty preferences
+      try {
+        await api.post('/recommendations/ml/build-profile')
+      } catch (e) {
+        // Ignore ML profile rebuild errors
+      }
+    } catch (error) {
+      console.error('Failed to clear preferences:', error)
+      toast.error('Failed to clear preferences')
+    } finally {
+      setClearingPreferences(false)
+    }
+  }
 
   useEffect(() => {
     const { isAuthenticated } = useAuthStore.getState()
@@ -679,22 +712,38 @@ const TenantProfile = () => {
                     )}
                   </div>
 
-                  {/* Edit Button */}
-                  <div className="p-5 pt-0">
+                  {/* Edit and Clear Buttons */}
+                  <div className="p-5 pt-0 space-y-2">
                     {!isEditingPreferences ? (
-                      <button
-                        onClick={() => {
-                           setIsEditingPreferences(true)
-                           setTimeout(() => {
-                             preferencesFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                           }, 100)
-                         }}
-                        className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl transition-colors"
-                      >
-                        <Pencil size={18} />
-                        Edit Preferences
-                        <ChevronRight size={18} />
-                      </button>
+                      <>
+                        <button
+                          onClick={() => {
+                             setIsEditingPreferences(true)
+                             setTimeout(() => {
+                               preferencesFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                             }, 100)
+                           }}
+                          className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl transition-colors"
+                        >
+                          <Pencil size={18} />
+                          Edit Preferences
+                          <ChevronRight size={18} />
+                        </button>
+                        {preferences && (preferencesFormData.locations?.length > 0 || preferencesFormData.property_types?.length > 0 || preferencesFormData.min_price || preferencesFormData.max_price || preferencesFormData.bedrooms || preferencesFormData.amenities?.length > 0) && (
+                          <button
+                            onClick={handleClearPreferences}
+                            disabled={clearingPreferences}
+                            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-xl transition-colors border border-red-200 disabled:opacity-50"
+                          >
+                            {clearingPreferences ? (
+                              <Loader2 size={18} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={18} />
+                            )}
+                            {clearingPreferences ? 'Clearing...' : 'Clear All Preferences'}
+                          </button>
+                        )}
+                      </>
                     ) : (
                       <button
                         onClick={() => setIsEditingPreferences(false)}

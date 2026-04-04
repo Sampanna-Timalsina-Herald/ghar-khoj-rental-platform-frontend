@@ -100,14 +100,27 @@ const TenantHome = () => {
   const handleRefreshRecommendations = async () => {
     try {
       setLoadingRecommendations(true)
-      // Build user profile first
+      
+      // First, clear old recommendations
+      try {
+        await api.delete('/recommendations/ml/clear')
+        console.log('[TenantHome] Old recommendations cleared')
+      } catch (clearError) {
+        console.warn('[TenantHome] Could not clear old recommendations:', clearError)
+      }
+      
+      // Build user profile from preferences
       await api.post('/recommendations/ml/build-profile')
-      // Generate fresh recommendations
+      
+      // Generate fresh recommendations based on current preferences
       await api.post('/recommendations/generate', { algorithm: 'ml', limit: 6 })
+      
       // Fetch the new recommendations
       await fetchRecommendations()
     } catch (error) {
       console.error('[TenantHome] Failed to refresh recommendations:', error)
+    } finally {
+      setLoadingRecommendations(false)
     }
   }
 
@@ -289,9 +302,11 @@ const TenantHome = () => {
         ) : recommendations.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {recommendations.slice(0, 6).map((property, index) => {
-              const matchScore = property.similarity_score 
-                ? Math.round(property.similarity_score * 100) 
-                : Math.round(Math.random() * 15 + 85) // Fallback score
+              // Use similarity_score or confidence_score if available, otherwise calculate from matching features
+              const rawScore = property.similarity_score || property.confidence_score || 0
+              const matchScore = rawScore > 0 
+                ? Math.round(rawScore * 100) 
+                : (property.matching_features?.matchPercentage || 75) // Fallback to matchPercentage or default
               
               const getBadgeConfig = (score) => {
                 if (score >= 90) return { gradient: 'from-blue-600 to-indigo-600', icon: <Sparkles size={12} />, text: 'Top Match' }

@@ -14,7 +14,9 @@ const LandlordListings = () => {
   const [filteredListings, setFilteredListings] = useState([])
   const [loading, setLoading] = useState(true)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [cancelRentalConfirm, setCancelRentalConfirm] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterCity, setFilterCity] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -179,12 +181,14 @@ const LandlordListings = () => {
 
   const handleCancelRental = async (id, e) => {
     e?.stopPropagation() // Prevent navigation if event exists
+    setCancelRentalConfirm(id)
+  }
+
+  const confirmCancelRental = async () => {
+    if (!cancelRentalConfirm) return
     
-    const confirmed = window.confirm(
-      'Are you sure you want to cancel this rental? The listing will become available for new bookings.'
-    )
-    
-    if (!confirmed) return
+    const id = cancelRentalConfirm
+    setCancelling(true)
     
     try {
       const response = await api.put(`/listings/${id}/cancel-rental`)
@@ -211,6 +215,9 @@ const LandlordListings = () => {
     } catch (error) {
       console.error('Failed to cancel rental:', error)
       toast.error(error.response?.data?.error || 'Failed to cancel rental. Please try again.')
+    } finally {
+      setCancelling(false)
+      setCancelRentalConfirm(null)
     }
   }
 
@@ -789,6 +796,58 @@ const LandlordListings = () => {
                 >
                   {deleting ? <Loader2 size={16} className="animate-spin" /> : null}
                   Delete Listing
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Cancel Rental Confirmation Modal */}
+      <AnimatePresence>
+        {cancelRentalConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            onClick={() => !cancelling && setCancelRentalConfirm(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-xl p-6 max-w-md w-full mx-4"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-orange-100 rounded-full">
+                  <AlertCircle size={24} className="text-orange-600" />
+                </div>
+                <h3 className="text-xl font-bold text-text">Cancel Rental</h3>
+              </div>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to cancel this rental? The listing will become available for new bookings and the current tenant will be notified.
+              </p>
+              <div className="flex gap-4 justify-end">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setCancelRentalConfirm(null)}
+                  disabled={cancelling}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Keep Rental
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={confirmCancelRental}
+                  disabled={cancelling}
+                  className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {cancelling ? <Loader2 size={16} className="animate-spin" /> : <X size={16} />}
+                  Cancel Rental
                 </motion.button>
               </div>
             </motion.div>

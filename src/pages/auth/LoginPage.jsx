@@ -362,7 +362,7 @@ const LoginPage = () => {
                 label="Email Address"
                 name="email"
                 type="email"
-                placeholder="john@example.com"
+                placeholder="email@example.com"
                 value={formData.email}
                 onChange={handleChange}
                 icon={<Mail size={18} />}
