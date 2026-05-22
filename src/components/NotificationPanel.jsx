@@ -190,7 +190,7 @@ const NotificationPanel = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute right-0 mt-2 w-[calc(100vw-1rem)] sm:w-96 max-w-[calc(100vw-1rem)] max-h-[70vh] bg-white rounded-lg shadow-xl border border-gray-200 z-50 flex flex-col"
+            className="fixed top-16 left-2 right-2 mx-auto w-auto max-h-[70vh] bg-white rounded-lg shadow-xl border border-gray-200 z-50 flex flex-col sm:absolute sm:top-auto sm:right-0 sm:left-auto sm:mt-2 sm:w-96 sm:max-w-none"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
