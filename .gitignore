@@ -20,3 +20,14 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Ignore markdown files
+*.md
+
+# Ignore test files/folders
+test/
+*.test.js
+*.spec.js
+
+# Coverage reports
+coverage/

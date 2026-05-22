@@ -84,7 +84,11 @@ const EditListing = () => {
       }
       
       if (listing.images && Array.isArray(listing.images)) {
-        setExistingImages(listing.images)
+        // Filter out null and 'null' string values
+        const validImages = listing.images.filter(
+          img => img && img !== 'null' && img !== 'undefined'
+        )
+        setExistingImages(validImages)
       }
     } catch (err) {
       console.error('Failed to fetch listing:', err)
@@ -139,10 +143,12 @@ const EditListing = () => {
         submitData.append('images', image)
       })
       
-      // Add existing images to keep
-      existingImages.forEach((imageUrl) => {
-        submitData.append('existingImages', imageUrl)
-      })
+      // Add existing images to keep (filter out null values)
+      existingImages
+        .filter((imageUrl) => imageUrl && imageUrl !== 'null' && imageUrl !== 'undefined')
+        .forEach((imageUrl) => {
+          submitData.append('existingImages', imageUrl)
+        })
 
       await api.put(`/listings/${id}`, submitData)
 
@@ -430,7 +436,9 @@ const EditListing = () => {
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-text">Current Images</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {existingImages.map((image, index) => (
+                {existingImages
+                  .filter((image) => image) // Filter out null/undefined values
+                  .map((image, index) => (
                   <motion.div
                     key={index}
                     whileHover={{ scale: 1.05 }}
@@ -438,9 +446,11 @@ const EditListing = () => {
                   >
                     <img
                       src={
-                        image.startsWith('http')
+                        image && image.startsWith('http')
                           ? image
-                          : `http://localhost:5000${image}`
+                          : image
+                          ? `http://localhost:5000${image}`
+                          : ''
                       }
                       alt={`Listing ${index + 1}`}
                       className="w-full h-24 object-cover rounded-lg"

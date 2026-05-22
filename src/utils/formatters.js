@@ -14,6 +14,20 @@ export const formatDate = (date) => {
 }
 
 export const formatPhone = (phone) => {
-  if (!phone) return ''
-  return phone.replace(/(\d{2})(\d{3})(\d{3})(\d{4})/, '+$1 $2 $3 $4')
-}
+  if (!phone) return '';
+
+  const cleaned = phone.replace(/\D/g, '');
+
+  // Nepal country code handling
+  if (cleaned.startsWith('977')) {
+    const number = cleaned.slice(3);
+    return `+977 ${number}`;
+  }
+
+  // local Nepali number (98XXXXXXXX)
+  if (cleaned.length === 10) {
+    return `+977 ${cleaned}`;
+  }
+
+  return phone;
+};
