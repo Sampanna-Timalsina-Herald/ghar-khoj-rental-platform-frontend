@@ -160,17 +160,23 @@ const ListingCard = ({ data, onBookClick }) => {
         transition={{ duration: 0.4 }}
       >
         <img
-          src={
-            data.images && data.images.length > 0 
-              ? (data.images[0].startsWith('http') ? data.images[0] : `http://localhost:5000${data.images[0]}`)
-              : "https://images.unsplash.com/photo-1570129477488-c70a256a7356?q=80&w=600&h=400&auto=format&fit=crop"
-          }
-          alt={data.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          onError={(e) => { e.target.onerror = null; e.target.src="https://images.unsplash.com/photo-1570129477488-c70a256a7356?q=80&w=600&h=400&auto=format&fit=crop" }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        
+  src={
+    data.images && data.images.length > 0
+      ? (data.images[0].startsWith('http')
+          ? data.images[0]
+          : `https://res.cloudinary.com/dvvjbzez2/image/upload/${data.images[0]}`)
+      : "https://res.cloudinary.com/dvvjbzez2/image/upload/v1779440737/property_images/xzks20vrpedgsyo37thu.jpg"
+  }
+  alt={data.title}
+  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+  onError={(e) => {
+    e.target.onerror = null;
+    e.target.src =
+      "https://res.cloudinary.com/dvvjbzez2/image/upload/v1779440737/property_images/xzks20vrpedgsyo37thu.jpg";
+  }}
+/>
+
+<div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         {/* Badge */}
         <div className="absolute top-4 right-4 bg-gradient-to-r from-primary-500 to-primary-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
           Featured
