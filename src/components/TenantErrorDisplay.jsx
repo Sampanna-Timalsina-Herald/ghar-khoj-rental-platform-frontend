@@ -8,6 +8,7 @@ import { AlertCircle, X } from 'lucide-react';
 const TenantErrorDisplay = () => {
   const [error, setError] = useState(null);
   const [refreshError, setRefreshError] = useState(null);
+  const [tokenError, setTokenError] = useState(null);
 
   useEffect(() => {
     // Check for errors every 100ms
@@ -20,12 +21,16 @@ const TenantErrorDisplay = () => {
         setRefreshError(window.TENANT_REFRESH_ERROR);
         console.log('🔴 DISPLAYING REFRESH ERROR:', window.TENANT_REFRESH_ERROR);
       }
+      if (window.TENANT_TOKEN_ERROR) {
+        setTokenError(window.TENANT_TOKEN_ERROR);
+        console.log('🔴 DISPLAYING TOKEN ERROR:', window.TENANT_TOKEN_ERROR);
+      }
     }, 100);
 
     return () => clearInterval(interval);
   }, []);
 
-  if (!error && !refreshError) return null;
+  if (!error && !refreshError && !tokenError) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-4">
@@ -39,8 +44,10 @@ const TenantErrorDisplay = () => {
             onClick={() => {
               setError(null);
               setRefreshError(null);
+              setTokenError(null);
               window.TENANT_LOGIN_ERROR = null;
               window.TENANT_REFRESH_ERROR = null;
+              window.TENANT_TOKEN_ERROR = null;
             }}
             className="hover:bg-red-700 p-1 rounded"
           >
@@ -76,6 +83,19 @@ const TenantErrorDisplay = () => {
             </div>
           )}
 
+          {tokenError && (
+            <div className="space-y-2">
+              <h3 className="font-bold text-lg text-gray-900">Token Authentication Error:</h3>
+              <div className="bg-gray-100 rounded p-4 font-mono text-xs overflow-auto">
+                <pre>{JSON.stringify(tokenError, null, 2)}</pre>
+              </div>
+              <div className="bg-orange-50 border border-orange-200 rounded p-3">
+                <p className="text-sm text-orange-800 font-medium">💡 Likely Cause:</p>
+                <p className="text-xs text-orange-700 mt-1">{tokenError.suggestion}</p>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <h3 className="font-bold text-lg text-gray-900">Debugging Steps:</h3>
             <ol className="list-decimal list-inside space-y-1 text-sm text-gray-700">
@@ -90,7 +110,7 @@ const TenantErrorDisplay = () => {
           <div className="flex gap-3">
             <button
               onClick={() => {
-                const errorText = JSON.stringify({ error, refreshError }, null, 2);
+                const errorText = JSON.stringify({ error, refreshError, tokenError }, null, 2);
                 navigator.clipboard.writeText(errorText);
                 alert('Error details copied to clipboard!');
               }}
@@ -100,7 +120,7 @@ const TenantErrorDisplay = () => {
             </button>
             <button
               onClick={() => {
-                console.log('🔍 FULL ERROR DETAILS:', { error, refreshError });
+                console.log('🔍 FULL ERROR DETAILS:', { error, refreshError, tokenError });
                 console.log('🔍 LOCALSTORAGE TOKEN:', localStorage.getItem('token'));
                 console.log('🔍 LOCALSTORAGE ROLE:', localStorage.getItem('role'));
                 console.log('🔍 LOCALSTORAGE USER:', localStorage.getItem('user'));

@@ -50,17 +50,42 @@ const api = axios.create({
 // Request interceptor: attach access token from memory or localStorage
 api.interceptors.request.use(
   async (config) => {
-    // Always try localStorage first as it's the source of truth
-    let token = localStorage.getItem('token');
+    console.log('[AXIOS-REQUEST] Outgoing request:', config.url);
     
-    // If not in localStorage, try store
-    if (!token) {
-      const authStore = useAuthStore.getState();
-      token = authStore.accessToken || authStore.token;
-    }
+    // Skip token attachment for public endpoints
+    const url = config.url || '';
+    const isPublicEndpoint = url.includes('public') || 
+                             url.includes('login') ||
+                             url.includes('register') ||
+                             url.includes('forgot-password') ||
+                             url.includes('reset-password');
+    
+    console.log('[AXIOS-REQUEST] Is public endpoint?', isPublicEndpoint, 'URL:', url);
+    
+    if (!isPublicEndpoint) {
+      // Always try localStorage first as it's the source of truth
+      let token = localStorage.getItem('token');
+      
+      // If not in localStorage, try store
+      if (!token) {
+        const authStore = useAuthStore.getState();
+        token = authStore.accessToken || authStore.token;
+      }
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      if (token) {
+        // Ensure token doesn't have "Bearer " prefix already
+        const cleanToken = token.replace(/^Bearer\s+/i, '');
+        config.headers.Authorization = `Bearer ${cleanToken}`;
+        console.log('[AXIOS-REQUEST] ✅ Token attached to request:', config.url);
+        console.log('[AXIOS-REQUEST] Token preview:', cleanToken.substring(0, 30) + '...');
+        console.log('[AXIOS-REQUEST] Authorization header:', config.headers.Authorization.substring(0, 40) + '...');
+      } else {
+        console.error('[AXIOS-REQUEST] ❌ NO TOKEN AVAILABLE for:', config.url);
+        console.error('[AXIOS-REQUEST] localStorage token:', localStorage.getItem('token'));
+        console.error('[AXIOS-REQUEST] Store token:', useAuthStore.getState().token);
+      }
+    } else {
+      console.log('[AXIOS-REQUEST] Skipping token for public endpoint:', url);
     }
 
     // Don't set Content-Type for FormData - let browser handle it
@@ -117,73 +142,46 @@ api.interceptors.response.use(
     const isAuthMe = originalRequest.url.includes("/auth/me");
 
     if (error.response?.status === 401 && !originalRequest._retry && !isLoginOrPublic && !isAuthMe) {
-      console.log('[AXIOS-INTERCEPTOR] 401 detected, attempting token refresh');
-      originalRequest._retry = true;
-
-      try {
-        // Check if user is authenticated before trying to refresh
-        const token = localStorage.getItem('token');
-        if (!token && !authStore.isAuthenticated) {
-          console.log('[AXIOS-INTERCEPTOR] No token found, skipping refresh');
-          // No token at all, don't try to refresh
-          return Promise.reject(error);
-        }
-
-        console.log('[AXIOS-INTERCEPTOR] Calling refresh token endpoint');
-        // Call refresh token endpoint
-        const res = await axios.post(
-          `${API_URL}/auth/refresh-token`,
-          {},
-          { withCredentials: true }
-        );
-
-        // Update access token in store (memory)
-        if (res.data.accessToken) {
-          console.log('[AXIOS-INTERCEPTOR] Token refreshed successfully');
-          authStore.setAccessToken(res.data.accessToken);
-          // Also update localStorage token
-          localStorage.setItem('token', res.data.accessToken);
-
-          // Retry original request with new token
-          originalRequest.headers.Authorization = `Bearer ${res.data.accessToken}`;
-          return api(originalRequest);
-        }
-      } catch (refreshError) {
-        console.error('🔴 [AXIOS-INTERCEPTOR] Refresh failed:', {
-          status: refreshError?.response?.status,
-          error: refreshError?.response?.data,
-          message: refreshError.message
-        });
+      console.log('[AXIOS-INTERCEPTOR] 401 detected');
+      console.log('[AXIOS-INTERCEPTOR] Original request URL:', originalRequest.url);
+      console.log('[AXIOS-INTERCEPTOR] Token in localStorage:', !!localStorage.getItem('token'));
+      
+      // For cross-origin deployments, refresh tokens via cookies don't work
+      // Instead of trying to refresh, just logout and redirect to login
+      const token = localStorage.getItem('token');
+      const role = localStorage.getItem('role');
+      
+      if (token) {
+        console.error('[AXIOS-INTERCEPTOR] Token exists but request failed');
+        console.error('[AXIOS-INTERCEPTOR] This usually means:');
+        console.error('  1. Token expired (access token has short lifetime)');
+        console.error('  2. Refresh token cookies not working (cross-origin issue)');
+        console.error('  3. Backend not recognizing the token');
         
-        // Store refresh error for tenant debugging
-        if (authStore.role === 'tenant') {
-          window.TENANT_REFRESH_ERROR = {
-            status: refreshError?.response?.status,
-            error: refreshError?.response?.data,
-            message: refreshError.message
-          };
-          console.error('🚨 TENANT REFRESH FAILED:', JSON.stringify(window.TENANT_REFRESH_ERROR, null, 2));
+        // Store detailed error for display
+        window.TENANT_TOKEN_ERROR = {
+          message: 'Token authentication failed - Session expired',
+          token: token.substring(0, 30) + '...',
+          url: originalRequest.url,
+          role: role,
+          suggestion: 'Your session has expired. This happens because refresh tokens via cookies do not work across different domains. You need to login again.'
+        };
+        
+        // For tenant, delay logout to show error
+        if (role === 'tenant') {
+          console.error('⏰ Waiting 5 seconds before logout to allow error inspection...');
+          await new Promise(resolve => setTimeout(resolve, 5000));
         }
         
-        // Only logout if refresh token is explicitly invalid
-        const refreshStatus = refreshError?.response?.status;
-        if (refreshStatus === 401 || refreshStatus === 403) {
-          console.error('🔴 [AXIOS-INTERCEPTOR] Refresh token invalid, DELAYING logout for debugging...');
-          
-          // DELAY logout for tenant to see error
-          if (authStore.role === 'tenant') {
-            console.error('⏰ Waiting 5 seconds before logout to allow error inspection...');
-            await new Promise(resolve => setTimeout(resolve, 5000));
-          }
-          
-          authStore.logout();
-          // Only redirect if not already on login page
-          if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
-            window.location.href = "/login";
-          }
+        authStore.logout();
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = "/login";
         }
-        return Promise.reject(refreshError);
+        return Promise.reject(error);
       }
+      
+      // If no token at all, just reject
+      return Promise.reject(error);
     }
     
     // For other errors or if already retried, just return the error

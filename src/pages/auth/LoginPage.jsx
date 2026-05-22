@@ -89,6 +89,8 @@ const LoginPage = () => {
       console.log("USER FULL OBJECT:", user);
       console.log("USER ROLE:", user.role);
       console.log("ACCESS TOKEN RECEIVED:", accessToken ? accessToken.substring(0, 30) + '...' : 'NO TOKEN');
+      console.log("ACCESS TOKEN FULL LENGTH:", accessToken?.length);
+      console.log("ACCESS TOKEN STARTS WITH 'Bearer'?:", accessToken?.startsWith('Bearer'));
       
       // Check cookies
       console.log("🍪 COOKIES:", document.cookie);
@@ -104,9 +106,25 @@ const LoginPage = () => {
       
       console.log("✅ VERIFICATION AFTER LOGIN:");
       console.log("- Token saved:", savedToken ? savedToken.substring(0, 30) + '...' : 'FAILED TO SAVE');
+      console.log("- Token length:", savedToken?.length);
+      console.log("- Token starts with Bearer?:", savedToken?.startsWith('Bearer'));
       console.log("- Role saved:", savedRole);
       console.log("- User saved:", savedUser ? 'YES' : 'NO');
       console.log("- Cookies after login:", document.cookie);
+      
+      // Test if token works by making a simple API call
+      if (user.role === 'tenant') {
+        console.log("🧪 TESTING TOKEN - Making test API call...");
+        try {
+          // Import api here to avoid circular dependency
+          const { default: api } = await import('../../api/axios');
+          const testResponse = await api.get('/auth/me');
+          console.log("✅ TEST API CALL SUCCESS:", testResponse.data);
+        } catch (testError) {
+          console.error("❌ TEST API CALL FAILED:", testError.response?.data || testError.message);
+          console.error("❌ This means the token is not working!");
+        }
+      }
       
       // For tenant, add extra delay to see what happens
       if (user.role === 'tenant') {
