@@ -85,6 +85,10 @@ export const useAuthStore = create((set, get) => ({
   },
 
   logout: () => {
+    console.log('[AUTH-STORE] LOGOUT CALLED - Stack trace:', new Error().stack);
+    console.log('[AUTH-STORE] Current role:', get().role);
+    console.log('[AUTH-STORE] Current user:', get().user);
+    
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     localStorage.removeItem('user');

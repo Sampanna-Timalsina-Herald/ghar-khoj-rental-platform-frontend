@@ -83,6 +83,13 @@ api.interceptors.response.use(
     const authStore = useAuthStore.getState();
     const originalRequest = error.config;
 
+    console.log('[AXIOS-INTERCEPTOR] Error caught:', {
+      status: error.response?.status,
+      url: originalRequest?.url,
+      role: authStore.role,
+      hasToken: !!localStorage.getItem('token')
+    });
+
     // Only retry if:
     // 1. Status is 401
     // 2. Not retried yet
@@ -98,16 +105,19 @@ api.interceptors.response.use(
     const isAuthMe = originalRequest.url.includes("/auth/me");
 
     if (error.response?.status === 401 && !originalRequest._retry && !isLoginOrPublic && !isAuthMe) {
+      console.log('[AXIOS-INTERCEPTOR] 401 detected, attempting token refresh');
       originalRequest._retry = true;
 
       try {
         // Check if user is authenticated before trying to refresh
         const token = localStorage.getItem('token');
         if (!token && !authStore.isAuthenticated) {
+          console.log('[AXIOS-INTERCEPTOR] No token found, skipping refresh');
           // No token at all, don't try to refresh
           return Promise.reject(error);
         }
 
+        console.log('[AXIOS-INTERCEPTOR] Calling refresh token endpoint');
         // Call refresh token endpoint
         const res = await axios.post(
           `${API_URL}/auth/refresh-token`,
@@ -117,6 +127,7 @@ api.interceptors.response.use(
 
         // Update access token in store (memory)
         if (res.data.accessToken) {
+          console.log('[AXIOS-INTERCEPTOR] Token refreshed successfully');
           authStore.setAccessToken(res.data.accessToken);
           // Also update localStorage token
           localStorage.setItem('token', res.data.accessToken);
@@ -126,10 +137,14 @@ api.interceptors.response.use(
           return api(originalRequest);
         }
       } catch (refreshError) {
+        console.log('[AXIOS-INTERCEPTOR] Refresh failed:', {
+          status: refreshError?.response?.status,
+          error: refreshError?.response?.data
+        });
         // Only logout if refresh token is explicitly invalid
         const refreshStatus = refreshError?.response?.status;
         if (refreshStatus === 401 || refreshStatus === 403) {
-          console.log('[API] Refresh token invalid, logging out');
+          console.log('[AXIOS-INTERCEPTOR] Refresh token invalid, logging out user');
           authStore.logout();
           // Only redirect if not already on login page
           if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {

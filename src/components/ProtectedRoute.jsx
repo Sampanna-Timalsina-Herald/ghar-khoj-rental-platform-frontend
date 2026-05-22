@@ -33,6 +33,7 @@ const ProtectedRoute = ({ isAuthenticated, allowedRoles, userRole }) => {
 
   useEffect(() => {
     if (isAuthenticated) {
+      console.log('[PROTECTED-ROUTE] Fetching location status for role:', userRole);
       fetchStatus();
     }
   }, [isAuthenticated, fetchStatus]);

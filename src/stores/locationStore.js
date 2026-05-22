@@ -11,10 +11,15 @@ export const useLocationStore = create((set, get) => ({
 
   fetchStatus: async () => {
     const { statusLoaded } = get()
-    if (statusLoaded) return
+    if (statusLoaded) {
+      console.log('[LOCATION-STORE] Status already loaded, skipping fetch');
+      return;
+    }
+    console.log('[LOCATION-STORE] Fetching location status...');
     set({ statusLoading: true, error: null })
     try {
       const res = await api.get('/locations/status')
+      console.log('[LOCATION-STORE] Status response:', res.data);
       const data = res.data?.data || {}
       set({
         hasLocation: Boolean(data.hasLocation),
@@ -22,8 +27,14 @@ export const useLocationStore = create((set, get) => ({
         statusLoaded: true,
         statusLoading: false,
       })
+      console.log('[LOCATION-STORE] Status loaded successfully:', {
+        hasLocation: Boolean(data.hasLocation),
+        primaryLocation: data.primaryLocation
+      });
     } catch (error) {
-      console.error('[LocationStore] Failed to fetch status', error)
+      console.error('[LOCATION-STORE] Failed to fetch status - Full error:', error)
+      console.error('[LOCATION-STORE] Error response:', error.response?.data);
+      console.error('[LOCATION-STORE] Error status:', error.response?.status);
       set({ statusLoading: false, error: error.response?.data?.error || 'Failed to load location status' })
     }
   },
