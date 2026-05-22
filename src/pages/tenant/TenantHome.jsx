@@ -6,6 +6,7 @@ import { Search, Heart, MapPin, Bed, Bath, Ruler, Loader2, Eye, TrendingUp, Arro
 import { useAuthStore } from '../../stores/authStore'
 import SearchSuggestions from '../../components/SearchSuggestions'
 import { toast } from 'sonner'
+import { getListingImageUrl } from '../../utils/imageUtils'
 
 const TenantHome = () => {
   const [featuredListings, setFeaturedListings] = useState([])
@@ -315,9 +316,7 @@ const TenantHome = () => {
               }
               
               const badge = getBadgeConfig(matchScore)
-              const imageUrl = property.images?.[0] 
-                ? (property.images[0].startsWith('http') ? property.images[0] : `http://localhost:5000${property.images[0]}`)
-                : '/placeholder.svg'
+              const imageUrl = getListingImageUrl(property)
 
               return (
                 <motion.div
@@ -504,11 +503,7 @@ const TenantHome = () => {
                   {/* Image Container */}
                   <div className="relative overflow-hidden h-48">
                     <img
-                      src={
-                        listing.images && listing.images.length > 0
-                          ? (listing.images[0].startsWith('http') ? listing.images[0] : `http://localhost:5000${listing.images[0]}`)
-                          : '/placeholder.svg'
-                      }
+                      src={getListingImageUrl(listing)}
                       alt={listing.title || listing.address}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
                       onClick={() => handleViewProperty(listing.id)}

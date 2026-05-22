@@ -91,7 +91,8 @@ api.interceptors.response.use(
                            originalRequest.url.includes("/auth/register") ||
                            originalRequest.url.includes("/auth/forgot-password") ||
                            originalRequest.url.includes("/auth/reset-password") ||
-                           originalRequest.url.includes("/auth/refresh-token");
+                           originalRequest.url.includes("/auth/refresh-token") ||
+                           originalRequest.url.includes("/public/");
 
     // Skip refresh for /auth/me to prevent infinite loops
     const isAuthMe = originalRequest.url.includes("/auth/me");
@@ -101,14 +102,17 @@ api.interceptors.response.use(
 
       try {
         // Check if user is authenticated before trying to refresh
-        if (!authStore.isAuthenticated || !authStore.accessToken) {
+        const token = localStorage.getItem('token');
+        if (!token && !authStore.isAuthenticated) {
+          // No token at all, don't try to refresh
           return Promise.reject(error);
         }
 
         // Call refresh token endpoint
         const res = await axios.post(
           `${API_URL}/auth/refresh-token`,
-          {}
+          {},
+          { withCredentials: true }
         );
 
         // Update access token in store (memory)
@@ -122,11 +126,13 @@ api.interceptors.response.use(
           return api(originalRequest);
         }
       } catch (refreshError) {
-        // Refresh failed - clear auth and redirect only if not on auth/me
-        if (!isAuthMe) {
+        // Only logout if refresh token is explicitly invalid
+        const refreshStatus = refreshError?.response?.status;
+        if (refreshStatus === 401 || refreshStatus === 403) {
+          console.log('[API] Refresh token invalid, logging out');
           authStore.logout();
           // Only redirect if not already on login page
-          if (!window.location.pathname.includes('/login')) {
+          if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
             window.location.href = "/login";
           }
         }
@@ -134,7 +140,7 @@ api.interceptors.response.use(
       }
     }
     
-    // For 401 errors, return the error (don't retry if already retried or if auth/me)
+    // For other errors or if already retried, just return the error
     return Promise.reject(error);
   }
 );
