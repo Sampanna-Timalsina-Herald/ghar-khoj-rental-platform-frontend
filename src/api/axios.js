@@ -63,6 +63,9 @@ api.interceptors.request.use(
         // Remove any existing Bearer prefix and add it fresh
         const cleanToken = token.replace(/^Bearer\s+/i, '');
         config.headers['Authorization'] = `Bearer ${cleanToken}`;
+        console.log('[AXIOS] Token attached to:', url);
+      } else {
+        console.error('[AXIOS] NO TOKEN for:', url);
       }
     }
 
