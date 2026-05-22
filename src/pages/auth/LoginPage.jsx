@@ -85,18 +85,39 @@ const LoginPage = () => {
 
       const { user, accessToken } = response.data;
 
+      console.log("✅ LOGIN RESPONSE RECEIVED");
       console.log("USER FULL OBJECT:", user);
       console.log("USER ROLE:", user.role);
       console.log("ACCESS TOKEN RECEIVED:", accessToken ? accessToken.substring(0, 30) + '...' : 'NO TOKEN');
+      
+      // Check cookies
+      console.log("🍪 COOKIES:", document.cookie);
 
       // Update auth store
+      console.log("📝 Updating auth store...");
       loginStore(user, accessToken, user.role);
       
       // Verify token was saved to localStorage
       const savedToken = localStorage.getItem('token');
-      console.log("TOKEN SAVED TO LOCALSTORAGE:", savedToken ? savedToken.substring(0, 30) + '...' : 'FAILED TO SAVE');
+      const savedRole = localStorage.getItem('role');
+      const savedUser = localStorage.getItem('user');
+      
+      console.log("✅ VERIFICATION AFTER LOGIN:");
+      console.log("- Token saved:", savedToken ? savedToken.substring(0, 30) + '...' : 'FAILED TO SAVE');
+      console.log("- Role saved:", savedRole);
+      console.log("- User saved:", savedUser ? 'YES' : 'NO');
+      console.log("- Cookies after login:", document.cookie);
+      
+      // For tenant, add extra delay to see what happens
+      if (user.role === 'tenant') {
+        console.log("⏰ TENANT LOGIN - Waiting 2 seconds before navigation...");
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log("⏰ TENANT LOGIN - Proceeding with navigation...");
+        console.log("⏰ TENANT LOGIN - Final check - Token still there?", !!localStorage.getItem('token'));
+      }
 
       // Navigate to dashboard based on role
+      console.log("🚀 Navigating to:", `/${user.role}`);
       navigate(`/${user.role}`, { replace: true });
 
     } catch (err) {

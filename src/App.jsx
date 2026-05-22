@@ -4,6 +4,7 @@ import { useAuthStore } from "./stores/authStore";
 import { initSocket, disconnectSocket } from "./services/socket";
 import { ToastProvider } from "./context/ToastContext";
 import { startTokenRefresh, stopTokenRefresh } from "./utils/tokenRefresh";
+import TenantErrorDisplay from "./components/TenantErrorDisplay";
 
 // Pages
 import Home from "./pages/Home";
@@ -72,6 +73,7 @@ function App() {
 
   return (
     <ToastProvider>
+      <TenantErrorDisplay />
       <Router>
         <Routes>
 

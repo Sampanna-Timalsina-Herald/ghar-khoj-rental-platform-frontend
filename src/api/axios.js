@@ -83,12 +83,24 @@ api.interceptors.response.use(
     const authStore = useAuthStore.getState();
     const originalRequest = error.config;
 
-    console.log('[AXIOS-INTERCEPTOR] Error caught:', {
+    // CRITICAL ERROR LOGGING - Display in alert for debugging
+    const errorDetails = {
       status: error.response?.status,
       url: originalRequest?.url,
       role: authStore.role,
-      hasToken: !!localStorage.getItem('token')
-    });
+      hasToken: !!localStorage.getItem('token'),
+      errorMessage: error.response?.data?.error || error.message,
+      fullError: error.response?.data
+    };
+    
+    console.error('🔴 [AXIOS-INTERCEPTOR] ERROR CAUGHT:', errorDetails);
+    
+    // If this is a tenant and there's an error, show alert
+    if (authStore.role === 'tenant' && error.response?.status === 401) {
+      console.error('🚨 TENANT 401 ERROR - DETAILS:', JSON.stringify(errorDetails, null, 2));
+      // Store error for display
+      window.TENANT_LOGIN_ERROR = errorDetails;
+    }
 
     // Only retry if:
     // 1. Status is 401
@@ -137,14 +149,33 @@ api.interceptors.response.use(
           return api(originalRequest);
         }
       } catch (refreshError) {
-        console.log('[AXIOS-INTERCEPTOR] Refresh failed:', {
+        console.error('🔴 [AXIOS-INTERCEPTOR] Refresh failed:', {
           status: refreshError?.response?.status,
-          error: refreshError?.response?.data
+          error: refreshError?.response?.data,
+          message: refreshError.message
         });
+        
+        // Store refresh error for tenant debugging
+        if (authStore.role === 'tenant') {
+          window.TENANT_REFRESH_ERROR = {
+            status: refreshError?.response?.status,
+            error: refreshError?.response?.data,
+            message: refreshError.message
+          };
+          console.error('🚨 TENANT REFRESH FAILED:', JSON.stringify(window.TENANT_REFRESH_ERROR, null, 2));
+        }
+        
         // Only logout if refresh token is explicitly invalid
         const refreshStatus = refreshError?.response?.status;
         if (refreshStatus === 401 || refreshStatus === 403) {
-          console.log('[AXIOS-INTERCEPTOR] Refresh token invalid, logging out user');
+          console.error('🔴 [AXIOS-INTERCEPTOR] Refresh token invalid, DELAYING logout for debugging...');
+          
+          // DELAY logout for tenant to see error
+          if (authStore.role === 'tenant') {
+            console.error('⏰ Waiting 5 seconds before logout to allow error inspection...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          }
+          
           authStore.logout();
           // Only redirect if not already on login page
           if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
