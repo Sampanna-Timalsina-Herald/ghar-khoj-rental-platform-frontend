@@ -39,8 +39,8 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50">
-      <div className="px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="px-3 sm:px-4 py-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
@@ -56,15 +56,15 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
           </Link>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <NotificationPanel />
-          <span className="text-sm text-gray-600 hidden sm:inline">
+          <span className="text-sm text-gray-600 hidden md:inline truncate max-w-[120px] lg:max-w-none">
             {user?.name || 'User'}
           </span>
           <div className="relative">
             <button
               onClick={() => setProfileOpen(!profileOpen)}
-              className="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 overflow-hidden border-2 border-white"
+              className="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 overflow-hidden border-2 border-white shrink-0"
             >
               {user?.profileImage ? (
                 <img
@@ -81,7 +81,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
             </button>
 
             {profileOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg overflow-hidden z-50">
+              <div className="absolute right-0 mt-2 w-[calc(100vw-1.5rem)] max-w-56 sm:w-48 bg-white rounded-lg shadow-lg overflow-hidden z-50">
                 <div className="px-4 py-3 border-b border-gray-200">
                   {user?.profileImage && (
                     <div className="mb-3">
@@ -100,7 +100,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-4 py-3 text-red-600 hover:bg-red-50 transition-colors"
+                  className="w-full flex items-center gap-2 px-4 py-3 text-red-600 hover:bg-red-50 transition-colors text-left"
                 >
                   <LogOut size={18} />
                   Logout

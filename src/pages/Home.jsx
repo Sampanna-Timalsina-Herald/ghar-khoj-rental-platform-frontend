@@ -509,29 +509,29 @@ const Home = () => {
               >
                  Your Trusted Home Search Partner
               </motion.span>
-              <motion.h1 
-                 variants={itemVariants}
-                 className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight"
-              >
+                <motion.h1 
+                  variants={itemVariants}
+                  className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight"
+                >
                 Find Your Perfect <span className="text-primary-600">Ghar</span> in <br/> Kathmandu Valley.
               </motion.h1>
-              <motion.p 
-                 variants={itemVariants}
-                 className="text-xl text-gray-600 mt-6 leading-relaxed max-w-lg"
-              >
+                <motion.p 
+                  variants={itemVariants}
+                  className="text-base sm:text-lg md:text-xl text-gray-600 mt-6 leading-relaxed max-w-lg"
+                >
                 Verified listings of Flats, Apartments, and Rooms for Rent across Kathmandu, Lalitpur, and Bhaktapur.
               </motion.p>
               <motion.div 
                  variants={itemVariants}
-                 className="mt-8 flex gap-4"
+                 className="mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto"
               >
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Link to="/search" className="px-8 py-3 bg-primary-600 text-white rounded-full font-bold text-lg hover:bg-primary-700 transition shadow-lg shadow-primary-600/30">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full sm:w-auto">
+                  <Link to="/search" className="inline-flex w-full justify-center px-6 sm:px-8 py-3 bg-primary-600 text-white rounded-full font-bold text-base sm:text-lg hover:bg-primary-700 transition shadow-lg shadow-primary-600/30">
                     Start Your Search
                   </Link>
                 </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Link to="/register?role=landlord" className="px-8 py-3 bg-white text-gray-700 border-2 border-gray-200 rounded-full font-bold text-lg hover:border-yellow-400 hover:text-gray-900 transition">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full sm:w-auto">
+                  <Link to="/register?role=landlord" className="inline-flex w-full justify-center px-6 sm:px-8 py-3 bg-white text-gray-700 border-2 border-gray-200 rounded-full font-bold text-base sm:text-lg hover:border-yellow-400 hover:text-gray-900 transition">
                     I am a Landlord
                   </Link>
                 </motion.div>

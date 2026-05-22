@@ -177,7 +177,7 @@ const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="flex items-center justify-center h-96 bg-gradient-to-br from-primary-50 to-secondary-50 rounded-2xl shadow-xl"
+        className="flex items-center justify-center min-h-[20rem] sm:h-96 bg-gradient-to-br from-primary-50 to-secondary-50 rounded-2xl shadow-xl p-4"
       >
         <div className="text-center">
           <Loader2 size={40} className="animate-spin text-primary-600 mx-auto mb-3" />
@@ -192,16 +192,16 @@ const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className="flex flex-col h-96 bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200"
+      className="flex flex-col min-h-[32rem] h-[80vh] max-h-[42rem] sm:h-96 bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200"
     >
       {/* Header with Gradient */}
       <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.1 }}
-        className="bg-gradient-to-r from-primary-600 via-primary-700 to-secondary-600 p-4 flex items-center justify-between shadow-lg"
+        className="bg-gradient-to-r from-primary-600 via-primary-700 to-secondary-600 p-3 sm:p-4 flex items-center justify-between gap-3 shadow-lg"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <motion.button
             whileHover={{ scale: 1.1, rotate: -5 }}
             whileTap={{ scale: 0.9 }}
@@ -210,15 +210,15 @@ const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
           >
             <ArrowLeft size={20} className="text-white" />
           </motion.button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="relative">
               <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/30">
                 <User size={20} className="text-white" />
               </div>
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
             </div>
-            <div>
-              <h3 className="font-bold text-white text-lg">{landlordName || 'Landlord'}</h3>
+            <div className="min-w-0">
+              <h3 className="font-bold text-white text-base sm:text-lg truncate max-w-[12rem]">{landlordName || 'Landlord'}</h3>
               <p className="text-xs text-primary-100 flex items-center gap-1">
                 <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                 Active now
@@ -235,7 +235,7 @@ const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
       </motion.div>
 
       {/* Messages Area with Gradient Background */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-gray-50 via-white to-primary-50/30 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-3 bg-gradient-to-b from-gray-50 via-white to-primary-50/30 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
         <AnimatePresence mode="popLayout">
           {messages.length === 0 ? (
             <motion.div
@@ -270,7 +270,7 @@ const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
                 >
                   <motion.div
                     whileHover={{ scale: 1.02 }}
-                    className={`max-w-xs px-4 py-3 rounded-2xl shadow-md transition-all ${
+                    className={`w-full max-w-[82%] sm:max-w-xs px-3 sm:px-4 py-3 rounded-2xl shadow-md transition-all ${
                       isOwnMessage
                         ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-br-sm'
                         : 'bg-white text-gray-900 border border-gray-200 rounded-bl-sm'
@@ -323,7 +323,7 @@ const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
               transition={{ duration: 0.2 }}
               className="flex justify-start"
             >
-              <div className="bg-white text-gray-900 border border-gray-200 px-4 py-3 rounded-2xl rounded-bl-sm shadow-md">
+              <div className="max-w-[85%] bg-white text-gray-900 border border-gray-200 px-3 sm:px-4 py-3 rounded-2xl rounded-bl-sm shadow-md">
                 <div className="flex items-center gap-2">
                   <div className="flex gap-1">
                     {[0, 1, 2].map((i) => (
@@ -356,9 +356,9 @@ const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
         onSubmit={handleSendMessage}
-        className="border-t border-gray-200 p-4 bg-gradient-to-r from-white to-gray-50"
+        className="border-t border-gray-200 p-3 sm:p-4 bg-gradient-to-r from-white to-gray-50"
       >
-        <div className="flex gap-2 items-center">
+        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
           <div className="flex-1 relative">
             <input
               type="text"
@@ -374,7 +374,7 @@ const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
                 }
               }}
               placeholder="Type a message..."
-              className="w-full px-4 py-3 pr-12 border-2 border-gray-300 rounded-full focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all shadow-sm"
+              className="w-full px-4 py-3 pr-12 border-2 border-gray-300 rounded-full focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all shadow-sm text-sm sm:text-base"
             />
             {newMessage && (
               <motion.div
@@ -391,7 +391,7 @@ const TenantMessages = ({ landlordId, listingId, landlordName, onBack }) => {
             whileTap={{ scale: 0.95 }}
             type="submit"
             disabled={!newMessage.trim() || sending}
-            className="p-3.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-full hover:shadow-lg hover:shadow-primary-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0 disabled:hover:scale-100"
+            className="p-3.5 self-end sm:self-auto bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-full hover:shadow-lg hover:shadow-primary-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0 disabled:hover:scale-100"
           >
             {sending ? (
               <Loader2 size={20} className="animate-spin" />

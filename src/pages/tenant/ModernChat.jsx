@@ -311,7 +311,7 @@ const ModernChat = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -319,28 +319,28 @@ const ModernChat = () => {
         transition={{ duration: 0.5 }}
       >
         <div className="flex items-center gap-3 mb-2">
-          <div className="p-3 bg-gradient-to-br from-primary-600 to-primary-700 rounded-full">
+          <div className="p-2.5 sm:p-3 bg-gradient-to-br from-primary-600 to-primary-700 rounded-full shrink-0">
             <MessageSquare size={28} className="text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-text">Messages</h1>
-            <p className="text-gray-600">Chat with landlords</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-text">Messages</h1>
+            <p className="text-sm sm:text-base text-gray-600">Chat with landlords</p>
           </div>
         </div>
       </motion.div>
 
       {/* Chat Container */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-300px)] rounded-2xl overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 min-h-[calc(100vh-300px)] lg:h-[calc(100vh-300px)] rounded-2xl overflow-hidden">
         {/* Conversations List */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-gradient-to-b from-slate-50 to-white rounded-2xl shadow-xl overflow-hidden flex flex-col border border-gray-200"
+          className="bg-gradient-to-b from-slate-50 to-white rounded-2xl shadow-xl overflow-hidden flex flex-col border border-gray-200 min-h-[24rem] lg:min-h-0"
         >
           {/* Header */}
           <div className="p-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white">
-            <h2 className="font-bold text-lg flex items-center gap-2 mb-4">
+            <h2 className="font-bold text-base sm:text-lg flex items-center gap-2 mb-4">
               <MessageSquare size={20} />
               Conversations
             </h2>
@@ -357,7 +357,7 @@ const ModernChat = () => {
           </div>
 
           {/* Conversation List */}
-          <div className="overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <div className="overflow-y-auto flex-1 min-h-0 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             {filteredConversations.length > 0 ? (
               <AnimatePresence>
                 {filteredConversations.map((conversation, index) => (
@@ -420,25 +420,25 @@ const ModernChat = () => {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
-          className="lg:col-span-2 bg-white rounded-2xl shadow-xl flex flex-col border border-gray-200 overflow-hidden"
+          className="lg:col-span-2 bg-white rounded-2xl shadow-xl flex flex-col border border-gray-200 overflow-hidden min-h-[28rem] lg:min-h-0"
         >
           {selectedConversation ? (
             <>
               {/* Chat Header */}
-              <div className="p-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div className="p-3 sm:p-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                     <User size={20} />
                   </div>
-                  <div>
-                    <h2 className="font-bold">{selectedConversation.other_user_name || 'Landlord'}</h2>
-                    <p className="text-sm text-primary-100">Active now</p>
+                  <div className="min-w-0">
+                    <h2 className="font-bold text-sm sm:text-base truncate max-w-[11rem] sm:max-w-none">{selectedConversation.other_user_name || 'Landlord'}</h2>
+                    <p className="text-xs sm:text-sm text-primary-100">Active now</p>
                   </div>
                 </div>
               </div>
 
               {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-white to-gray-50 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-6 space-y-4 bg-gradient-to-b from-white to-gray-50 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                 {messagesLoading ? (
                   <div className="flex items-center justify-center h-full">
                     <Loader2 size={32} className="animate-spin text-primary-600" />
@@ -458,7 +458,7 @@ const ModernChat = () => {
                           className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
                         >
                           <div
-                            className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl shadow-sm transition-all ${
+                            className={`max-w-[85%] sm:max-w-xs lg:max-w-md px-3 sm:px-4 py-3 rounded-2xl shadow-sm transition-all ${
                               isOwnMessage
                                 ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-bl-3xl'
                                 : 'bg-white text-text border border-gray-200 rounded-br-3xl'
@@ -534,7 +534,7 @@ const ModernChat = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className="flex justify-start"
                   >
-                    <div className="px-4 py-3 rounded-2xl bg-white border border-gray-200 flex items-center gap-2">
+                    <div className="px-3 sm:px-4 py-3 rounded-2xl bg-white border border-gray-200 flex items-center gap-2">
                       <div className="flex gap-1">
                         {[0, 1, 2].map((i) => (
                           <motion.div
@@ -554,7 +554,7 @@ const ModernChat = () => {
               </div>
 
               {/* Input Area */}
-              <div className="p-4 border-t border-gray-200 bg-white">
+              <div className="p-3 sm:p-4 border-t border-gray-200 bg-white">
                 {/* Attachments Preview */}
                 {attachedFiles.length > 0 && (
                   <motion.div
@@ -581,7 +581,7 @@ const ModernChat = () => {
                 )}
 
                 {/* Input Controls */}
-                <div className="flex gap-2 items-end relative">
+                <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end relative">
                   {/* File Input */}
                   <input
                     ref={fileInputRef}
@@ -593,12 +593,12 @@ const ModernChat = () => {
                   />
 
                   {/* Action Buttons */}
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 self-start sm:self-auto">
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => fileInputRef.current?.click()}
-                      className="p-2.5 hover:bg-gray-100 rounded-full transition text-gray-600 hover:text-primary-600"
+                      className="p-2.5 hover:bg-gray-100 rounded-full transition text-gray-600 hover:text-primary-600 shrink-0"
                       title="Attach file"
                     >
                       <Paperclip size={20} />
@@ -610,7 +610,7 @@ const ModernChat = () => {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                        className="p-2.5 hover:bg-gray-100 rounded-full transition text-gray-600 hover:text-primary-600"
+                        className="p-2.5 hover:bg-gray-100 rounded-full transition text-gray-600 hover:text-primary-600 shrink-0"
                         title="Add emoji"
                       >
                         <Smile size={20} />
@@ -624,7 +624,7 @@ const ModernChat = () => {
                             initial={{ opacity: 0, scale: 0.95, y: 10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-xl p-3 z-50 w-64"
+                            className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-xl p-3 z-50 w-64 max-w-[calc(100vw-2rem)]"
                           >
                             <div className="grid grid-cols-8 gap-1 max-h-64 overflow-y-auto">
                               {EMOJIS.map((emoji, index) => (
@@ -653,7 +653,7 @@ const ModernChat = () => {
                     }}
                     onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                     placeholder="Type a message..."
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                    className="w-full flex-1 px-4 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-sm sm:text-base"
                   />
 
                   {/* Send Button */}
@@ -662,7 +662,7 @@ const ModernChat = () => {
                     whileTap={{ scale: 0.95 }}
                     onClick={handleSendMessage}
                     disabled={(messageText.trim() === '' && attachedFiles.length === 0) || sending}
-                    className="p-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-full hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                    className="p-3 self-end sm:self-auto bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-full hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                   >
                     {sending ? (
                       <Loader2 size={20} className="animate-spin" />
