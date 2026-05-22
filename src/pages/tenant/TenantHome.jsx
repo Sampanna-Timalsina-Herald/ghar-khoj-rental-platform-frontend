@@ -19,6 +19,14 @@ const TenantHome = () => {
   const navigate = useNavigate()
   const { user } = useAuthStore()
 
+  // DEBUG: Check token on component mount
+  useEffect(() => {
+    console.log('🏠 [TENANT-HOME] Component mounted');
+    console.log('🏠 [TENANT-HOME] Token in localStorage:', localStorage.getItem('token')?.substring(0, 30) + '...');
+    console.log('🏠 [TENANT-HOME] Role in localStorage:', localStorage.getItem('role'));
+    console.log('🏠 [TENANT-HOME] User from store:', user);
+  }, []);
+
   useEffect(() => {
     fetchFeaturedListings()
     if (user) {

@@ -38,6 +38,9 @@ import { useAuthStore } from "../stores/authStore";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
+console.log('🔧 [AXIOS-SETUP] API_URL configured as:', API_URL);
+console.log('🔧 [AXIOS-SETUP] Environment:', import.meta.env.MODE);
+
 // Create axios instance
 const api = axios.create({
   baseURL: API_URL,
@@ -47,45 +50,52 @@ const api = axios.create({
   },
 });
 
+console.log('🔧 [AXIOS-SETUP] Axios instance created with baseURL:', api.defaults.baseURL);
+
 // Request interceptor: attach access token from memory or localStorage
 api.interceptors.request.use(
   async (config) => {
-    console.log('[AXIOS-REQUEST] Outgoing request:', config.url);
-    
-    // Skip token attachment for public endpoints
     const url = config.url || '';
+    console.log('[AXIOS-REQUEST] 🚀 Outgoing request to:', url);
+    console.log('[AXIOS-REQUEST] Full config:', { url: config.url, baseURL: config.baseURL, method: config.method });
+    
+    // Check if we have a token FIRST
+    let token = localStorage.getItem('token');
+    console.log('[AXIOS-REQUEST] Token from localStorage:', token ? token.substring(0, 30) + '...' : 'NULL');
+    
+    // If not in localStorage, try store
+    if (!token) {
+      const authStore = useAuthStore.getState();
+      token = authStore.accessToken || authStore.token;
+      console.log('[AXIOS-REQUEST] Token from store:', token ? token.substring(0, 30) + '...' : 'NULL');
+    }
+    
+    // Skip token attachment ONLY for specific auth endpoints
+    const isLoginEndpoint = url.includes('login') && !url.includes('logout');
+    const isRegisterEndpoint = url.includes('register');
     const isPublicEndpoint = url.includes('public') || 
-                             url.includes('login') ||
-                             url.includes('register') ||
                              url.includes('forgot-password') ||
                              url.includes('reset-password');
     
-    console.log('[AXIOS-REQUEST] Is public endpoint?', isPublicEndpoint, 'URL:', url);
+    const shouldSkipToken = isLoginEndpoint || isRegisterEndpoint || isPublicEndpoint;
     
-    if (!isPublicEndpoint) {
-      // Always try localStorage first as it's the source of truth
-      let token = localStorage.getItem('token');
-      
-      // If not in localStorage, try store
-      if (!token) {
-        const authStore = useAuthStore.getState();
-        token = authStore.accessToken || authStore.token;
-      }
-
-      if (token) {
-        // Ensure token doesn't have "Bearer " prefix already
-        const cleanToken = token.replace(/^Bearer\s+/i, '');
-        config.headers.Authorization = `Bearer ${cleanToken}`;
-        console.log('[AXIOS-REQUEST] ✅ Token attached to request:', config.url);
-        console.log('[AXIOS-REQUEST] Token preview:', cleanToken.substring(0, 30) + '...');
-        console.log('[AXIOS-REQUEST] Authorization header:', config.headers.Authorization.substring(0, 40) + '...');
-      } else {
-        console.error('[AXIOS-REQUEST] ❌ NO TOKEN AVAILABLE for:', config.url);
-        console.error('[AXIOS-REQUEST] localStorage token:', localStorage.getItem('token'));
-        console.error('[AXIOS-REQUEST] Store token:', useAuthStore.getState().token);
-      }
+    console.log('[AXIOS-REQUEST] Should skip token?', shouldSkipToken, {
+      isLoginEndpoint,
+      isRegisterEndpoint,
+      isPublicEndpoint
+    });
+    
+    if (!shouldSkipToken && token) {
+      // Ensure token doesn't have "Bearer " prefix already
+      const cleanToken = token.replace(/^Bearer\s+/i, '');
+      config.headers.Authorization = `Bearer ${cleanToken}`;
+      console.log('[AXIOS-REQUEST] ✅ Token ATTACHED to request');
+      console.log('[AXIOS-REQUEST] Authorization header:', config.headers.Authorization?.substring(0, 50) + '...');
+    } else if (!shouldSkipToken && !token) {
+      console.error('[AXIOS-REQUEST] ❌ NO TOKEN AVAILABLE for protected endpoint:', url);
+      console.error('[AXIOS-REQUEST] This request will fail with 401!');
     } else {
-      console.log('[AXIOS-REQUEST] Skipping token for public endpoint:', url);
+      console.log('[AXIOS-REQUEST] ⏭️ Skipping token for public endpoint');
     }
 
     // Don't set Content-Type for FormData - let browser handle it
@@ -96,9 +106,13 @@ api.interceptors.request.use(
       delete config.headers["Content-Type"];
     }
 
+    console.log('[AXIOS-REQUEST] Final headers:', config.headers);
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error('[AXIOS-REQUEST] Request interceptor error:', error);
+    return Promise.reject(error);
+  }
 );
 
 // Response interceptor: handle 401 (access token expired)
