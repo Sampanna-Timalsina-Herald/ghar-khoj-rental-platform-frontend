@@ -62,10 +62,28 @@ const TenantHome = () => {
 
   const fetchRecommendations = async () => {
     try {
+      // CRITICAL: Check if token exists before making request
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('[TenantHome] ❌ Cannot fetch recommendations - No token in localStorage');
+        setRecommendations([]);
+        setLoadingRecommendations(false);
+        return;
+      }
+      
+      console.log('[TenantHome] ✅ Token exists:', token.substring(0, 30) + '...');
+      console.log('[TenantHome] Making request with manual Authorization header...');
+      
       setLoadingRecommendations(true)
       // Try ML recommendations first, fallback to content-based or hybrid
       console.log('[TenantHome] Fetching ML recommendations...')
-      let response = await api.get('/recommendations?algorithm=ml&limit=6')
+      
+      // MANUAL HEADER TEST - Force Authorization header
+      let response = await api.get('/recommendations?algorithm=ml&limit=6', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       
       console.log('[TenantHome] API Response:', response.data)
       
