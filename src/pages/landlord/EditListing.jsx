@@ -175,18 +175,25 @@ const EditListing = () => {
     try {
       const submitData = new FormData()
       
-      // Add all form fields
-      submitData.append('title', formData.title)
-      submitData.append('description', formData.description)
-      submitData.append('rent_amount', formData.rent_amount)
-      submitData.append('bedrooms', formData.bedrooms)
-      submitData.append('bathrooms', formData.bathrooms)
-      submitData.append('address', formData.address)
-      submitData.append('city', formData.city)
-      submitData.append('college_name', formData.college_name)
-      submitData.append('deposit_amount', formData.deposit_amount)
-      submitData.append('furnished', formData.furnished)
-      submitData.append('type', formData.type)
+      // Add all form fields - only add values if they exist
+      submitData.append('title', formData.title || '')
+      submitData.append('description', formData.description || '')
+      submitData.append('rent_amount', formData.rent_amount || '0')
+      submitData.append('bedrooms', formData.bedrooms || '0')
+      submitData.append('bathrooms', formData.bathrooms || '0')
+      submitData.append('address', formData.address || '')
+      submitData.append('city', formData.city || '')
+      submitData.append('college_name', formData.college_name || '')
+      
+      // For optional numeric fields, only append if they have a value
+      if (formData.deposit_amount) {
+        submitData.append('deposit_amount', formData.deposit_amount)
+      } else {
+        submitData.append('deposit_amount', '') // Empty for null/optional
+      }
+      
+      submitData.append('furnished', formData.furnished || 'semi')
+      submitData.append('type', formData.type || 'apartment')
       
       // Add new image files
       if (images.length > 0) {
@@ -195,22 +202,19 @@ const EditListing = () => {
         })
       }
       
-      // Add existing images to keep as individual FormData entries
-      // Only add if there are images to keep (avoid sending empty arrays)
+      // Add existing images to keep as JSON string
       const imagesToKeep = existingImages.filter(
         (imageUrl) => imageUrl && imageUrl !== 'null' && imageUrl !== 'undefined'
       )
       
-      if (imagesToKeep.length > 0) {
-        imagesToKeep.forEach((imageUrl) => {
-          submitData.append('existingImages', imageUrl)
-        })
-      }
+      // Send existingImages as JSON string so backend doesn't double-stringify
+      submitData.append('existingImages', JSON.stringify(imagesToKeep))
 
       console.log('EditListing: Submitting form with', {
         fields: Object.keys(formData),
         newImages: images.length,
-        existingImages: imagesToKeep.length
+        existingImages: imagesToKeep.length,
+        existingImagesData: imagesToKeep
       })
 
       const response = await api.put(`/listings/${id}`, submitData)
