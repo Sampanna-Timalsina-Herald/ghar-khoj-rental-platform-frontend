@@ -131,32 +131,46 @@ const EditListing = () => {
     try {
       const submitData = new FormData()
       
-      // Add form fields
-      Object.keys(formData).forEach((key) => {
-        if (formData[key]) {
-          submitData.append(key, formData[key])
-        }
-      })
+      // Add all form fields
+      submitData.append('title', formData.title)
+      submitData.append('description', formData.description)
+      submitData.append('rent_amount', formData.rent_amount)
+      submitData.append('bedrooms', formData.bedrooms)
+      submitData.append('bathrooms', formData.bathrooms)
+      submitData.append('address', formData.address)
+      submitData.append('city', formData.city)
+      submitData.append('college_name', formData.college_name)
+      submitData.append('deposit_amount', formData.deposit_amount)
+      submitData.append('furnished', formData.furnished)
+      submitData.append('type', formData.type)
       
-      // Add new images
-      images.forEach((image) => {
-        submitData.append('images', image)
-      })
-      
-      // Add existing images to keep (filter out null values)
-      existingImages
-        .filter((imageUrl) => imageUrl && imageUrl !== 'null' && imageUrl !== 'undefined')
-        .forEach((imageUrl) => {
-          submitData.append('existingImages', imageUrl)
+      // Add new image files
+      if (images.length > 0) {
+        images.forEach((image) => {
+          submitData.append('images', image)
         })
+      }
+      
+      // Add existing images to keep as JSON string (only send images that are being kept)
+      const imagesToKeep = existingImages.filter(
+        (imageUrl) => imageUrl && imageUrl !== 'null' && imageUrl !== 'undefined'
+      )
+      submitData.append('existingImages', JSON.stringify(imagesToKeep))
 
-      await api.put(`/listings/${id}`, submitData)
+      console.log('EditListing: Submitting form with', {
+        fields: Object.keys(formData),
+        newImages: images.length,
+        existingImages: imagesToKeep.length
+      })
+
+      const response = await api.put(`/listings/${id}`, submitData)
 
       toast.success('Listing updated successfully!')
       setTimeout(() => {
         navigate('/landlord/listings')
       }, 2000)
     } catch (err) {
+      console.error('Failed to update listing:', err)
       toast.error(err.response?.data?.error || err.response?.data?.message || 'Failed to update listing')
     } finally {
       setUpdating(false)

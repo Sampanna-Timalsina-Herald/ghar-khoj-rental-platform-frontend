@@ -69,6 +69,12 @@ api.interceptors.request.use(
       }
     }
 
+    // For FormData requests, let the browser set the Content-Type header automatically
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+      console.log('[AXIOS] FormData detected - Content-Type header removed for auto-detection');
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
