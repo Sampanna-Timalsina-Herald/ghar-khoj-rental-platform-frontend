@@ -25,6 +25,7 @@ const EditListing = () => {
   const [images, setImages] = useState([])
   const [imagePreviews, setImagePreviews] = useState([])
   const [existingImages, setExistingImages] = useState([])
+  const [brokenImages, setBrokenImages] = useState(new Set())
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [listingStatus, setListingStatus] = useState(null)
@@ -50,6 +51,42 @@ const EditListing = () => {
       console.error('Failed to mark admin changes as seen:', err)
       // Don't show error to user, this is a background action
     }
+  }
+
+  const parseImageArray = (images) => {
+    if (!Array.isArray(images)) return []
+    
+    const parsedImages = []
+    
+    for (const img of images) {
+      if (!img || img === 'null' || img === 'undefined') continue
+      
+      // If it's a JSON string, parse it and extract URLs
+      if (typeof img === 'string' && img.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(img)
+          if (Array.isArray(parsed)) {
+            // Add all valid URLs from the parsed array
+            for (const url of parsed) {
+              if (url && url.startsWith('http') && url.length > 10) {
+                parsedImages.push(url)
+              }
+            }
+          } else if (typeof parsed === 'string' && parsed.startsWith('http')) {
+            parsedImages.push(parsed)
+          }
+        } catch (e) {
+          // If it's a malformed JSON string, skip it
+          console.warn('Failed to parse image:', img, e)
+          continue
+        }
+      } else if (typeof img === 'string' && img.startsWith('http')) {
+        // It's already a URL
+        parsedImages.push(img)
+      }
+    }
+    
+    return parsedImages
   }
 
   const fetchListing = async () => {
@@ -84,10 +121,12 @@ const EditListing = () => {
       }
       
       if (listing.images && Array.isArray(listing.images)) {
-        // Filter out null and 'null' string values
-        const validImages = listing.images.filter(
-          img => img && img !== 'null' && img !== 'undefined'
-        )
+        // Parse image array to extract valid URLs from JSON strings
+        const validImages = parseImageArray(listing.images)
+        console.log('EditListing: Parsed images from DB:', {
+          raw: listing.images,
+          parsed: validImages
+        })
         setExistingImages(validImages)
       }
     } catch (err) {
@@ -124,6 +163,11 @@ const EditListing = () => {
     setExistingImages(existingImages.filter((_, i) => i !== index))
   }
 
+  const handleImageLoadError = (imageUrl) => {
+    console.warn('Failed to load existing image:', imageUrl)
+    setBrokenImages(prev => new Set(prev).add(imageUrl))
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setUpdating(true)
@@ -151,11 +195,17 @@ const EditListing = () => {
         })
       }
       
-      // Add existing images to keep as JSON string (only send images that are being kept)
+      // Add existing images to keep as individual FormData entries
+      // Only add if there are images to keep (avoid sending empty arrays)
       const imagesToKeep = existingImages.filter(
         (imageUrl) => imageUrl && imageUrl !== 'null' && imageUrl !== 'undefined'
       )
-      submitData.append('existingImages', JSON.stringify(imagesToKeep))
+      
+      if (imagesToKeep.length > 0) {
+        imagesToKeep.forEach((imageUrl) => {
+          submitData.append('existingImages', imageUrl)
+        })
+      }
 
       console.log('EditListing: Submitting form with', {
         fields: Object.keys(formData),
@@ -451,27 +501,22 @@ const EditListing = () => {
               <h2 className="text-xl font-semibold text-text">Current Images</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {existingImages
-                  .filter((image) => image) // Filter out null/undefined values
+                  .filter((image) => image && !brokenImages.has(image))
                   .map((image, index) => (
                   <motion.div
-                    key={index}
+                    key={`${image}-${index}`}
                     whileHover={{ scale: 1.05 }}
                     className="relative rounded-lg overflow-hidden"
                   >
                     <img
-                      src={
-                        image && image.startsWith('http')
-                          ? image
-                          : image
-                          ? `http://localhost:5000${image}`
-                          : ''
-                      }
+                      src={image}
                       alt={`Listing ${index + 1}`}
-                      className="w-full h-24 object-cover rounded-lg"
+                      onError={() => handleImageLoadError(image)}
+                      className="w-full h-24 object-cover rounded-lg bg-gray-200"
                     />
                     <button
                       type="button"
-                      onClick={() => removeExistingImage(index)}
+                      onClick={() => removeExistingImage(existingImages.indexOf(image))}
                       className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 hover:bg-red-700"
                     >
                       <X size={14} />
