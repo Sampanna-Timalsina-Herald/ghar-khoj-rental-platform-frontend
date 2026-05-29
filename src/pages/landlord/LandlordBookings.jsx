@@ -400,15 +400,9 @@ const LandlordBookings = () => {
                     <Eye size={14} /> View
                   </motion.button>
                   {booking.status === 'pending' && (
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleApprove(booking.id)}
-                      disabled={actionLoading === booking.id}
-                      className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50"
-                    >
-                      {actionLoading === booking.id ? '⏳' : 'Approve'}
-                    </motion.button>
+                    <div className="flex-1 px-3 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm font-semibold text-center">
+                      ⏳ Waiting for payment
+                    </div>
                   )}
                   {booking.status === 'approved' && (
                     <motion.button
@@ -469,15 +463,6 @@ const LandlordBookings = () => {
                     </motion.button>
                     {booking.status === 'pending' && (
                       <>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleApprove(booking.id)}
-                          disabled={actionLoading === booking.id}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50"
-                        >
-                          {actionLoading === booking.id ? 'Approving...' : 'Approve'}
-                        </motion.button>
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
@@ -744,16 +729,12 @@ const LandlordBookings = () => {
 
                 {/* Rejection Modal for Pending Bookings */}
                 {selectedBooking.status === 'pending' && (
-                  <div className="flex gap-3 pt-4 border-t border-gray-200">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleApprove(selectedBooking.id)}
-                      disabled={actionLoading === selectedBooking.id}
-                      className="flex-1 px-4 py-3 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 disabled:opacity-50"
-                    >
-                      {actionLoading === selectedBooking.id ? '⏳ Approving...' : '✓ Approve'}
-                    </motion.button>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <h4 className="font-semibold text-blue-900 mb-2">⏳ Booking Pending - Waiting for Tenant Payment</h4>
+                    <p className="text-sm text-blue-700 mb-3">The tenant has <strong>24 hours</strong> to complete their first payment. Once payment is received, an agreement will automatically be sent to them.</p>
+                    <p className="text-sm text-blue-700">After the tenant signs the agreement, you can approve it through the <strong>Agreement page</strong>.</p>
+                  </div>
+                )}
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
