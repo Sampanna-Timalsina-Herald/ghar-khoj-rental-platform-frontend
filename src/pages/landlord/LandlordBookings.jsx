@@ -6,7 +6,7 @@ import SignaturePad from '../../components/SignaturePad'
 import { toast } from 'sonner'
 import { 
   Calendar, CheckCircle, Eye, FileText, Loader2, XCircle, Grid3X3, List, 
-  User, MapPin, DollarSign, Clock, AlertCircle, Search, X, FileSignature 
+  User, MapPin, DollarSign, Clock, AlertCircle, Search, X, FileSignature, Trash2 
 } from 'lucide-react'
 
 const LandlordBookings = () => {
@@ -26,6 +26,9 @@ const LandlordBookings = () => {
     email: ''
   })
   const [previewImage, setPreviewImage] = useState('')
+  const [deletingBooking, setDeletingBooking] = useState(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [bookingToDelete, setBookingToDelete] = useState(null)
   const [viewMode, setViewMode] = useState('card')
   const [filterStatus, setFilterStatus] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -232,6 +235,29 @@ const LandlordBookings = () => {
     } finally {
       setActionLoading(null)
     }
+  }
+
+  const handleDeleteBooking = async () => {
+    if (!bookingToDelete) return
+
+    try {
+      setDeletingBooking(bookingToDelete.id)
+      await api.delete(`/bookings/${bookingToDelete.id}`)
+      
+      toast.success('Booking deleted successfully')
+      setShowDeleteConfirm(false)
+      setBookingToDelete(null)
+      setSelectedBooking(null)
+      fetchBookings()
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to delete booking')
+    } finally {
+      setDeletingBooking(null)
+    }
+  }
+
+  const canDeleteBooking = (booking) => {
+    return ['completed', 'rejected', 'cancelled', 'expired'].includes(booking.status)
   }
 
   if (loading) {
@@ -822,6 +848,23 @@ const LandlordBookings = () => {
                   </motion.button>
                 )}
 
+                {/* Delete Button for Completed/Rejected Bookings */}
+                {canDeleteBooking(selectedBooking) && (
+                  <div className="pt-4 border-t border-gray-200">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        setBookingToDelete(selectedBooking)
+                        setShowDeleteConfirm(true)
+                      }}
+                      className="w-full px-4 py-3 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 flex items-center justify-center gap-2 transition-colors"
+                    >
+                      <Trash2 size={16} />
+                      Delete Booking
+                    </motion.button>
+                  </div>
+                )}
                 {/* Pending Bookings Actions */}
                 {selectedBooking.status === 'pending' && (
                   <div>
@@ -935,6 +978,75 @@ const LandlordBookings = () => {
                   className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 disabled:opacity-50 transition-colors"
                 >
                   {actionLoading ? '⏳ Rejecting...' : '✕ Reject'}
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showDeleteConfirm && bookingToDelete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowDeleteConfirm(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl"
+            >
+              <div className="text-center mb-5">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mb-3">
+                  <Trash2 size={24} className="text-red-600" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">Delete Booking?</h3>
+                <p className="text-sm text-gray-600 mt-2">
+                  Are you sure you want to permanently delete this booking? This action cannot be undone.
+                </p>
+                <div className="bg-gray-50 rounded-lg p-3 mt-3 text-left">
+                  <p className="text-xs text-gray-500 font-semibold">Booking Details:</p>
+                  <p className="text-sm text-gray-900 mt-1">{bookingToDelete.listing_title}</p>
+                  <p className="text-xs text-gray-600">Tenant: {bookingToDelete.full_name || bookingToDelete.tenant_name}</p>
+                  <p className="text-xs text-gray-600">Status: {bookingToDelete.status}</p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    setShowDeleteConfirm(false)
+                    setBookingToDelete(null)
+                  }}
+                  className="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleDeleteBooking}
+                  disabled={deletingBooking}
+                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  {deletingBooking ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={16} />
+                      Delete
+                    </>
+                  )}
                 </motion.button>
               </div>
             </motion.div>
