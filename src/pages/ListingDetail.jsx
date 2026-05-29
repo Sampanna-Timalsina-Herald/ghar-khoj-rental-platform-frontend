@@ -6,6 +6,7 @@ import api from '../api/axios'
 import SmartNav from '../components/SmartNav'
 import { useAuthStore } from '../stores/authStore'
 import { toast } from 'sonner'
+import { getImageUrl } from '../utils/imageUtils'
 
 const ListingDetail = () => {
   const { id } = useParams()
@@ -143,10 +144,7 @@ const ListingDetail = () => {
     }
   }
 
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return '/placeholder.svg'
-    return imagePath.startsWith('http') ? imagePath : `http://localhost:5000${imagePath}`
-  }
+
 
   const nextImage = () => {
     if (listing?.images && listing.images.length > 0) {

@@ -175,21 +175,20 @@ const EditListing = () => {
     try {
       const submitData = new FormData()
       
-      // Add all form fields - only add values if they exist
+      // Add all form fields - handle empty values properly
       submitData.append('title', formData.title || '')
       submitData.append('description', formData.description || '')
-      submitData.append('rent_amount', formData.rent_amount || '0')
-      submitData.append('bedrooms', formData.bedrooms || '0')
-      submitData.append('bathrooms', formData.bathrooms || '0')
+      submitData.append('rent_amount', formData.rent_amount || '')
+      submitData.append('bedrooms', formData.bedrooms || '')
+      submitData.append('bathrooms', formData.bathrooms || '')
       submitData.append('address', formData.address || '')
       submitData.append('city', formData.city || '')
       submitData.append('college_name', formData.college_name || '')
       
       // For optional numeric fields, only append if they have a value
-      if (formData.deposit_amount) {
+      // Don't append empty strings for numeric fields - let backend handle as NULL
+      if (formData.deposit_amount && formData.deposit_amount !== '') {
         submitData.append('deposit_amount', formData.deposit_amount)
-      } else {
-        submitData.append('deposit_amount', '') // Empty for null/optional
       }
       
       submitData.append('furnished', formData.furnished || 'semi')

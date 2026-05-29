@@ -9,6 +9,7 @@ import {
 import api from '../../api/axios'
 import { useAuthStore } from '../../stores/authStore'
 import TenantMessages from '../../components/TenantMessages.jsx'
+import { getImageUrl } from '../../utils/imageUtils'
 
 const TenantListingDetail = () => {
   const { id } = useParams()
@@ -352,11 +353,6 @@ const TenantListingDetail = () => {
   const canBook = () => {
     const status = listing.booking_status || 'available'
     return status === 'available'
-  }
-
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return '/placeholder.svg'
-    return imagePath.startsWith('http') ? imagePath : `http://localhost:5000${imagePath}`
   }
 
   if (loading) {

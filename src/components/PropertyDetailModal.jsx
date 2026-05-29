@@ -5,6 +5,7 @@ import { Heart, MessageCircle, ChevronLeft, ChevronRight, MapPin, Bed, Bath, Rul
 import { toast } from 'sonner'
 import { useAuthStore } from '../stores/authStore'
 import api from '../api/axios'
+import { getImageUrl } from '../utils/imageUtils'
 
 const PropertyDetailModal = ({ listing, isOpen, onClose }) => {
   const navigate = useNavigate()
@@ -18,10 +19,7 @@ const PropertyDetailModal = ({ listing, isOpen, onClose }) => {
 
   const images = listing.images && listing.images.length > 0 ? listing.images : ['/placeholder.svg']
 
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return '/placeholder.svg'
-    return imagePath.startsWith('http') ? imagePath : `http://localhost:5000${imagePath}`
-  }
+
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % images.length)
