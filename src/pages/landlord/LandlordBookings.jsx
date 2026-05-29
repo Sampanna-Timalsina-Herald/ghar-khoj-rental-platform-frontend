@@ -19,6 +19,12 @@ const LandlordBookings = () => {
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [rejectionReason, setRejectionReason] = useState('')
   const [landlordSignature, setLandlordSignature] = useState('')
+  const [landlordDetails, setLandlordDetails] = useState({
+    citizenship_number: '',
+    citizenship_district: '',
+    phone: '',
+    email: ''
+  })
   const [previewImage, setPreviewImage] = useState('')
   const [viewMode, setViewMode] = useState('card')
   const [filterStatus, setFilterStatus] = useState('all')
@@ -195,14 +201,28 @@ const LandlordBookings = () => {
       return
     }
 
+    // Validate landlord details
+    if (!landlordDetails.citizenship_number || !landlordDetails.citizenship_district || 
+        !landlordDetails.phone || !landlordDetails.email) {
+      toast.error('Please fill in all landlord details')
+      return
+    }
+
     try {
       setActionLoading(bookingId)
       const response = await api.put(`/bookings/${bookingId}/landlord-verify-start`, {
-        landlord_signature: landlordSignature
+        landlord_signature: landlordSignature,
+        landlord_details: landlordDetails
       })
 
       if (response.data.success) {
         setLandlordSignature('')
+        setLandlordDetails({
+          citizenship_number: '',
+          citizenship_district: '',
+          phone: '',
+          email: ''
+        })
         setSelectedBooking(null)
         toast.success('Verified successfully. Rent is now active.')
         fetchBookings()
@@ -691,13 +711,74 @@ const LandlordBookings = () => {
                   <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-300 rounded-xl p-5">
                     <h3 className="text-lg font-bold text-indigo-900 mb-3 flex items-center gap-2">
                       <FileSignature size={18} />
-                      Landlord Digital Signature & Verification
+                      Landlord Details & Digital Signature
                     </h3>
                     <p className="text-sm text-indigo-800 mb-4">
-                      Tenant has completed payment and signed the agreement. Please draw your signature below to verify and start the rental.
+                      Tenant has completed payment and signed the agreement. Please provide your details and draw your signature below to verify and start the rental.
                     </p>
                     
+                    {/* Landlord Details Form */}
+                    <div className="bg-white rounded-lg p-4 mb-4 space-y-3">
+                      <h4 className="font-semibold text-gray-900 mb-3">Your Information</h4>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                            Citizenship Number *
+                          </label>
+                          <input
+                            type="text"
+                            value={landlordDetails.citizenship_number}
+                            onChange={(e) => setLandlordDetails({...landlordDetails, citizenship_number: e.target.value})}
+                            placeholder="e.g., 12345678"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                            Citizenship Issued District *
+                          </label>
+                          <input
+                            type="text"
+                            value={landlordDetails.citizenship_district}
+                            onChange={(e) => setLandlordDetails({...landlordDetails, citizenship_district: e.target.value})}
+                            placeholder="e.g., Kathmandu"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                            Phone Number *
+                          </label>
+                          <input
+                            type="tel"
+                            value={landlordDetails.phone}
+                            onChange={(e) => setLandlordDetails({...landlordDetails, phone: e.target.value})}
+                            placeholder="e.g., 9812345678"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                            Email Address *
+                          </label>
+                          <input
+                            type="email"
+                            value={landlordDetails.email}
+                            onChange={(e) => setLandlordDetails({...landlordDetails, email: e.target.value})}
+                            placeholder="e.g., landlord@example.com"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Signature Pad */}
                     <div className="bg-white rounded-lg p-4 mb-4">
+                      <h4 className="font-semibold text-gray-900 mb-3">Your Signature</h4>
                       <SignaturePad
                         onSignatureChange={setLandlordSignature}
                         disabled={false}
@@ -709,7 +790,9 @@ const LandlordBookings = () => {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleVerifyStart(selectedBooking.id)}
-                      disabled={actionLoading === selectedBooking.id || !landlordSignature}
+                      disabled={actionLoading === selectedBooking.id || !landlordSignature || 
+                                !landlordDetails.citizenship_number || !landlordDetails.citizenship_district ||
+                                !landlordDetails.phone || !landlordDetails.email}
                       className="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
                     >
                       {actionLoading === selectedBooking.id ? (
