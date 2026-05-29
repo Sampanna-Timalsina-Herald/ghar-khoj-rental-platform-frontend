@@ -10,6 +10,7 @@ import api from '../../api/axios'
 import { useAuthStore } from '../../stores/authStore'
 import TenantMessages from '../../components/TenantMessages.jsx'
 import { getImageUrl } from '../../utils/imageUtils'
+import { toast } from 'sonner'
 
 const TenantListingDetail = () => {
   const { id } = useParams()
@@ -208,12 +209,12 @@ const TenantListingDetail = () => {
 
     const missingEntry = Object.entries(requiredFieldMap).find(([key]) => !bookingForm[key])
     if (missingEntry) {
-      showToastMessage('error', 'Missing Information', `${missingEntry[1]} is required`)
+      toast.error(`${missingEntry[1]} is required`)
       return
     }
 
     if (!bookingForm.citizenship_front_image || !bookingForm.citizenship_back_image) {
-      showToastMessage('error', 'Missing Documents', 'Please upload both citizenship front and back images')
+      toast.error('Please upload both citizenship front and back images')
       return
     }
 
@@ -221,7 +222,7 @@ const TenantListingDetail = () => {
     const startDate = new Date(bookingForm.start_date)
     const endDate = new Date(bookingForm.end_date)
     if (endDate <= startDate) {
-      showToastMessage('error', 'Invalid Dates', 'Move-out date must be after move-in date')
+      toast.error('Move-out date must be after move-in date')
       return
     }
 
@@ -248,13 +249,19 @@ const TenantListingDetail = () => {
       formData.append('citizenship_front_image', bookingForm.citizenship_front_image)
       formData.append('citizenship_back_image', bookingForm.citizenship_back_image)
 
+      // Log FormData for debugging
+      console.log('[TenantListingDetail] Booking FormData:', {
+        listing_id: listing.id,
+        full_name: bookingForm.full_name,
+        citizenship_front_image: bookingForm.citizenship_front_image?.name,
+        citizenship_back_image: bookingForm.citizenship_back_image?.name,
+        start_date: bookingForm.start_date,
+        end_date: bookingForm.end_date
+      })
+
       await api.post('/bookings', formData)
 
-      showToastMessage(
-        'success', 
-        'Booking Request Sent Successfully', 
-        'The landlord will review your request. You\'ll be notified once they respond.'
-      )
+      toast.success('Booking request sent successfully! The landlord will review your request.')
       setShowBookingForm(false)
       setBookingForm({
         full_name: '',
@@ -276,11 +283,8 @@ const TenantListingDetail = () => {
       fetchListing()
     } catch (error) {
       console.error('Failed to send booking:', error)
-      showToastMessage(
-        'error',
-        'Booking Failed',
-        error.response?.data?.error || 'Failed to send booking request. Please try again.'
-      )
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to send booking request. Please try again.'
+      toast.error(errorMessage)
     } finally {
       setSendingBooking(false)
     }
