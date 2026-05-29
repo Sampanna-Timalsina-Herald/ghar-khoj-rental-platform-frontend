@@ -727,24 +727,26 @@ const LandlordBookings = () => {
                   </motion.button>
                 )}
 
-                {/* Rejection Modal for Pending Bookings */}
+                {/* Pending Bookings Actions */}
                 {selectedBooking.status === 'pending' && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                    <h4 className="font-semibold text-blue-900 mb-2">⏳ Booking Pending - Waiting for Tenant Payment</h4>
-                    <p className="text-sm text-blue-700 mb-3">The tenant has <strong>24 hours</strong> to complete their first payment. Once payment is received, an agreement will automatically be sent to them.</p>
-                    <p className="text-sm text-blue-700">After the tenant signs the agreement, you can approve it through the <strong>Agreement page</strong>.</p>
-                  </div>
-                )}
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        setShowRejectModal(true)
-                      }}
-                      className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700"
-                    >
-                      ✕ Reject
-                    </motion.button>
+                  <div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                      <h4 className="font-semibold text-blue-900 mb-2">⏳ Booking Pending - Waiting for Tenant Payment</h4>
+                      <p className="text-sm text-blue-700 mb-3">The tenant has <strong>24 hours</strong> to complete their first payment. Once payment is received, an agreement will automatically be sent to them.</p>
+                      <p className="text-sm text-blue-700">After the tenant signs the agreement, you can approve it through the <strong>Agreement page</strong>.</p>
+                    </div>
+                    <div className="pt-4 border-t border-gray-200">
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          setShowRejectModal(true)
+                        }}
+                        className="w-full px-4 py-3 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700"
+                      >
+                        ✕ Reject Booking
+                      </motion.button>
+                    </div>
                   </div>
                 )}
 
