@@ -343,6 +343,16 @@ const TenantHome = () => {
               
               const badge = getBadgeConfig(matchScore)
               const imageUrl = getListingImageUrl(property)
+              
+              // Debug logging
+              if (!imageUrl || imageUrl === '/placeholder.svg') {
+                console.warn('[TenantHome Recommendations] Missing or placeholder image for property:', {
+                  id: property.id,
+                  title: property.title,
+                  images: property.images,
+                  imageUrl
+                })
+              }
 
               return (
                 <motion.div
@@ -361,11 +371,19 @@ const TenantHome = () => {
                   </div>
 
                   {/* Image Container */}
-                  <div className="relative overflow-hidden h-48">
+                  <div className="relative overflow-hidden h-48 bg-gray-200">
                     <img
                       src={imageUrl}
                       alt={property.title || property.address}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        console.error('[TenantHome Recommendations] Image failed to load:', {
+                          url: imageUrl,
+                          propertyId: property.id,
+                          error: e.message
+                        })
+                        e.target.src = '/placeholder.svg'
+                      }}
                     />
                     
                     {/* Favorite Button */}
@@ -527,12 +545,21 @@ const TenantHome = () => {
                   className="bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-all duration-300 cursor-pointer group"
                 >
                   {/* Image Container */}
-                  <div className="relative overflow-hidden h-48">
+                  <div className="relative overflow-hidden h-48 bg-gray-200">
                     <img
                       src={getListingImageUrl(listing)}
                       alt={listing.title || listing.address}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
                       onClick={() => handleViewProperty(listing.id)}
+                      onError={(e) => {
+                        console.error('[TenantHome Featured] Image failed to load:', {
+                          url: getListingImageUrl(listing),
+                          listingId: listing.id,
+                          images: listing.images,
+                          error: e.message
+                        })
+                        e.target.src = '/placeholder.svg'
+                      }}
                     />
                     
                     {/* Favorite Button */}
