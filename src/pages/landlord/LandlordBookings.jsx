@@ -149,6 +149,26 @@ const LandlordBookings = () => {
     }
   }
 
+  const handleResetToPending = async (bookingId) => {
+    if (!window.confirm('Reset this booking back to pending? This will allow tenant to proceed when ready.')) {
+      return
+    }
+
+    try {
+      setActionLoading(bookingId)
+      const response = await api.put(`/bookings/${bookingId}/reset-to-pending`)
+      if (response.data.success) {
+        toast.success('✓ Booking reset to pending. Tenant will be notified.')
+        setSelectedBooking(null)
+        fetchBookings()
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to reset booking')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   const handleVerifyStart = async (bookingId) => {
     if (!landlordSignature) {
       toast.error('Digital signature is required for verification')
@@ -370,6 +390,18 @@ const LandlordBookings = () => {
                       {actionLoading === booking.id ? '⏳' : 'Approve'}
                     </motion.button>
                   )}
+                  {booking.status === 'approved' && (
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleResetToPending(booking.id)}
+                      disabled={actionLoading === booking.id}
+                      className="flex-1 px-3 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700 disabled:opacity-50"
+                      title="Reset booking if tenant hasn't paid yet"
+                    >
+                      {actionLoading === booking.id ? '⏳' : '🔄 Reset'}
+                    </motion.button>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -438,6 +470,18 @@ const LandlordBookings = () => {
                           Reject
                         </motion.button>
                       </>
+                    )}
+                    {booking.status === 'approved' && (
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleResetToPending(booking.id)}
+                        disabled={actionLoading === booking.id}
+                        className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700 disabled:opacity-50"
+                        title="Reset booking if tenant hasn't paid yet"
+                      >
+                        {actionLoading === booking.id ? 'Resetting...' : '🔄 Reset to Pending'}
+                      </motion.button>
                     )}
                   </div>
                 </div>
@@ -699,6 +743,22 @@ const LandlordBookings = () => {
                       className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700"
                     >
                       ✕ Reject
+                    </motion.button>
+                  </div>
+                )}
+
+                {/* Reset for Approved Bookings */}
+                {selectedBooking.status === 'approved' && (
+                  <div className="pt-4 border-t border-gray-200">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => handleResetToPending(selectedBooking.id)}
+                      disabled={actionLoading === selectedBooking.id}
+                      className="w-full px-4 py-3 bg-amber-600 text-white rounded-xl text-sm font-bold hover:bg-amber-700 disabled:opacity-50"
+                      title="Reset booking back to pending if tenant hasn't paid yet"
+                    >
+                      {actionLoading === selectedBooking.id ? '⏳ Resetting...' : '🔄 Reset to Pending'}
                     </motion.button>
                   </div>
                 )}
