@@ -156,14 +156,34 @@ const LandlordBookings = () => {
 
     try {
       setActionLoading(bookingId)
+      
+      // First, refresh bookings to ensure we have the latest status
+      const refreshResponse = await api.get('/bookings')
+      const latestBooking = refreshResponse.data.data?.find(b => b.id === bookingId)
+      
+      if (!latestBooking) {
+        toast.error('❌ Booking not found. Please refresh and try again.')
+        setActionLoading(null)
+        return
+      }
+      
+      if (latestBooking.status !== 'approved') {
+        toast.error(`❌ Booking status is "${latestBooking.status}", not "approved". Can only reset approved bookings with no payment made.`)
+        setActionLoading(null)
+        return
+      }
+      
+      // Now proceed with reset
       const response = await api.put(`/bookings/${bookingId}/reset-to-pending`)
       if (response.data.success) {
-        toast.success('✓ Booking reset to pending. Tenant will be notified.')
+        toast.success('✅ Booking reset to pending. Tenant will be notified to complete payment.')
         setSelectedBooking(null)
         fetchBookings()
       }
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to reset booking')
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to reset booking'
+      toast.error(`❌ ${errorMsg}`)
+      console.error('Reset booking error:', error.response?.data || error)
     } finally {
       setActionLoading(null)
     }
