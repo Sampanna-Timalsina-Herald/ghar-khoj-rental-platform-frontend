@@ -400,21 +400,23 @@ const LandlordBookings = () => {
                     <Eye size={14} /> View
                   </motion.button>
                   {booking.status === 'pending' && (
-                    <div className="flex-1 px-3 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm font-semibold text-center">
-                      ⏳ Waiting for payment
-                    </div>
+                    <>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleApprove(booking.id)}
+                        disabled={actionLoading === booking.id}
+                        className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                      >
+                        {actionLoading === booking.id ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                        Approve
+                      </motion.button>
+                    </>
                   )}
                   {booking.status === 'approved' && (
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleResetToPending(booking.id)}
-                      disabled={actionLoading === booking.id}
-                      className="flex-1 px-3 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700 disabled:opacity-50"
-                      title="Reset booking if tenant hasn't paid yet"
-                    >
-                      {actionLoading === booking.id ? '⏳' : '🔄 Reset'}
-                    </motion.button>
+                    <div className="flex-1 px-3 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm font-semibold text-center">
+                      ⏳ Waiting Payment
+                    </div>
                   )}
                 </div>
               </motion.div>
@@ -463,6 +465,16 @@ const LandlordBookings = () => {
                     </motion.button>
                     {booking.status === 'pending' && (
                       <>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleApprove(booking.id)}
+                          disabled={actionLoading === booking.id}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50 flex items-center gap-1.5"
+                        >
+                          {actionLoading === booking.id ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                          Approve
+                        </motion.button>
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
@@ -730,21 +742,41 @@ const LandlordBookings = () => {
                 {/* Pending Bookings Actions */}
                 {selectedBooking.status === 'pending' && (
                   <div>
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                      <h4 className="font-semibold text-blue-900 mb-2">⏳ Booking Pending - Waiting for Tenant Payment</h4>
-                      <p className="text-sm text-blue-700 mb-3">The tenant has <strong>24 hours</strong> to complete their first payment. Once payment is received, an agreement will automatically be sent to them.</p>
-                      <p className="text-sm text-blue-700">After the tenant signs the agreement, you can approve it through the <strong>Agreement page</strong>.</p>
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                      <h4 className="font-semibold text-yellow-900 mb-2">⏳ Booking Pending - Awaiting Your Approval</h4>
+                      <p className="text-sm text-yellow-700 mb-3">Review the tenant's information and documents. Once you approve, the tenant will have <strong>24 hours</strong> to complete their first payment (rent + deposit) and sign the agreement.</p>
+                      <p className="text-sm text-yellow-700">After the tenant completes payment and signs, you'll need to sign the agreement to activate the rental.</p>
                     </div>
-                    <div className="pt-4 border-t border-gray-200">
+                    <div className="pt-4 border-t border-gray-200 flex gap-3">
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleApprove(selectedBooking.id)}
+                        disabled={actionLoading === selectedBooking.id}
+                        className="flex-1 px-4 py-3 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {actionLoading === selectedBooking.id ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin" />
+                            Approving...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle size={16} />
+                            Approve Booking
+                          </>
+                        )}
+                      </motion.button>
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => {
                           setShowRejectModal(true)
                         }}
-                        className="w-full px-4 py-3 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700"
+                        className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 flex items-center justify-center gap-2"
                       >
-                        ✕ Reject Booking
+                        <XCircle size={16} />
+                        Reject Booking
                       </motion.button>
                     </div>
                   </div>

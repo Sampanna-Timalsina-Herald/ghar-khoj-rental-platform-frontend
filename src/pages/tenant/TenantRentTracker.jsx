@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Calendar, CreditCard, Loader2, Wallet, CheckCircle, AlertCircle, History, Home, Eye } from 'lucide-react'
 import api from '../../api/axios'
@@ -23,6 +24,7 @@ const monthsBetween = (start, end) => {
 }
 
 const TenantRentTracker = () => {
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [bookings, setBookings] = useState([])
   const [payments, setPayments] = useState([])
@@ -87,7 +89,7 @@ const TenantRentTracker = () => {
 
   const activeRentals = useMemo(() => {
     const bookingsArray = Array.isArray(bookings) ? bookings : []
-    return bookingsArray.filter((b) => ['active', 'tenant_accepted'].includes(b.status))
+    return bookingsArray.filter((b) => ['active', 'tenant_accepted', 'approved'].includes(b.status))
   }, [bookings])
 
   const getCompletedPaymentsForBooking = (bookingId) => {
@@ -271,6 +273,91 @@ const TenantRentTracker = () => {
       ) : (
         <div className="space-y-4">
           {activeRentals.map((booking) => {
+            // Special handling for approved bookings (not yet paid)
+            if (booking.status === 'approved') {
+              return (
+                <div
+                  key={booking.id}
+                  className="bg-gradient-to-br from-blue-50 to-white border-2 border-blue-300 rounded-xl overflow-hidden"
+                >
+                  {/* Property Header */}
+                  <div className="p-5 border-b border-blue-100 bg-blue-50">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">{booking.listing_title || 'Property'}</h3>
+                        <p className="text-sm text-gray-600 mt-0.5">
+                          {booking.listing_address}, {booking.listing_city}
+                        </p>
+                      </div>
+                      <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-blue-600 text-white">
+                        ✓ APPROVED
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action Required Notice */}
+                  <div className="p-5">
+                    <div className="bg-blue-100 border border-blue-300 rounded-lg p-4 mb-4">
+                      <h4 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
+                        <AlertCircle size={18} />
+                        Action Required: Complete Payment & Sign Agreement
+                      </h4>
+                      <p className="text-sm text-blue-800 mb-3">
+                        Your booking has been approved by the landlord! You have <strong>24 hours</strong> to:
+                      </p>
+                      <ol className="text-sm text-blue-800 space-y-1 ml-4 list-decimal">
+                        <li>Pay the first payment (rent + security deposit)</li>
+                        <li>Review and sign the rental agreement</li>
+                      </ol>
+                    </div>
+
+                    {/* Payment Details */}
+                    <div className="grid grid-cols-2 gap-4 mb-5">
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <p className="text-xs text-gray-500 mb-1">Monthly Rent</p>
+                        <p className="text-lg font-bold text-gray-900">
+                          Rs. {Number(booking.monthly_rent || 0).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <p className="text-xs text-gray-500 mb-1">Security Deposit</p>
+                        <p className="text-lg font-bold text-gray-900">
+                          Rs. {Number(booking.security_deposit || 0).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-5">
+                      <p className="text-xs text-green-600 font-semibold mb-1">TOTAL FIRST PAYMENT</p>
+                      <p className="text-2xl font-bold text-green-700">
+                        Rs. {(Number(booking.monthly_rent || 0) + Number(booking.security_deposit || 0)).toLocaleString()}
+                      </p>
+                    </div>
+
+                    {/* Rental Period */}
+                    <div className="flex items-center gap-4 text-xs text-gray-500 mb-5">
+                      <span>
+                        <span className="text-gray-400">From:</span> {new Date(booking.start_date).toLocaleDateString()}
+                      </span>
+                      <span>
+                        <span className="text-gray-400">To:</span> {new Date(booking.end_date).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    {/* Action Button */}
+                    <button
+                      onClick={() => navigate(`/tenant/rent-flow/${booking.id}`)}
+                      className="w-full px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <CreditCard size={18} />
+                      Proceed to Payment & Signature
+                    </button>
+                  </div>
+                </div>
+              )
+            }
+
+            // Regular active/tenant_accepted bookings
             const completedPayments = getCompletedPaymentsForBooking(booking.id)
             const nextDue = computeNextDue(booking, completedPayments.length)
             const daysUntilDue = Math.ceil((nextDue - new Date()) / (1000 * 60 * 60 * 24))
