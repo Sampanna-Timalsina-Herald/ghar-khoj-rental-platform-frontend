@@ -740,7 +740,7 @@ const RegisterPage = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} noValidate className="space-y-5">
             
             {step === 'register' ? renderRegistrationForm() : renderVerificationForm()}
             
