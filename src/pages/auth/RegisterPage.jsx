@@ -14,14 +14,15 @@ import {
   Building2, 
   ArrowRight,
   Lock,
-  MailCheck,
+  AlertCircle,
   X
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 import Input from './ui/Input';
 import api from '../../api/axios';
 
-import { validatePasswordStrength, getPasswordStrengthMessage } from '../../utils/password-validator'; 
+import { validatePasswordStrength } from '../../utils/password-validator'; 
 
 const UserRole = {
   TENANT: "tenant",
@@ -54,6 +55,45 @@ const itemVariants = {
 const imageVariants = {
   hidden: { opacity: 0, scale: 1.1 },
   visible: { opacity: 1, scale: 1, transition: { duration: 1.5, ease: "easeInOut" } },
+};
+
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const passwordRequirementsMessage =
+  'Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.';
+
+const mapRegisterApiErrors = (data) => {
+  const fieldErrors = {};
+  const message = data?.error || data?.message || '';
+
+  if (Array.isArray(data?.errors)) {
+    data.errors.forEach((err) => {
+      if (err?.field === 'email') {
+        fieldErrors.email = 'Please enter a valid email address';
+      } else if (err?.field === 'password') {
+        fieldErrors.password = passwordRequirementsMessage;
+      } else if (err?.field === 'confirmPassword') {
+        fieldErrors.confirmPassword = 'Passwords do not match';
+      } else if (err?.field === 'name') {
+        fieldErrors.name = 'This field is required';
+      } else if (err?.field === 'phone') {
+        fieldErrors.phone = 'This field is required';
+      } else if (err?.field === 'role') {
+        fieldErrors.role = 'Please select a role';
+      }
+    });
+  }
+
+  if (/email already registered|already exists/i.test(message)) {
+    fieldErrors.email = 'Email already registered';
+  } else if (/invalid email/i.test(message)) {
+    fieldErrors.email = 'Please enter a valid email address';
+  } else if (/password.*security requirements|password must be at least|password must contain/i.test(message)) {
+    fieldErrors.password = passwordRequirementsMessage;
+  } else if (/passwords do not match/i.test(message)) {
+    fieldErrors.confirmPassword = 'Passwords do not match';
+  }
+
+  return fieldErrors;
 };
 const PasswordFeedback = ({ password }) => {
     if (!password) return null;
@@ -113,17 +153,13 @@ const PasswordMatchFeedback = ({ password, confirmPassword }) => {
 
     const isMatch = password === confirmPassword;
 
+  if (!isMatch) return null;
+
     return (
         <div className="mt-2 text-xs">
             <div className="flex items-center gap-2">
-                {isMatch ? (
-                    <CheckCircle2 size={14} className="text-green-500 flex-shrink-0" />
-                ) : (
-                    <X size={14} className="text-red-500 flex-shrink-0" />
-                )}
-                <span className={isMatch ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-                    {isMatch ? '✓ Passwords Match' : '✗ Passwords Don\'t Match'}
-                </span>
+        <CheckCircle2 size={14} className="text-green-500 flex-shrink-0" />
+        <span className="text-green-600 font-semibold">✓ Passwords Match</span>
             </div>
         </div>
     );
@@ -155,10 +191,9 @@ const RegisterPage = () => {
   const [successMessage, setSuccessMessage] = useState(''); // Used for all info/success messages
   const [isVerified, setIsVerified] = useState(false); // NEW: Controls the final redirect countdown
   const [redirectCountdown, setRedirectCountdown] = useState(3);
+  const [pendingToast, setPendingToast] = useState(null);
 
   // 🟢 State for Password Validation Feedback
-  const [passwordStrengthResult, setPasswordStrengthResult] = useState({});
-
   // Error States
   const [errors, setErrors] = useState({}); // Local form validation errors
   const [apiError, setApiError] = useState(''); // Global API errors for both steps
@@ -196,50 +231,77 @@ const RegisterPage = () => {
     return () => clearInterval(redirectInterval);
   }, [isVerified, redirectCountdown, navigate, formData.email, step]);
 
+  useEffect(() => {
+    if (!pendingToast) return;
+
+    const { type, message } = pendingToast;
+    if (type === 'success') {
+      toast.success(message);
+    } else if (type === 'warning') {
+      toast.warning(message);
+    } else {
+      toast.error(message);
+    }
+
+    setPendingToast(null);
+  }, [pendingToast]);
+
   // ------------------------------------------------------------------
   // --- VALIDATION AND CHANGE HANDLERS ---
   // ------------------------------------------------------------------
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = 'Full name is required';
-    if (!formData.email.includes('@')) newErrors.email = 'Please enter a valid email';
-    
-    // 🟢 CHANGE: Use the utility function's strict check for form submission
-    if (!validatePasswordStrength(formData.password).isStrong) {
-        newErrors.password = 'Password is not strong enough';
+    const email = formData.email.trim();
+    const password = formData.password;
+    const confirmPassword = formData.confirmPassword;
+
+    if (!formData.name.trim()) newErrors.name = 'This field is required';
+    if (!email) {
+    newErrors.email = 'This field is required';
+  } else if (!emailPattern.test(email)) {
+    newErrors.email = 'Please enter a valid email address';
+  }
+
+    if (!formData.phone.trim()) newErrors.phone = 'This field is required';
+  if (!formData.role) newErrors.role = 'Please select a role';
+
+    if (!password) {
+    newErrors.password = 'This field is required';
+  } else {
+    const strength = validatePasswordStrength(password);
+    if (!strength.isStrong) {
+      newErrors.password = passwordRequirementsMessage;
     }
-    
-    if (formData.password !== formData.confirmPassword)
+  }
+
+    if (!confirmPassword) {
+    newErrors.confirmPassword = 'This field is required';
+  } else if (password !== confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
-    if (!formData.phone) newErrors.phone = 'Phone number is required';
+  }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  return newErrors;
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // 🟢 NEW: Live Password Validation Logic
-    if (name === 'password') {
-        const result = validatePasswordStrength(value);
-        setPasswordStrengthResult(result);
-        
-        // Also clear password error if a password is typed
-        if (errors.password) {
-            setErrors(prev => ({ ...prev, password: '' }));
-        }
-    }
 
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+  if (apiError) {
+    setApiError('');
+  }
   };
 
   const handleRoleSelect = (role) => {
     setFormData(prev => ({ ...prev, role }));
+  if (errors.role) {
+    setErrors(prev => ({ ...prev, role: '' }));
+  }
   };
   
   // ------------------------------------------------------------------
@@ -276,9 +338,11 @@ const RegisterPage = () => {
       await api.post('/auth/resend-otp', { email: formData.email });
       setTimer(60); 
       setSuccessMessage('New OTP sent! Check your email inbox.');
+      toast.success('New OTP sent! Check your email inbox.');
     } catch (err) {
       const errorDetail = err.response?.data?.error || 'Failed to resend OTP. Try again later.';
       setApiError(errorDetail);
+      toast.error(errorDetail);
     } finally {
       setResending(false);
     }
@@ -294,7 +358,28 @@ const RegisterPage = () => {
     setApiError('');
 
     if (step === 'register') {
-      handleRegister();
+      const validationErrors = validateForm();
+      const missingFields = [];
+
+      if (!formData.name.trim()) missingFields.push('name');
+      if (!formData.email.trim()) missingFields.push('email');
+      if (!formData.phone.trim()) missingFields.push('phone');
+      if (!formData.role) missingFields.push('role');
+      if (!formData.password) missingFields.push('password');
+      if (!formData.confirmPassword) missingFields.push('confirmPassword');
+
+      setErrors(validationErrors);
+
+      if (Object.keys(validationErrors).length > 0) {
+        const toastMessage = missingFields.length > 1
+          ? 'Please fill all the details.'
+          : 'Please fix the highlighted field.';
+
+        toast.error(toastMessage);
+        return;
+      }
+
+      handleRegister();
     } else if (step === 'verify') {
       handleVerifyOTP();
     }
@@ -302,16 +387,9 @@ const RegisterPage = () => {
 
   // 2. Step 1: Register the user
   const handleRegister = async () => {
-    // 🟢 NEW: Check strength result before form submission
-    if (!validatePasswordStrength(formData.password).isStrong) {
-        setErrors(prev => ({ ...prev, password: 'Password does not meet security requirements.' }));
-        setApiError('Password must be strong (min 8 chars, including special, caps, and numbers).');
-        return;
-    }
-    
-    if (!validateForm()) return;
     setLoading(true);
     setSuccessMessage('');
+  setApiError('');
 
     try {
       await api.post('/auth/register', {
@@ -326,10 +404,30 @@ const RegisterPage = () => {
       setStep('verify');
       setTimer(60); // Start the resend timer
       setSuccessMessage(`OTP sent to ${formData.email}. Please verify your account.`);
+        setPendingToast({
+          type: 'success',
+          message: `OTP sent to ${formData.email}. Please verify your account.`,
+        });
       setOtp(['', '', '', '', '', '']);
     } catch (err) {
-      const errorDetail = err.response?.data?.message || err.response?.data?.error || 'Registration failed. Check if email is already in use.';
-      setApiError(errorDetail);
+      const errorData = err.response?.data || {};
+
+      if (err.response?.status === 400) {
+        const mappedErrors = mapRegisterApiErrors(errorData);
+        if (Object.keys(mappedErrors).length > 0) {
+          setErrors((prev) => ({ ...prev, ...mappedErrors }));
+          setApiError('');
+          setPendingToast({
+            type: 'error',
+            message: Object.values(mappedErrors)[0] || 'Please fix the highlighted fields.',
+          });
+          return;
+        }
+      }
+
+      const message = errorData.error || errorData.message || 'Registration failed. Please try again.';
+      setApiError(message);
+	  setPendingToast({ type: 'error', message });
     } finally {
       setLoading(false);
     }
@@ -340,6 +438,7 @@ const RegisterPage = () => {
     const otpString = otp.join('');
     if (otpString.length !== 6) {
       setApiError('Please enter all 6 digits of the OTP.');
+        setPendingToast({ type: 'error', message: 'Please enter all 6 digits of the OTP.' });
       return;
     }
 
@@ -353,10 +452,12 @@ const RegisterPage = () => {
       setSuccessMessage('🎉 Email verified successfully! Redirecting to login...');
       setIsVerified(true); // <--- This flag now triggers the countdown and redirect
       setApiError(''); 
+        setPendingToast({ type: 'success', message: 'Email verified successfully! Redirecting to login...' });
     } catch (err) {
       const errorDetail = err.response?.data?.error || 'Invalid OTP. Please try again.';
       setApiError(errorDetail);
       setOtp(['', '', '', '', '', '']); // Clear OTP input on failure
+        setPendingToast({ type: 'error', message: errorDetail });
     } finally {
       setLoading(false);
     }
@@ -409,6 +510,13 @@ const RegisterPage = () => {
         </button>
 
       </div>
+
+      {errors.role && (
+        <p className="-mt-2 mb-4 text-xs text-red-500 flex items-center gap-1">
+          <AlertCircle size={12} />
+          <span>{errors.role}</span>
+        </p>
+      )}
 
       <Input
         label="Full Name"
@@ -631,23 +739,6 @@ const RegisterPage = () => {
               {step === 'register' ? 'Join Gharkhoj Today' : 'A quick step to finalize your registration.'}
             </p>
           </div>
-
-          {/* Global API Error Display */}
-          {apiError && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl flex items-start gap-3 text-sm animate-slide-up">
-              <CheckCircle2 size={18} className="mt-0.5 flex-shrink-0 text-red-500 transform rotate-45" />
-              {apiError}
-            </div>
-          )}
-
-          {/* Global Success Message Display */}
-          {successMessage && !apiError && (
-             <div className="mb-6 p-4 flex items-center justify-center bg-green-50 border border-green-200 text-green-700 rounded-xl shadow-sm animate-fadeIn">
-              <MailCheck size={20} className="mr-2" />
-              {/* Only show the countdown if isVerified is true */}
-              <span>{successMessage} {isVerified && redirectCountdown > 0 && <strong>({redirectCountdown}s)</strong>}</span>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             

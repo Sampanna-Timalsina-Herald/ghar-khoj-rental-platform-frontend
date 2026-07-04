@@ -37,12 +37,17 @@ const imageVariants = {
   visible: { opacity: 1, scale: 1, transition: { duration: 1.5, ease: "easeInOut" } },
 };
 
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const genericLoginError = "Invalid email or password";
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const loginStore = useAuthStore((state) => state.login);
 
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState("");
 
   const [formData, setFormData] = useState({
     email: "",
@@ -56,29 +61,83 @@ const LoginPage = () => {
   const otpInputRefs = useRef([]);
 
   const handleChange = (e) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+    setFormError("");
+  };
+
+  const validateForm = () => {
+    const nextErrors = {};
+    const email = formData.email.trim();
+    const password = formData.password;
+
+    if (!email) {
+      nextErrors.email = "Please enter your email address";
+    } else if (!emailPattern.test(email)) {
+      nextErrors.email = "Please enter a valid email address";
+    }
+
+    if (!password) {
+      nextErrors.password = "Please enter your password";
+    }
+
+    return nextErrors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const validationErrors = validateForm();
+    setErrors(validationErrors);
+    setFormError("");
+
+    if (Object.keys(validationErrors).length > 0) {
+      const missingBoth = validationErrors.email && validationErrors.password;
+      toast.error(
+        missingBoth
+          ? "Please enter your email address and password."
+          : validationErrors.email || validationErrors.password || "Please fix the highlighted fields."
+      );
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // STEP 1: Fetch role from backend based on email
-      const roleResponse = await api.get("/auth/getUserRoleByEmail", {
-        params: { email: formData.email },
-      });
+      const email = formData.email.trim();
 
-      if (!roleResponse.data.success) {
-        toast.error("User not found");
-        setLoading(false);
+      // STEP 1: Fetch role from backend based on email
+      let role;
+
+      try {
+        const roleResponse = await api.get("/auth/getUserRoleByEmail", {
+          params: { email },
+        });
+
+        if (!roleResponse.data.success) {
+          setFormError(genericLoginError);
+          toast.error(genericLoginError);
+          return;
+        }
+
+        role = roleResponse.data.role;
+      } catch (roleErr) {
+        const status = roleErr.response?.status;
+        if (status === 429) {
+          const message = roleErr.response?.data?.error || "Too many login attempts. Please try again later.";
+          setFormError(message);
+          toast.error(message);
+        } else {
+          setFormError(genericLoginError);
+          toast.error(genericLoginError);
+        }
         return;
       }
 
-    const role = roleResponse.data.role;
       // STEP 2: Login
       const response = await api.post("/auth/login", {
-        email: formData.email,
+        email,
         password: formData.password,
         role,
       });
@@ -146,10 +205,18 @@ const LoginPage = () => {
       if (errorData.requiresOTPVerification && errorData.email) {
         setShowOTPVerification(true);
         setOtpTimer(60);
+        toast.error(errorData.error || "Email verification is required.");
         return;
       }
       
-      toast.error(errorData.error || "Login failed. Please try again.");
+      if (err.response?.status === 429) {
+        const message = errorData.error || "Too many login attempts. Please try again later.";
+        setFormError(message);
+        toast.error(message);
+      } else {
+        setFormError(genericLoginError);
+        toast.error(genericLoginError);
+      }
     } finally {
       setLoading(false);
     }
